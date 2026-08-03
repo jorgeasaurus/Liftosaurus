@@ -6,6 +6,7 @@
 	import type { RouterOutputs } from '$lib/trpc/router';
 	import { onMount } from 'svelte';
 	import DiscordIcon from 'virtual:icons/ic/baseline-discord';
+	import DashboardMetricsCard from './(components)/DashboardMetricsCard.svelte';
 	import GetStartedComponent from './(components)/GetStartedComponent.svelte';
 	import TodaysWorkoutCard from './(components)/TodaysWorkoutCard.svelte';
 
@@ -32,6 +33,8 @@
 
 <H3>Today's workout</H3>
 <TodaysWorkoutCard {...data} />
+
+<DashboardMetricsCard chartData={data.dashboardChartData} />
 
 {#if !dismissDiscord}
 	<Card.Root class="mt-2">

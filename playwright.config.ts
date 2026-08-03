@@ -1,9 +1,12 @@
 import { devices, type PlaywrightTestConfig } from '@playwright/test';
 
+const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
+const baseURL = `http://localhost:${port}`;
+
 const config: PlaywrightTestConfig = {
 	webServer: {
-		command: 'pnpm build && pnpm preview',
-		port: 4173,
+		command: `pnpm build && pnpm preview --port ${port}`,
+		port,
 		reuseExistingServer: !process.env.CI
 	},
 	testDir: 'tests',
@@ -15,7 +18,7 @@ const config: PlaywrightTestConfig = {
 	workers: 1,
 	reporter: process.env.CI ? 'list' : 'html',
 	use: {
-		baseURL: 'http://localhost:4173',
+		baseURL,
 		trace: 'on-first-retry',
 		video: 'retain-on-failure',
 		locale: 'en-US'

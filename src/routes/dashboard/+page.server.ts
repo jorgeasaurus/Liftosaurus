@@ -14,7 +14,7 @@ export const load = async (event) => {
 
 	return {
 		todaysWorkoutData: trpc.workouts.getTodaysWorkoutData(),
-		pastWorkouts: trpc.mesocycles.getWorkouts('nextSplitDay'),
+		dashboardChartData: trpc.workouts.getDashboardChartData(),
 		entityCounts: trpc.users.getEntityCounts()
 	};
 };
