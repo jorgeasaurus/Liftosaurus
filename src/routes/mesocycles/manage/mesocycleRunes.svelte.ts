@@ -1,6 +1,7 @@
 import { MuscleGroup } from '$lib/utils/prismaEnums';
 import type { Prisma, Mesocycle } from '@prisma/client';
 import type { FullExerciseSplit } from '../../exercise-splits/manage/exerciseSplitRunes.svelte';
+import { normalizeSavedMesocycleState } from './mesocycleStorage';
 
 type MesocycleWithoutIds = Omit<Mesocycle, 'id' | 'exerciseSplitId' | 'userId'>;
 const defaultMesocycle: MesocycleWithoutIds = {
@@ -9,6 +10,7 @@ const defaultMesocycle: MesocycleWithoutIds = {
 	startDate: null,
 	endDate: null,
 	startOverloadPercentage: 2.5,
+	preferredProgressionVariable: 'Reps',
 	lastSetToFailure: true,
 	forceRIRMatching: true
 };
@@ -45,7 +47,7 @@ export function createMesocycleRunes() {
 				mesocycleExerciseTemplates,
 				mesocycleCyclicSetChanges,
 				minSets
-			} = JSON.parse(savedState));
+			} = normalizeSavedMesocycleState(JSON.parse(savedState)));
 	}
 
 	function resetStores() {
@@ -65,7 +67,8 @@ export function createMesocycleRunes() {
 				const { id, exerciseSplitDayId, ...rest } = exercise;
 				const mesocycleExerciseTemplate: Prisma.MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInput = {
 					...rest,
-					sets: 0
+					sets: 0,
+					preferredProgressionVariable: null
 				};
 				return mesocycleExerciseTemplate;
 			})

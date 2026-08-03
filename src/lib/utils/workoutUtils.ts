@@ -493,27 +493,48 @@ function getTotalCyclicSetsPerMuscleGroup(
 	return cyclicSetsPerMuscleGroup;
 }
 
-function increaseLoadOfSets(ex: WorkoutExerciseInProgress, userBodyweight: number) {
-	const sameLoadSetType = ex.setType === 'Straight' || ex.setType === 'Myorep';
-	let loadIncreasedForOneOfSameLoadSets = false;
+function increaseLoadOfSets(
+	ex: WorkoutExerciseInProgress,
+	userBodyweight: number,
+	preferredProgressionVariable: 'Reps' | 'Load'
+) {
+	const sameLoadSetType = ['Straight', 'Myorep', 'MyorepMatch'].includes(ex.setType);
 
-	const newSets = ex.sets.map((set, setIdx) => {
-		if (set.reps === undefined || set.load === undefined || set.RIR === undefined) return set;
+	function getRepRange(setIndex: number) {
+		const isTopSet = ex.setType === 'TopBackoff' && setIndex === 0;
+		return {
+			start: isTopSet && typeof ex.topRepRangeStart === 'number' ? ex.topRepRangeStart : ex.repRangeStart,
+			end: isTopSet && typeof ex.topRepRangeEnd === 'number' ? ex.topRepRangeEnd : ex.repRangeEnd
+		};
+	}
 
-		let newLoad = set.load;
+	function canAttemptIncrease(set: WorkoutExerciseInProgress['sets'][number], setIndex: number) {
+		return (
+			!set.skipped &&
+			set.reps !== undefined &&
+			set.load !== undefined &&
+			set.RIR !== undefined &&
+			(preferredProgressionVariable === 'Load' || set.reps > getRepRange(setIndex).end)
+		);
+	}
 
-		// For TopBackoff, use topRepRangeEnd for first set, regular repRangeEnd for others
-		const isTopSet = ex.setType === 'TopBackoff' && setIdx === 0;
-		const repRangeEnd = isTopSet && typeof ex.topRepRangeEnd === 'number' ? ex.topRepRangeEnd : ex.repRangeEnd;
+	function hasProgressionData(set: WorkoutExerciseInProgress['sets'][number]) {
+		return !set.skipped && set.reps !== undefined && set.load !== undefined && set.RIR !== undefined;
+	}
 
-		// TODO: #107
-		if (set.reps > repRangeEnd || loadIncreasedForOneOfSameLoadSets) {
-			newLoad += ex.minimumWeightChange ?? 5;
+	function getCandidateMiniSetLoad(newParentLoad: number, miniSetIndex: number) {
+		if (ex.setType === 'MyorepMatch' || ex.setType === 'MyorepMatchDown') return newParentLoad;
+		if (ex.setType !== 'Drop' || ex.changeAmount === null || ex.changeAmount === undefined) return;
+		if (ex.changeType === 'AbsoluteLoad') return newParentLoad - (miniSetIndex + 1) * ex.changeAmount;
+		if (ex.changeType === 'Percentage') {
+			return newParentLoad * (1 - (miniSetIndex + 1) * (ex.changeAmount / 100));
 		}
-		if (sameLoadSetType && newLoad > set.load) {
-			loadIncreasedForOneOfSameLoadSets = true;
-		}
+	}
 
+	function getCandidate(set: WorkoutExerciseInProgress['sets'][number], setIndex: number) {
+		if (set.reps === undefined || set.load === undefined || set.RIR === undefined) return null;
+		const loadIncrease = ex.minimumWeightChange ?? 5;
+		const newLoad = set.load + loadIncrease;
 		const cleanedMiniSets = cleanupInProgressMiniSets(set.miniSets);
 		const newReps = solveBergerFormula({
 			variableToSolve: 'NewReps',
@@ -527,24 +548,36 @@ function increaseLoadOfSets(ex: WorkoutExerciseInProgress, userBodyweight: numbe
 				overloadPercentage: 0
 			}
 		});
-
-		const newSet = { ...set, reps: Math.round(newReps), load: newLoad };
-		return newSet;
-	});
-
-	if (sameLoadSetType) {
-		const belowRepRangeStart = newSets.some((set) => set.reps! < ex.repRangeStart);
-		if (belowRepRangeStart) return ex.sets;
+		const candidate = {
+			...set,
+			reps: Math.round(newReps),
+			load: newLoad,
+			miniSets: set.miniSets.map((miniSet, miniSetIndex) => ({
+				...miniSet,
+				load: miniSet.load === undefined ? undefined : (getCandidateMiniSetLoad(newLoad, miniSetIndex) ?? miniSet.load)
+			}))
+		};
+		return candidate.reps < getRepRange(setIndex).start ? null : candidate;
 	}
 
-	return newSets.map((newSet, setIdx) => {
-		// For TopBackoff, use topRepRangeStart for first set, regular repRangeStart for others
-		const isTopSet = ex.setType === 'TopBackoff' && setIdx === 0;
-		const repRangeStart = isTopSet && typeof ex.topRepRangeStart === 'number' ? ex.topRepRangeStart : ex.repRangeStart;
+	if (sameLoadSetType) {
+		if (!ex.sets.some(canAttemptIncrease)) return ex.sets;
+		const candidates: WorkoutExerciseInProgress['sets'] = [];
+		for (const [setIndex, set] of ex.sets.entries()) {
+			if (!hasProgressionData(set)) {
+				candidates.push(set);
+				continue;
+			}
+			const candidate = getCandidate(set, setIndex);
+			if (!candidate) return ex.sets;
+			candidates.push(candidate);
+		}
+		return candidates;
+	}
 
-		if (newSet.reps! < repRangeStart) return ex.sets[setIdx];
-		return newSet;
-	});
+	return ex.sets.map((set, setIndex) =>
+		canAttemptIncrease(set, setIndex) ? (getCandidate(set, setIndex) ?? set) : set
+	);
 }
 
 export function progressiveOverloadMagic(
@@ -618,7 +651,11 @@ export function progressiveOverloadMagic(
 				}
 			}
 
-			ex.sets = increaseLoadOfSets(ex, userBodyweight);
+			ex.sets = increaseLoadOfSets(
+				ex,
+				userBodyweight,
+				ex.preferredProgressionVariable ?? mesocycle.preferredProgressionVariable ?? 'Reps'
+			);
 		});
 	}
 

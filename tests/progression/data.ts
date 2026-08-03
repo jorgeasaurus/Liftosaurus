@@ -9,6 +9,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 	startDate: new Date(),
 	endDate: null,
 	startOverloadPercentage: 2.5,
+	preferredProgressionVariable: 'Reps',
 	lastSetToFailure: true,
 	forceRIRMatching: true,
 	mesocycleExerciseSplitDays: [
@@ -38,6 +39,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -60,6 +62,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -82,6 +85,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -104,6 +108,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -135,6 +140,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -157,6 +163,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -179,6 +186,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -201,6 +209,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -232,6 +241,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -254,6 +264,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -276,6 +287,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -298,6 +310,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -329,6 +342,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -351,6 +365,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -373,6 +388,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -395,6 +411,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -426,6 +443,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -448,6 +466,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -470,6 +489,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -492,6 +512,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -523,6 +544,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -545,6 +567,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -567,6 +590,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -589,6 +613,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					lastSetToFailure: null,
 					forceRIRMatching: null,
 					minimumWeightChange: null,
+					preferredProgressionVariable: null,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}

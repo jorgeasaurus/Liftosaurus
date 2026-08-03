@@ -217,8 +217,50 @@ describe('workout draft storage', () => {
 		assert.equal(restored.storage.mode, 'edit');
 		assert.equal(restored.storage.editDraft?.workoutId, HISTORICAL_WORKOUT_ID);
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].name, 'Historical squat');
+		assert.equal(restored.storage.editDraft?.workoutExercises[0].preferredProgressionVariable, null);
 		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].name, 'Active bench press');
 		assert.ok(restored.storage.editDraft?.workoutData.startedAt instanceof Date);
+	});
+
+	it('defaults a missing progression preference in a legacy nested mesocycle', () => {
+		const draft = activeDraft();
+		const restored = parseWorkoutDraftStorage(
+			JSON.stringify({
+				version: WORKOUT_DRAFT_STORAGE_VERSION,
+				mode: 'active',
+				activeDraft: {
+					...draft,
+					workoutData: {
+						...draft.workoutData,
+						workoutOfMesocycle: {
+							workoutStatus: null,
+							splitDayIndex: 0,
+							mesocycle: {
+								id: createId(),
+								name: 'Legacy progression',
+								userId: createId(),
+								exerciseSplitId: null,
+								RIRProgression: [3, 2, 1],
+								startDate: null,
+								endDate: null,
+								startOverloadPercentage: 1,
+								lastSetToFailure: false,
+								forceRIRMatching: false
+							},
+							cycleNumber: 1,
+							splitDayName: 'Day 1'
+						}
+					}
+				},
+				editDraft: null
+			})
+		);
+
+		assert.equal(restored.status, 'valid');
+		assert.equal(
+			restored.storage.activeDraft?.workoutData.workoutOfMesocycle?.mesocycle.preferredProgressionVariable,
+			'Reps'
+		);
 	});
 
 	it('round-trips a canonical historical edit draft while rejecting persisted database indexes', async () => {
@@ -245,6 +287,7 @@ describe('workout draft storage', () => {
 					lastSetToFailure: historicalExercise.lastSetToFailure ?? null,
 					forceRIRMatching: historicalExercise.forceRIRMatching ?? null,
 					minimumWeightChange: historicalExercise.minimumWeightChange ?? null,
+					preferredProgressionVariable: historicalExercise.preferredProgressionVariable ?? null,
 					topRepRangeStart: historicalExercise.topRepRangeStart ?? null,
 					topRepRangeEnd: historicalExercise.topRepRangeEnd ?? null,
 					sets: [

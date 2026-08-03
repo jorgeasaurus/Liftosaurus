@@ -68,6 +68,7 @@ function progressionFixture(includeDeload: boolean): ActiveMesocycleWithProgress
 		lastSetToFailure: null,
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
+		preferredProgressionVariable: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null
 	};
@@ -230,6 +231,7 @@ function manualDeloadExercise(
 		lastSetToFailure: null,
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
+		preferredProgressionVariable: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		sets: [
@@ -265,6 +267,7 @@ function previousWorkoutExercise(name: string): WorkoutExerciseWithPreviousBodyw
 		lastSetToFailure: null,
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
+		preferredProgressionVariable: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		isDeload: false,
@@ -330,6 +333,7 @@ test('manual deload halves parent and mini-set targets once using pound incremen
 		lastSetToFailure: null,
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
+		preferredProgressionVariable: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		sets: [

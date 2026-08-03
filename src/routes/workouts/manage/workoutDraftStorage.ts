@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import {
 	MesocycleSchema,
 	MuscleGroupSchema,
+	ProgressionVariableSchema,
 	WorkoutExerciseMiniSetSchema,
 	WorkoutExerciseSchema,
 	WorkoutExerciseSetSchema,
@@ -238,6 +239,7 @@ const inProgressExerciseSchema: z.ZodType<WorkoutExerciseInProgress, z.ZodTypeDe
 			topRepRangeEnd: true
 		})
 		.extend({
+			preferredProgressionVariable: ProgressionVariableSchema.nullable().default(null),
 			isDeload: z.boolean().default(false),
 			manualDeloadMetadata: z
 				.object({
@@ -252,7 +254,11 @@ const inProgressExerciseSchema: z.ZodType<WorkoutExerciseInProgress, z.ZodTypeDe
 		.strict()
 		.transform((exercise) => normalizePersistedWorkoutExercises([exercise])[0]);
 
-const workoutDataSchema: z.ZodType<WorkoutData> = z
+const persistedMesocycleSchema = MesocycleSchema.extend({
+	preferredProgressionVariable: ProgressionVariableSchema.default('Reps')
+}).strict();
+
+const workoutDataSchema: z.ZodType<WorkoutData, z.ZodTypeDef, unknown> = z
 	.object({
 		startedAt: z.date(),
 		endedAt: z.date().nullable(),
@@ -270,7 +276,7 @@ const workoutDataSchema: z.ZodType<WorkoutData> = z
 			.object({
 				workoutStatus: WorkoutStatusSchema.nullable(),
 				splitDayIndex: z.number().int(),
-				mesocycle: MesocycleSchema.strict(),
+				mesocycle: persistedMesocycleSchema,
 				cycleNumber: z.number().int(),
 				splitDayName: z.string()
 			})
@@ -284,6 +290,7 @@ const workoutDataSchema: z.ZodType<WorkoutData> = z
 const completedMiniSetSchema = WorkoutExerciseMiniSetSchema.strict();
 const completedSetSchema = WorkoutExerciseSetSchema.extend({ miniSets: z.array(completedMiniSetSchema) }).strict();
 const completedExerciseSchema = WorkoutExerciseSchema.extend({
+	preferredProgressionVariable: ProgressionVariableSchema.nullable().default(null),
 	isDeload: z.boolean().default(false),
 	sets: z.array(completedSetSchema)
 }).strict();

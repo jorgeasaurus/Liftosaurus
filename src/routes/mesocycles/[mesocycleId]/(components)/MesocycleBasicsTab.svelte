@@ -107,6 +107,7 @@
 			lastSetToFailure,
 			forceRIRMatching,
 			minimumWeightChange,
+			preferredProgressionVariable,
 			...rest
 		} = exercise;
 		return rest;
