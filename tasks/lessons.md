@@ -4,3 +4,5 @@
 - Avoid rapid or overlapping Vercel promotions; stage and validate one deployment, and do not enable cookie-based skew protection without a same-origin multi-tab test.
 - Do not call skew protection fixed from isolated asset checks; reproduce a real browser holding service-worker state across promotion and verify the newly promoted assets in that same session.
 - Treat successful page loads and service-worker installation as separate release checks; validate every Workbox precache URL against the promoted deployment before declaring the PWA healthy.
+- A clean-browser PWA check is insufficient during recovery; verify the replacement worker automatically takes control of a tab still controlled by the broken worker.
+- Detect browser resource failures from the recorded HTTP status as well as DOM attachment state; `link.sheet` can briefly look valid after a stylesheet 404.

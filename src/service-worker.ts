@@ -4,6 +4,7 @@ import { registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 declare let self: ServiceWorkerGlobalScope;
 
+const serviceWorkerVersion = 'stylesheet-recovery-v2';
 const cacheFirstDestinations: RequestDestination[] = ['style', 'manifest', 'image', 'font'];
 const prerenderedPages = ['/privacy-policy', '/terms-of-service', '/offline', '/donations', '/docs'];
 const fallbackPlugin = new PrecacheFallbackPlugin({ fallbackURL: '/offline' });
@@ -30,6 +31,9 @@ precacheAndRoute(self.__WB_MANIFEST, { ignoreURLParametersMatching: [/callbackUR
 
 self.addEventListener('message', (event) => {
 	if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+	if (event.data && event.data.type === 'GET_VERSION') {
+		event.source?.postMessage({ type: 'SERVICE_WORKER_VERSION', version: serviceWorkerVersion });
+	}
 });
 
 registerRoute(
