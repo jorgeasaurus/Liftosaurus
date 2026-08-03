@@ -1,7 +1,10 @@
 import type { MesocycleExerciseTemplateWithoutIdsOrIndex } from '$lib/components/mesocycleAndExerciseSplit/commonTypes';
 import {
+	applyManualDeloadToWorkout,
+	canApplyManualDeloadToWorkout,
 	type WorkoutExerciseInProgress,
-	createWorkoutExerciseInProgressFromMesocycleExerciseTemplate
+	createWorkoutExerciseInProgressFromMesocycleExerciseTemplate,
+	type ManualDeloadTarget
 } from '$lib/utils/workoutUtils';
 import type { Prisma } from '@prisma/client';
 import type { FullWorkoutWithMesoData } from '../[workoutId]/+page.server';
@@ -316,10 +319,17 @@ function createWorkoutRunes() {
 	async function editExercise(exercise: MesocycleExerciseTemplateWithoutIdsOrIndex) {
 		if (!editingExercise || editingExerciseIndex === undefined || workoutExercises === null) return false;
 		if (exerciseNameExists(exercise.name, editingExerciseIndex)) return false;
+		const currentExercise = workoutExercises[editingExerciseIndex];
+		const { isDeload, manualDeloadMetadata, workStarted } = currentExercise;
 		workoutExercises[editingExerciseIndex] = createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
 			exercise,
-			workoutExercises[editingExerciseIndex].sets
+			currentExercise.sets
 		);
+		workoutExercises[editingExerciseIndex].isDeload = isDeload;
+		workoutExercises[editingExerciseIndex].manualDeloadMetadata = isDeload
+			? manualDeloadMetadata
+			: { sourceTemplateId: null, originalSetCount: exercise.sets };
+		workoutExercises[editingExerciseIndex].workStarted = workStarted;
 		await saveStoresToLocalStorage();
 		return true;
 	}
@@ -328,10 +338,21 @@ function createWorkoutRunes() {
 		if (exercise === undefined) {
 			editingExercise = undefined;
 		} else {
-			const { sets, ...restOfTheExercise } = exercise;
+			const { sets, manualDeloadMetadata, workStarted, ...restOfTheExercise } = exercise;
 			editingExerciseIndex = workoutExercises?.findIndex((ex) => ex.name === exercise.name);
 			editingExercise = { ...restOfTheExercise, sets: sets.length };
 		}
+	}
+
+	function canApplyManualDeload(target: ManualDeloadTarget) {
+		return workoutExercises !== null && canApplyManualDeloadToWorkout(workoutExercises, target);
+	}
+
+	async function applyManualDeload(target: ManualDeloadTarget) {
+		if (workoutExercises === null || !canApplyManualDeload(target)) return false;
+		workoutExercises = applyManualDeloadToWorkout(workoutExercises, target);
+		await saveStoresToLocalStorage();
+		return true;
 	}
 
 	async function deleteExercise(exerciseIdx: number) {
@@ -520,7 +541,9 @@ function createWorkoutRunes() {
 		openExerciseWarmupDialog,
 		copyExerciseSetNumbersFromHistory,
 		beginNewWorkout,
-		cancelEdit
+		cancelEdit,
+		canApplyManualDeload,
+		applyManualDeload
 	};
 }
 

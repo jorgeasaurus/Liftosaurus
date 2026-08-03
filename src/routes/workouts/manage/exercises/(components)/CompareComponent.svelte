@@ -4,6 +4,7 @@
 	import { arrayAverage } from '$lib/utils';
 	import {
 		cleanupInProgressMiniSets,
+		getComparableWorkoutExercisePairs,
 		solveBergerFormula,
 		type WorkoutExerciseInProgress
 	} from '$lib/utils/workoutUtils';
@@ -17,7 +18,10 @@
 	type PropsType = { exercise: WorkoutExerciseInProgress };
 	let { exercise }: PropsType = $props();
 
-	let prevExercise = workoutRunes.previousWorkoutData?.exercises.find((ex) => ex.name === exercise.name);
+	let prevExercise = $derived(
+		getComparableWorkoutExercisePairs([exercise], workoutRunes.previousWorkoutData?.exercises ?? [])[0]
+			?.previousExercise
+	);
 
 	function getTheoreticalVolumeChange(setIdx: number) {
 		const prevSet = prevExercise?.sets[setIdx];
@@ -36,7 +40,7 @@
 				oldSet: prevSet,
 				newSet: { reps, load, RIR, miniSets: cleanupInProgressMiniSets(miniSets) },
 				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-				oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
+				oldUserBodyweight: prevExercise.userBodyweight,
 				oldBodyweightFraction: prevExercise.bodyweightFraction,
 				newBodyweightFraction: exercise.bodyweightFraction ?? null
 			}
@@ -69,7 +73,7 @@
 				oldSet: { ...prev, miniSets: [] },
 				newSet: { ...current, miniSets: [] },
 				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-				oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
+				oldUserBodyweight: prevExercise?.userBodyweight,
 				oldBodyweightFraction: prevExercise?.bodyweightFraction ?? exercise.bodyweightFraction ?? null,
 				newBodyweightFraction: exercise.bodyweightFraction ?? null
 			}
@@ -90,7 +94,7 @@
 					<Popover.Trigger class="text-xs font-semibold text-muted-foreground underline">(BW)</Popover.Trigger>
 					<Popover.Content class="w-48 text-center text-base">
 						<span class="text-muted-foreground">
-							{workoutRunes.previousWorkoutData?.userBodyweight} -&gt;
+							{prevExercise.userBodyweight} -&gt;
 						</span>
 						{workoutRunes.workoutData?.userBodyweight}
 					</Popover.Content>
@@ -202,7 +206,11 @@
 		{/each}
 	</div>
 {:else}
-	<span class="text-center text-sm">Reference exercise not found</span>
+	<span class="text-center text-sm">
+		{exercise.isDeload
+			? 'Manual deloads are excluded from progression comparisons.'
+			: 'No previous normal performance is available to compare.'}
+	</span>
 {/if}
 
 <style lang="postcss">

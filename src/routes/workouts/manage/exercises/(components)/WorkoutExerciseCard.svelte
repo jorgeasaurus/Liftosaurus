@@ -3,7 +3,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import { convertCamelCaseToNormal } from '$lib/utils';
-	import type { WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
+	import type { ManualDeloadTarget, WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
 	import { dragHandle } from 'svelte-dnd-action';
 	import GripVertical from 'virtual:icons/lucide/grip-vertical';
 	import MenuIcon from 'virtual:icons/lucide/menu';
@@ -12,6 +12,7 @@
 	import DeleteIcon from 'virtual:icons/lucide/trash';
 	import HistoryIcon from 'virtual:icons/lucide/history';
 	import ChartIcon from 'virtual:icons/lucide/chart-no-axes-column-increasing';
+	import DeloadIcon from 'virtual:icons/lucide/trending-down';
 	import { workoutRunes } from '../../workoutRunes.svelte';
 	import CompareComponent from './CompareComponent.svelte';
 	import SetsComponent from './SetsComponent.svelte';
@@ -28,6 +29,7 @@
 
 	let originalSetLoads = $state(exercise.sets.map((set) => set.load));
 	let isContextMenuOpen = $state(false);
+	let muscleGroup = $derived(exercise.customMuscleGroup ?? exercise.targetMuscleGroup);
 
 	async function skipSetsLeft() {
 		exercise.sets.forEach((set) => {
@@ -36,6 +38,11 @@
 			set.miniSets.forEach((miniSet) => (miniSet.completed = false));
 		});
 		await workoutRunes.saveStoresToLocalStorage();
+	}
+
+	function applyDeload(target: ManualDeloadTarget) {
+		if (!workoutRunes.applyManualDeload(target)) return;
+		isContextMenuOpen = false;
 	}
 </script>
 
@@ -65,6 +72,20 @@
 							<DropdownMenu.Item class="gap-2" onclick={skipSetsLeft}>
 								<SkipIcon /> Skip sets left
 							</DropdownMenu.Item>
+							<DropdownMenu.Item
+								class="gap-2"
+								disabled={!workoutRunes.canApplyManualDeload({ exerciseName: exercise.name })}
+								onclick={() => applyDeload({ exerciseName: exercise.name })}
+							>
+								<DeloadIcon /> Deload exercise
+							</DropdownMenu.Item>
+							<DropdownMenu.Item
+								class="gap-2"
+								disabled={!workoutRunes.canApplyManualDeload({ muscleGroup })}
+								onclick={() => applyDeload({ muscleGroup })}
+							>
+								<DeloadIcon /> Deload {convertCamelCaseToNormal(muscleGroup)}
+							</DropdownMenu.Item>
 							<DropdownMenu.Item class="gap-2" onclick={() => workoutRunes.openExerciseHistorySheet(exercise.name)}>
 								<HistoryIcon /> History
 							</DropdownMenu.Item>
@@ -91,6 +112,9 @@
 		</span>
 		{#if exercise.bodyweightFraction !== null}
 			<Badge variant="outline">BW</Badge>
+		{/if}
+		{#if exercise.isDeload}
+			<Badge variant="outline">Deload</Badge>
 		{/if}
 		<Badge class="whitespace-nowrap" variant="secondary">
 			{exercise.targetMuscleGroup === 'Custom'

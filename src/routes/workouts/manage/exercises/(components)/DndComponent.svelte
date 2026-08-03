@@ -37,7 +37,7 @@
 		autoAriaDisabled: true
 	}}
 >
-	{#each itemList as exercise, idx (exercise.name)}
+	{#each itemList as exercise, idx (`${exercise.name}-${Boolean(exercise.isDeload)}`)}
 		<div class="relative" animate:flip={{ duration: 200 }}>
 			<WorkoutExerciseCard {comparing} {idx} {readOnly} {reordering} bind:exercise={itemList[idx]} />
 			{#if exercise[SHADOW_ITEM_MARKER_PROPERTY_NAME]}

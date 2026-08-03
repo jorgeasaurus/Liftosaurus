@@ -112,7 +112,38 @@ function exercise(name: string): WorkoutExerciseInProgress {
 		minimumWeightChange: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
+		isDeload: false,
 		sets: [{ reps: 9, load: 135, RIR: 2, skipped: false, completed: true, miniSets: [] }]
+	};
+}
+
+function completedExercise(name: string) {
+	const workoutExercise = exercise(name);
+	const workoutExerciseId = createId();
+	return {
+		...workoutExercise,
+		id: workoutExerciseId,
+		workoutId: LEGACY_WORKOUT_ID,
+		exerciseIndex: 0,
+		sets: workoutExercise.sets.map((set, setIndex) => {
+			const { completed, ...setData } = set;
+			const setId = createId();
+			return {
+				...setData,
+				id: setId,
+				workoutExerciseId,
+				setIndex,
+				miniSets: set.miniSets.map((miniSet, miniSetIndex) => {
+					const { completed, ...miniSetData } = miniSet;
+					return {
+						...miniSetData,
+						id: createId(),
+						workoutExerciseSetId: setId,
+						miniSetIndex
+					};
+				})
+			};
+		})
 	};
 }
 
@@ -120,7 +151,7 @@ function activeDraft() {
 	return {
 		workoutData: workoutData('2026-08-02T17:00:00.000Z', 195),
 		workoutExercises: [exercise('Active bench press')],
-		previousWorkoutData: { exercises: [], userBodyweight: 190 }
+		previousWorkoutData: { exercises: [] }
 	};
 }
 
@@ -201,6 +232,7 @@ describe('workout draft storage', () => {
 			workoutExercises: [
 				{
 					...historicalExercise,
+					isDeload: historicalExercise.isDeload ?? false,
 					id: 'historical-exercise',
 					workoutId: HISTORICAL_WORKOUT_ID,
 					exerciseIndex: 0,
@@ -244,6 +276,7 @@ describe('workout draft storage', () => {
 		assert.equal(Object.hasOwn(editDraft.workoutExercises[0], 'exerciseIndex'), false);
 		assert.equal(Object.hasOwn(canonicalSet, 'setIndex'), false);
 		assert.equal(Object.hasOwn(canonicalSet.miniSets[0], 'miniSetIndex'), false);
+		assert.equal(editDraft.workoutExercises[0].workStarted, true);
 
 		const roundTrip = parseWorkoutDraftStorage(
 			JSON.stringify({
@@ -345,6 +378,42 @@ describe('workout draft storage', () => {
 		assert.equal(edit.status, 'migrated');
 		assert.equal(edit.storage.mode, 'edit');
 		assert.equal(Object.hasOwn(edit.storage.editDraft ?? {}, 'previousWorkoutData'), false);
+	});
+
+	it('migrates legacy comparison bodyweight and missing manual-deload fields', () => {
+		const previousExercise = completedExercise('Legacy pull-up') as Record<string, unknown>;
+		delete previousExercise.isDeload;
+		const currentExercise = exercise('Legacy bench press') as unknown as Record<string, unknown>;
+		delete currentExercise.isDeload;
+		delete currentExercise.workStarted;
+
+		const restored = parseWorkoutDraftStorage(
+			JSON.stringify({
+				workoutData: workoutData('2026-08-02T17:00:00.000Z', 195),
+				workoutExercises: [currentExercise],
+				editingWorkoutId: null,
+				previousWorkoutData: { exercises: [previousExercise], userBodyweight: 190 }
+			})
+		);
+
+		assert.equal(restored.status, 'migrated');
+		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].isDeload, false);
+		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].workStarted, true);
+		assert.equal(restored.storage.activeDraft?.previousWorkoutData?.exercises[0].isDeload, false);
+		assert.equal(restored.storage.activeDraft?.previousWorkoutData?.exercises[0].userBodyweight, 190);
+	});
+
+	it('restores legacy drafts that predate previous-workout comparison data', () => {
+		const restored = parseWorkoutDraftStorage(
+			JSON.stringify({
+				workoutData: workoutData('2026-08-02T17:00:00.000Z', 195),
+				workoutExercises: [exercise('Bench press')],
+				editingWorkoutId: null
+			})
+		);
+
+		assert.equal(restored.status, 'migrated');
+		assert.equal(restored.storage.activeDraft?.previousWorkoutData, null);
 	});
 
 	it('retains parseable noncanonical dates only for legacy migration', async () => {

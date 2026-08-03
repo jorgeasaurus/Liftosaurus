@@ -48,9 +48,12 @@
 			draftOwnerUserId: workoutRunes.ownerUserId,
 			workoutData: { ...workoutRunes.workoutData, userBodyweight, note: workoutRunes.workoutData.note ?? undefined },
 			workoutExercises: workoutRunes.workoutExercises.map((ex, idx) => {
-				const { sets, ...exercise } = ex;
+				const { sets, manualDeloadMetadata, workStarted, ...exercise } = ex;
 				return { ...exercise, exerciseIndex: idx };
 			}),
+			manualDeloadMetadata: workoutRunes.workoutExercises.map((exercise) =>
+				exercise.isDeload ? (exercise.manualDeloadMetadata ?? null) : null
+			),
 			workoutExercisesSets: workoutExercisesSets.map((sets) =>
 				sets.map((set) => {
 					const { miniSets, ...rest } = set;
