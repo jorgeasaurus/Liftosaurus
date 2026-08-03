@@ -7,7 +7,14 @@
 	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import type { RouterOutputs } from '$lib/trpc/router';
 	import { generateShadesAndTints } from '$lib/utils';
-	import { solveBergerFormula } from '$lib/utils/workoutUtils';
+	import {
+		buildExerciseChartDatasets,
+		getExerciseChartSetCount,
+		hasExerciseBodyweightLoad,
+		resolveExerciseChartType,
+		type ExerciseChartType
+	} from '$lib/utils/exerciseStatsChart';
+	import { MAX_EXERCISE_CHART_PERFORMANCES } from '$lib/utils/exerciseChartHistory';
 	import {
 		CategoryScale,
 		Chart,
@@ -21,6 +28,7 @@
 		Tooltip
 	} from 'chart.js';
 	import 'chartjs-adapter-date-fns';
+	import { onDestroy } from 'svelte';
 	import LoaderCircle from 'virtual:icons/lucide/loader-circle';
 	import MenuIcon from 'virtual:icons/lucide/menu';
 	Chart.register(
@@ -35,82 +43,49 @@
 		LinearScale
 	);
 
-	type WorkoutExercise = RouterOutputs['workouts']['getExerciseHistory'][number];
-	type PropsType = { exercises: WorkoutExercise[] | undefined; selectedExercise: string };
+	type WorkoutExercise = RouterOutputs['workouts']['getExerciseChartHistory']['items'][number];
+	type PropsType = { exercises: WorkoutExercise[] | undefined; selectedExercise: string; historyTruncated?: boolean };
 
-	let { exercises: reverseExercises, selectedExercise }: PropsType = $props();
-	let exercises = $derived(reverseExercises?.toReversed() ?? []);
-	let chart: Chart;
+	let { exercises, selectedExercise, historyTruncated = false }: PropsType = $props();
+	let chart: Chart | undefined;
 	let chartCanvas: HTMLCanvasElement | undefined = $state();
 
-	let maxSets = $derived(Math.max(...exercises.map((ex) => ex.sets.length)));
-	let chartType: 'relative-overload' | 'absolute-load' = $state('relative-overload');
+	let maxSets = $derived(getExerciseChartSetCount(exercises ?? []));
+	let chartType: ExerciseChartType = $state('relative-overload');
 	let selectedSets: string[] = $state([]);
+	let chartDatasets = $derived(buildExerciseChartDatasets(exercises ?? [], chartType, selectedSets.map(Number)));
+	let hasBodyweightLoad = $derived(hasExerciseBodyweightLoad(exercises ?? []));
+	let chartAccessibleName = $derived(
+		`${selectedExercise} ${chartType === 'relative-overload' ? 'relative overload' : chartType === 'absolute-load' ? 'absolute load' : 'load plus bodyweight'} progression chart`
+	);
 
 	$effect(() => {
 		selectedSets = Array.from({ length: Math.min(maxSets, 2) }, (_, idx) => idx.toString());
 	});
 
 	$effect(() => {
-		if (chartCanvas === undefined) return;
-		if (chart) chart.destroy();
+		const supportedChartType = resolveExerciseChartType(chartType, exercises);
+		if (supportedChartType !== chartType) chartType = supportedChartType;
+	});
+
+	$effect(() => {
+		chart?.destroy();
+		chart = undefined;
+		if (chartCanvas === undefined || exercises === undefined) return;
 
 		const colors = generateShadesAndTints(maxSets);
-		let dataValues: (number | null)[][];
-
-		const nonSkippedExercises = exercises
-			.map((ex) => ({ ...ex, sets: ex.sets.filter((set) => !set.skipped) }))
-			.filter((ex) => ex.sets.length > 0);
-
-		if (chartType === 'relative-overload') {
-			dataValues = Array.from({ length: maxSets }, (_, setIdx) =>
-				nonSkippedExercises.map((ex, idx) => {
-					if (idx === 0) return 0;
-					const oldestSet = nonSkippedExercises.find((ex) => ex.sets[setIdx] && !ex.sets[setIdx].skipped)?.sets[setIdx];
-					if (!oldestSet) return null;
-					if (!selectedSets.includes(setIdx.toString())) return null;
-					if (!ex.sets[setIdx]) return null;
-
-					return solveBergerFormula({
-						variableToSolve: 'OverloadPercentage',
-						knownValues: {
-							bodyweightFraction: ex.bodyweightFraction,
-							newSet: ex.sets[setIdx],
-							oldSet: oldestSet,
-							oldUserBodyweight: idx === 0 ? ex.workout.userBodyweight : exercises[idx - 1].workout.userBodyweight,
-							newUserBodyweight: ex.workout.userBodyweight
-						}
-					});
-				})
-			);
-		} else if (chartType === 'absolute-load') {
-			dataValues = Array.from({ length: maxSets }, (_, setIdx) =>
-				nonSkippedExercises.map((ex) => {
-					if (!selectedSets.includes(setIdx.toString())) return null;
-					if (!ex.sets[setIdx]) return null;
-					return ex.sets[setIdx].load;
-				})
-			);
-		} else {
-			dataValues = Array.from({ length: maxSets }, (_, setIdx) =>
-				nonSkippedExercises.map((ex) => {
-					if (!selectedSets.includes(setIdx.toString())) return null;
-					if (!ex.sets[setIdx]) return null;
-					return ex.sets[setIdx].load + ex.bodyweightFraction! * ex.workout.userBodyweight;
-				})
-			);
-		}
 
 		chart = new Chart(chartCanvas, {
 			type: 'line',
 			data: {
-				labels: nonSkippedExercises.map((ex) => new Date(ex.workout.startedAt)),
-				datasets: dataValues.map((data, idx) => ({
-					label: `Set ${idx + 1}`,
+				labels: exercises.map((ex) => new Date(ex.workout.startedAt)),
+				datasets: chartDatasets.map(({ data, setIndex }) => ({
+					label: `Set ${setIndex + 1}`,
 					data,
-					borderColor: colors[idx],
+					borderColor: colors[setIndex],
 					tension: 0.2,
-					borderWidth: 2
+					borderWidth: 2,
+					spanGaps: false
 				}))
 			},
 			options: {
@@ -130,12 +105,28 @@
 			}
 		});
 	});
+
+	onDestroy(() => chart?.destroy());
+
+	function formatChartValue(value: number) {
+		return chartType === 'relative-overload' ? `${value.toFixed(2)}%` : `${value.toFixed(2)} lbs`;
+	}
 </script>
 
 <Card.Root>
 	<Card.Header>
 		<div class="flex justify-between gap-6">
-			<Card.Title class="truncate">{selectedExercise}</Card.Title>
+			<div class="min-w-0">
+				<Card.Title class="truncate">{selectedExercise}</Card.Title>
+				{#if exercises !== undefined}
+					<p class="text-xs text-muted-foreground">{exercises.length} performances</p>
+					{#if historyTruncated}
+						<p role="status" class="text-xs text-muted-foreground">
+							Showing the most recent {MAX_EXERCISE_CHART_PERFORMANCES.toLocaleString()} performances; older history is omitted.
+						</p>
+					{/if}
+				{/if}
+			</div>
 			<Popover.Root>
 				<Popover.Trigger aria-label="Menu"><MenuIcon /></Popover.Trigger>
 				<Popover.Content align="end">
@@ -149,7 +140,7 @@
 							<RadioGroup.Item value="absolute-load" id="absolute-load" />
 							<Label for="absolute-load">Absolute load</Label>
 						</div>
-						{#if typeof exercises.at(0)?.bodyweightFraction === 'number'}
+						{#if hasBodyweightLoad}
 							<div class="flex items-center space-x-2">
 								<RadioGroup.Item value="load-and-bodyweight" id="load-and-bodyweight" />
 								<Label for="load-and-bodyweight">Load + BW</Label>
@@ -170,12 +161,39 @@
 		</div>
 	</Card.Header>
 	<Card.Content>
-		{#if exercises.length === 0}
+		{#if exercises === undefined}
 			<div class="flex items-center gap-2 px-2 text-sm text-muted-foreground">
 				<LoaderCircle class="animate-spin" /> Fetching performances
 			</div>
+		{:else if exercises.length === 0}
+			<p class="px-2 text-sm text-muted-foreground">No performances found</p>
 		{:else}
-			<canvas bind:this={chartCanvas} height="240"></canvas>
+			<div role="img" aria-label={chartAccessibleName}>
+				<canvas bind:this={chartCanvas} data-testid="exercise-stats-chart" aria-hidden="true" height="240"></canvas>
+			</div>
+			<table class="sr-only">
+				<caption>{chartAccessibleName} data</caption>
+				<thead>
+					<tr>
+						<th scope="col">Date</th>
+						<th scope="col">Set</th>
+						<th scope="col">Value</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each chartDatasets as dataset}
+						{#each dataset.data as value, performanceIndex}
+							{#if value !== null}
+								<tr data-performance-id={exercises[performanceIndex].id}>
+									<td>{new Date(exercises[performanceIndex].workout.startedAt).toLocaleDateString()}</td>
+									<td>{dataset.setIndex + 1}</td>
+									<td>{formatChartValue(value)}</td>
+								</tr>
+							{/if}
+						{/each}
+					{/each}
+				</tbody>
+			</table>
 		{/if}
 	</Card.Content>
 </Card.Root>

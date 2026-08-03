@@ -130,7 +130,8 @@
 						newSet: { load: newLoad, RIR: exerciseSet.RIR, miniSets: cleanupInProgressMiniSets(exerciseSet.miniSets) },
 						oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
 						newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-						bodyweightFraction: exercise.bodyweightFraction ?? null,
+						oldBodyweightFraction: exercise.bodyweightFraction ?? null,
+						newBodyweightFraction: exercise.bodyweightFraction ?? null,
 						overloadPercentage: 0
 					}
 				})
@@ -151,7 +152,8 @@
 						newSet: { load: newLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
 						oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
 						newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-						bodyweightFraction: exercise.bodyweightFraction ?? null,
+						oldBodyweightFraction: exercise.bodyweightFraction ?? null,
+						newBodyweightFraction: exercise.bodyweightFraction ?? null,
 						overloadPercentage: -extraOverloadAchieved
 					}
 				})
@@ -164,7 +166,8 @@
 					newSet: { reps: newReps, load: newLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
 					oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
 					newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-					bodyweightFraction: exercise.bodyweightFraction ?? null
+					oldBodyweightFraction: exercise.bodyweightFraction ?? null,
+					newBodyweightFraction: exercise.bodyweightFraction ?? null
 				}
 			});
 

@@ -18,6 +18,8 @@ model Workout {
   workoutExercises   WorkoutExercise[]
   userId             String
   note               String?
+
+  @@index([userId, startedAt, id])
 }
 
 model WorkoutExercise {
@@ -42,6 +44,8 @@ model WorkoutExercise {
   minimumWeightChange Float?
   topRepRangeStart    Int?
   topRepRangeEnd      Int?
+
+  @@index([name, workoutId, id])
 }
 
 model WorkoutExerciseSet {
@@ -54,6 +58,8 @@ model WorkoutExerciseSet {
   RIR               Int
   skipped           Boolean
   miniSets          WorkoutExerciseMiniSet[]
+
+  @@index([workoutExerciseId, setIndex])
 }
 
 model WorkoutExerciseMiniSet {
@@ -64,4 +70,6 @@ model WorkoutExerciseMiniSet {
   RIR                  Int
   parentSet            WorkoutExerciseSet @relation(fields: [workoutExerciseSetId], references: [id], onDelete: Cascade)
   workoutExerciseSetId String
+
+  @@index([workoutExerciseSetId, miniSetIndex])
 }
