@@ -6,6 +6,7 @@
 	import { arraySum, floorToNearestMultiple } from '$lib/utils';
 	import {
 		cleanupInProgressMiniSets,
+		getPreviousBodyweightFraction,
 		solveBergerFormula,
 		type WorkoutExerciseInProgress
 	} from '$lib/utils/workoutUtils';
@@ -23,6 +24,13 @@
 	let { exercise = $bindable(), originalSetLoads = $bindable() }: PropsType = $props();
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
+	let oldBodyweightFraction = $derived(
+		getPreviousBodyweightFraction(
+			workoutRunes.previousWorkoutData?.exercises,
+			exercise.name,
+			exercise.bodyweightFraction ?? null
+		)
+	);
 
 	function shouldSetBeDisabled(set: WorkoutExerciseSet, idx: number): boolean {
 		if (set.completed) return false;
@@ -130,7 +138,7 @@
 						newSet: { load: newLoad, RIR: exerciseSet.RIR, miniSets: cleanupInProgressMiniSets(exerciseSet.miniSets) },
 						oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
 						newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-						oldBodyweightFraction: exercise.bodyweightFraction ?? null,
+						oldBodyweightFraction,
 						newBodyweightFraction: exercise.bodyweightFraction ?? null,
 						overloadPercentage: 0
 					}
@@ -152,7 +160,7 @@
 						newSet: { load: newLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
 						oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
 						newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-						oldBodyweightFraction: exercise.bodyweightFraction ?? null,
+						oldBodyweightFraction,
 						newBodyweightFraction: exercise.bodyweightFraction ?? null,
 						overloadPercentage: -extraOverloadAchieved
 					}
@@ -166,7 +174,7 @@
 					newSet: { reps: newReps, load: newLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
 					oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
 					newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
-					oldBodyweightFraction: exercise.bodyweightFraction ?? null,
+					oldBodyweightFraction,
 					newBodyweightFraction: exercise.bodyweightFraction ?? null
 				}
 			});
