@@ -1,6 +1,7 @@
 export type StylesheetRecovery = {
 	isPageLoaded: () => boolean;
 	waitForPageLoad: () => Promise<void>;
+	waitForStylesheetStatus: () => Promise<void>;
 	hasFailedStylesheet: () => boolean;
 	activateWaitingWorker: (reloadPage: boolean) => Promise<void>;
 };
@@ -18,6 +19,7 @@ export function hasFailedStylesheetLoad(stylesheets: readonly StylesheetLoad[]):
 
 export async function recoverFailedStylesheet(recovery: StylesheetRecovery): Promise<boolean> {
 	if (!recovery.isPageLoaded()) await recovery.waitForPageLoad();
+	await recovery.waitForStylesheetStatus();
 	if (!recovery.hasFailedStylesheet()) return false;
 
 	await recovery.activateWaitingWorker(true);

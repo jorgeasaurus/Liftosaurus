@@ -16,6 +16,8 @@ if (browser) {
 			void recoverFailedStylesheet({
 				isPageLoaded: () => document.readyState === 'complete',
 				waitForPageLoad,
+				waitForStylesheetStatus: () =>
+					new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
 				hasFailedStylesheet: () =>
 					hasFailedStylesheetLoad(
 						Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map((link) => ({

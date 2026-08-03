@@ -4,7 +4,7 @@ import { registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkOnly } from 'workbox-strategies';
 declare let self: ServiceWorkerGlobalScope;
 
-const serviceWorkerVersion = 'stylesheet-recovery-v2';
+const serviceWorkerVersion = 'stylesheet-recovery-v3';
 const cacheFirstDestinations: RequestDestination[] = ['style', 'manifest', 'image', 'font'];
 const prerenderedPages = ['/privacy-policy', '/terms-of-service', '/offline', '/donations', '/docs'];
 const fallbackPlugin = new PrecacheFallbackPlugin({ fallbackURL: '/offline' });

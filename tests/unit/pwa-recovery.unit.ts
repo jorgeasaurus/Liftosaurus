@@ -16,7 +16,8 @@ test('activates a waiting worker after the page finishes with a failed styleshee
 		waitForPageLoad: async () => {
 			pageLoaded = true;
 		},
-		hasFailedStylesheet: () => true,
+		waitForStylesheetStatus: async () => undefined,
+		hasFailedStylesheet: () => pageLoaded,
 		activateWaitingWorker: async (reloadPage) => {
 			activations.push(reloadPage);
 		}
@@ -32,6 +33,7 @@ test('preserves the normal update prompt when stylesheets loaded', async () => {
 	const recovered = await recoverFailedStylesheet({
 		isPageLoaded: () => true,
 		waitForPageLoad: async () => undefined,
+		waitForStylesheetStatus: async () => undefined,
 		hasFailedStylesheet: () => false,
 		activateWaitingWorker: async () => {
 			activated = true;
