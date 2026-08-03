@@ -32,17 +32,18 @@
 		return !previousSet.miniSets[previousSet.miniSets.length - 1].completed;
 	}
 
-	function completeSet(e: SubmitEvent, set: WorkoutExerciseSet, idx: number) {
+	async function completeSet(e: SubmitEvent, set: WorkoutExerciseSet, idx: number) {
 		e.preventDefault();
 		if (set.skipped) {
 			set.skipped = false;
+			await workoutRunes.saveStoresToLocalStorage();
 			return;
 		}
 		set.completed = !set.completed;
 		if (['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType) && idx === 0)
 			exercise.sets.forEach((_set) => (_set.load = set.load));
 
-		workoutRunes.workoutExercises = workoutRunes.workoutExercises;
+		await workoutRunes.saveStoresToLocalStorage();
 	}
 
 	function shouldMiniSetBeDisabled(setIndex: number, miniSetIndex: number) {
@@ -63,11 +64,11 @@
 		});
 	}
 
-	function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
+	async function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
 		e.preventDefault();
 		if (exercise.setType === 'MyorepMatchDown') set.miniSets[miniSetIndex].load = set.load;
 		set.miniSets[miniSetIndex].completed = !set.miniSets[miniSetIndex].completed;
-		workoutRunes.workoutExercises = workoutRunes.workoutExercises;
+		await workoutRunes.saveStoresToLocalStorage();
 	}
 
 	function calculateNextLoad(setIdx: number) {

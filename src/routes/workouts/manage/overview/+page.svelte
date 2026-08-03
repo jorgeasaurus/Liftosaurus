@@ -27,6 +27,7 @@
 
 	function preProcessSetData() {
 		if (workoutRunes.workoutData === null || workoutRunes.workoutExercises === null) return;
+		if (workoutRunes.ownerUserId === null) return;
 		savingWorkout = true;
 		const workoutExercisesSets = workoutRunes.workoutExercises.map((ex) => {
 			return ex.sets.map((_set, idx) => {
@@ -44,6 +45,7 @@
 		const userBodyweight = workoutRunes.workoutData.userBodyweight;
 
 		const createData: RouterInputs['workouts']['create'] = {
+			draftOwnerUserId: workoutRunes.ownerUserId,
 			workoutData: { ...workoutRunes.workoutData, userBodyweight, note: workoutRunes.workoutData.note ?? undefined },
 			workoutExercises: workoutRunes.workoutExercises.map((ex, idx) => {
 				const { sets, ...exercise } = ex;
@@ -116,7 +118,7 @@
 			}
 			toast.success(message);
 			await invalidate('workouts:all');
-			workoutRunes.resetStores();
+			await workoutRunes.resetStores();
 			// Reset meso editing store as it won't change if workout affects meso split days and same mesocycle gets edited
 			// 1. User attempts active meso edit but doesn't complete it (stores save meso data)
 			// 2. User performs workouts affecting the meso split structure

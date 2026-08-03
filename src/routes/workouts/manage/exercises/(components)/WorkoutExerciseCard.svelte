@@ -29,13 +29,13 @@
 	let originalSetLoads = $state(exercise.sets.map((set) => set.load));
 	let isContextMenuOpen = $state(false);
 
-	function skipSetsLeft() {
+	async function skipSetsLeft() {
 		exercise.sets.forEach((set) => {
 			if (set.completed) return;
 			set.skipped = true;
 			set.miniSets.forEach((miniSet) => (miniSet.completed = false));
 		});
-		workoutRunes.workoutExercises = workoutRunes.workoutExercises;
+		await workoutRunes.saveStoresToLocalStorage();
 	}
 </script>
 
@@ -70,8 +70,8 @@
 							</DropdownMenu.Item>
 							<DropdownMenu.Item
 								class="gap-2 text-red-500"
-								onclick={() => {
-									workoutRunes.deleteExercise(idx);
+								onclick={async () => {
+									await workoutRunes.deleteExercise(idx);
 									isContextMenuOpen = false;
 								}}
 							>

@@ -9,13 +9,15 @@ const QuotesDisplayModesArraySchema = z.array(QuotesDisplayModeSchema).min(1);
 
 export const load: LayoutServerLoad = async (event) => {
 	event.depends('settings:userSettings');
-	const trpc = createCaller(await createContext(event));
+	const context = await createContext(event);
+	const trpc = createCaller(context);
 
 	try {
 		const userSettings = await trpc.users.getUserSettings();
 
 		if (!userSettings) {
 			return {
+				userId: context.userId,
 				hasError: false,
 				userSettings: {
 					motivationalQuotesEnabled: false,
@@ -27,6 +29,7 @@ export const load: LayoutServerLoad = async (event) => {
 		const validatedQuotesDisplayModes = QuotesDisplayModesArraySchema.safeParse(userSettings.quotesDisplayModes);
 
 		return {
+			userId: context.userId,
 			hasError: false,
 			userSettings: {
 				quotesDisplayModes: validatedQuotesDisplayModes.success
@@ -39,6 +42,7 @@ export const load: LayoutServerLoad = async (event) => {
 		console.error('Failed to load settings in layout:', error);
 
 		return {
+			userId: context.userId,
 			hasError: true,
 			userSettings: {
 				motivationalQuotesEnabled: false,

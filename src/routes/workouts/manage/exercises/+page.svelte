@@ -52,14 +52,21 @@
 	);
 
 	onMount(async () => {
-		if (workoutRunes.workoutData === null) goto('./start');
+		if (workoutRunes.workoutData === null) {
+			await goto('./start');
+			return;
+		}
 		const serverData = await data.serverData;
+		let changed = false;
 		if (workoutRunes.workoutExercises === null) {
 			workoutRunes.workoutExercises = serverData?.todaysWorkoutExercises ?? [];
+			changed = true;
 		}
 		if (workoutRunes.previousWorkoutData === null) {
 			workoutRunes.previousWorkoutData = serverData?.previousWorkoutData ?? null;
+			changed = true;
 		}
+		if (changed) await workoutRunes.saveStoresToLocalStorage();
 	});
 
 	function getFormattedDate(date: string | Date) {
@@ -164,7 +171,12 @@
 	</div>
 {:else}
 	<div class="mt-2 flex h-px grow flex-col overflow-y-auto">
-		<DndComponent {comparing} {reordering} bind:itemList={workoutRunes.workoutExercises} />
+		<DndComponent
+			{comparing}
+			{reordering}
+			onFinalize={workoutRunes.saveStoresToLocalStorage}
+			bind:itemList={workoutRunes.workoutExercises}
+		/>
 	</div>
 {/if}
 

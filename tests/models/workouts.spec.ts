@@ -295,7 +295,9 @@ test('delete a workout', async ({ page }) => {
 	await expect(page.getByRole('main')).toContainText('Pull A Day 1, Cycle 1 Rear delts');
 });
 
-test('edit a workout', async ({ page }) => {
+test('edit a workout', async ({ page, userData }) => {
+	const namespace = `workoutRunes:user:${encodeURIComponent(userData.userId)}`;
+	const draftKeys = { active: `${namespace}:active`, edit: `${namespace}:edit`, mode: `${namespace}:mode` };
 	await createSplitAndMesoForTest(page);
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('100');
@@ -317,9 +319,47 @@ test('edit a workout', async ({ page }) => {
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 
+	await page.getByLabel('create-workout').click();
+	await expect(page.getByRole('main')).toContainText('Push A Day 2, Cycle 1');
+	await page.getByPlaceholder('Type here').fill('111');
+	await page.getByRole('button', { name: 'Next' }).click();
+	await page.locator('[id="Incline barbell press-set-1-reps"]').fill('9');
+	await page.locator('[id="Incline barbell press-set-1-load"]').fill('135');
+	await page.locator('[id="Incline barbell press-set-1-RIR"]').fill('2');
+	await page.getByTestId('Incline barbell press-set-1-action').click();
+	await page.getByRole('link', { name: 'Workouts' }).click();
+
 	await page.getByRole('link', { name: `${getTodaysDateString()} Pull A` }).click();
 	await page.getByLabel('workout-options').click();
 	await page.getByRole('menuitem', { name: 'Edit' }).click();
+	await expect(page.getByRole('heading', { name: 'Edit workout' })).toBeVisible();
+	await page.reload();
+	await expect(page.getByRole('heading', { name: 'Edit workout' })).toBeVisible();
+	await expect
+		.poll(() =>
+			page.evaluate((draftKeys) => {
+				const active = JSON.parse(localStorage.getItem(draftKeys.active) ?? '{}').draft;
+				const edit = JSON.parse(localStorage.getItem(draftKeys.edit) ?? '{}').draft;
+				return {
+					mode: sessionStorage.getItem(draftKeys.mode),
+					activeBodyweight: active?.workoutData?.userBodyweight,
+					activeExercise: active?.workoutExercises?.[0]?.name,
+					activeReps: active?.workoutExercises?.[0]?.sets?.[0]?.reps,
+					activeSetCompleted: active?.workoutExercises?.[0]?.sets?.[0]?.completed,
+					editingWorkoutId: edit?.workoutId,
+					editHasPreviousData: Object.hasOwn(edit ?? {}, 'previousWorkoutData')
+				};
+			}, draftKeys)
+		)
+		.toMatchObject({
+			mode: 'edit',
+			activeBodyweight: 111,
+			activeExercise: 'Incline barbell press',
+			activeReps: 9,
+			activeSetCompleted: true,
+			editingWorkoutId: expect.any(String),
+			editHasPreviousData: false
+		});
 	await page.getByPlaceholder('Type here').fill('95');
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.getByTestId('Pull-ups-set-1-action').click();
@@ -327,15 +367,59 @@ test('edit a workout', async ({ page }) => {
 	await page.getByTestId('Pull-ups-set-1-action').click();
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
+	await expect
+		.poll(() =>
+			page.evaluate((draftKeys) => {
+				const active = JSON.parse(localStorage.getItem(draftKeys.active) ?? '{}').draft;
+				return {
+					mode: sessionStorage.getItem(draftKeys.mode),
+					activeBodyweight: active?.workoutData?.userBodyweight,
+					activeExercise: active?.workoutExercises?.[0]?.name,
+					activeReps: active?.workoutExercises?.[0]?.sets?.[0]?.reps,
+					editDraft: localStorage.getItem(draftKeys.edit)
+				};
+			}, draftKeys)
+		)
+		.toEqual({
+			mode: 'active',
+			activeBodyweight: 111,
+			activeExercise: 'Incline barbell press',
+			activeReps: 9,
+			editDraft: null
+		});
+
+	await page.getByLabel('create-workout').click();
+	await expect(page.getByPlaceholder('Type here')).toHaveValue('111');
+	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Keep current' }).click();
+	await expect(page.locator('[id="Incline barbell press-set-1-reps"]')).toHaveValue('9');
+	await expect(page.locator('[id="Incline barbell press-set-1-load"]')).toHaveValue('135');
+	await page.getByRole('link', { name: 'Workouts' }).click();
 
 	await page.getByRole('link', { name: `${getTodaysDateString()} Pull A` }).click();
 	await expect(page.getByRole('tabpanel')).toContainText(
-		'Mesocycle MyMeso Pull A User bodyweight 95 Targeted muscle groups Lats'
+		'Mesocycle MyMeso Pull A User bodyweight (lbs) 95 Targeted muscle groups Lats'
 	);
 	await page.getByRole('tab', { name: 'Exercises' }).click();
 	await expect(page.getByRole('tabpanel')).toContainText(
-		'Pull-ups 3 Straight sets of 5 to 15 reps BW Lats Reps Load RIR 1 7 0 3 2 6 0 3 3 5 0 0'
+		'Pull-ups 3 Straight sets of 5 to 15 reps BW Lats Reps Load (lbs) RIR 1 7 0 3 2 6 0 3 3 5 0 0'
 	);
+
+	await page.getByRole('tab', { name: 'Basic' }).click();
+	await page.getByLabel('workout-options').click();
+	await page.getByRole('menuitem', { name: 'Edit' }).click();
+	await expect(page.getByRole('heading', { name: 'Edit workout' })).toBeVisible();
+	await page.reload();
+	await expect(page.getByRole('heading', { name: 'Edit workout' })).toBeVisible();
+	await page.getByRole('button', { name: 'Cancel edit' }).click();
+	await expect(page.getByRole('tabpanel')).toContainText('User bodyweight (lbs) 95');
+	await page.getByRole('link', { name: 'Workouts' }).click();
+	await page.getByLabel('create-workout').click();
+	await expect(page.getByPlaceholder('Type here')).toHaveValue('111');
+	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Keep current' }).click();
+	await expect(page.locator('[id="Incline barbell press-set-1-reps"]')).toHaveValue('9');
+	await expect(page.locator('[id="Incline barbell press-set-1-load"]')).toHaveValue('135');
 });
 
 test('workout changes should update mesocycle split', async ({ page }) => {

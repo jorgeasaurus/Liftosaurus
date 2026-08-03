@@ -61,9 +61,8 @@
 		if (newWorkouts.length !== 10) infiniteEvent.detail.complete();
 	}
 
-	function createNewWorkout() {
-		if (workoutRunes.editingWorkoutId !== null) workoutRunes.resetStores();
-		goto('/workouts/manage/start');
+	async function createNewWorkout() {
+		if (await workoutRunes.beginNewWorkout()) await goto('/workouts/manage/start');
 	}
 
 	function setFilters(

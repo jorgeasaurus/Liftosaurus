@@ -32,7 +32,7 @@
 	);
 
 	async function editWorkout() {
-		workoutRunes.loadWorkout(workout);
+		await workoutRunes.loadWorkout(workout);
 		await goto('/workouts/manage/start');
 	}
 
