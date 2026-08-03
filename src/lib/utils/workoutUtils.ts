@@ -155,21 +155,31 @@ export function isProgressionPerformance(exercise: { isDeload?: boolean }) {
 	return !exercise.isDeload;
 }
 
+function matchesProgressionExerciseIdentity(
+	currentExercise: { name: string; mesocycleExerciseTemplateId?: string | null },
+	previousExercise: { name: string; mesocycleExerciseTemplateId?: string | null },
+	currentSplitDayIndex: number,
+	previousSplitDayIndex: number
+) {
+	if (currentExercise.mesocycleExerciseTemplateId && previousExercise.mesocycleExerciseTemplateId) {
+		return currentExercise.mesocycleExerciseTemplateId === previousExercise.mesocycleExerciseTemplateId;
+	}
+	return currentExercise.name === previousExercise.name && currentSplitDayIndex === previousSplitDayIndex;
+}
+
 export function hasContiguousExerciseTemplateOrder(templates: { exerciseIndex: number }[]) {
 	return templates.every(({ exerciseIndex }, expectedIndex) => exerciseIndex === expectedIndex);
 }
 
 function getProgressionPerformances(
 	exerciseIdentity: Pick<WorkoutExerciseInProgress, 'name' | 'mesocycleExerciseTemplateId'>,
-	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle']
+	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle'],
+	currentSplitDayIndex: number
 ): PreviousPerformance[] {
-	return workoutsOfMesocycle.flatMap(({ workout }) => {
+	return workoutsOfMesocycle.flatMap(({ workout, splitDayIndex }) => {
 		const exercise = workout.workoutExercises.find((candidate) => {
 			if (!isProgressionPerformance(candidate)) return false;
-			if (!exerciseIdentity.mesocycleExerciseTemplateId || !candidate.mesocycleExerciseTemplateId) {
-				return candidate.name === exerciseIdentity.name;
-			}
-			return candidate.mesocycleExerciseTemplateId === exerciseIdentity.mesocycleExerciseTemplateId;
+			return matchesProgressionExerciseIdentity(exerciseIdentity, candidate, currentSplitDayIndex, splitDayIndex);
 		});
 		return exercise ? [{ exercise, oldUserBodyweight: workout.userBodyweight }] : [];
 	});
@@ -315,14 +325,17 @@ export function getComparableWorkoutExercisePairs(
 }
 
 export function getPreviousWorkoutExercisePerformances(
-	currentExercises: Pick<WorkoutExercise, 'name'>[],
-	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle']
+	currentExercises: { name: string; mesocycleExerciseTemplateId?: string | null }[],
+	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle'],
+	currentSplitDayIndex: number
 ): WorkoutExerciseWithPreviousBodyweight[] {
 	const completedWorkouts = workoutsOfMesocycle.toReversed().filter(({ workoutStatus }) => workoutStatus === null);
-	return currentExercises.flatMap(({ name }) => {
-		for (const { workout } of completedWorkouts) {
+	return currentExercises.flatMap((currentExercise) => {
+		for (const { workout, splitDayIndex } of completedWorkouts) {
 			const exercise = workout.workoutExercises.find(
-				(previousExercise) => previousExercise.name === name && isProgressionPerformance(previousExercise)
+				(previousExercise) =>
+					isProgressionPerformance(previousExercise) &&
+					matchesProgressionExerciseIdentity(currentExercise, previousExercise, currentSplitDayIndex, splitDayIndex)
 			);
 			if (exercise) return [{ ...exercise, userBodyweight: workout.userBodyweight }];
 		}
@@ -651,7 +664,7 @@ export function progressiveOverloadMagic(
 	if (workoutsOfMesocycle.length > 0) {
 		workoutExercises.forEach((ex) => {
 			// Progressive overload here
-			const allPreviousPerformances = getProgressionPerformances(ex, workoutsOfMesocycle);
+			const allPreviousPerformances = getProgressionPerformances(ex, workoutsOfMesocycle, splitDayIndex);
 
 			const lastPerformance = allPreviousPerformances.at(-1);
 			if (!lastPerformance?.exercise) return;
@@ -721,7 +734,9 @@ export function progressiveOverloadMagic(
 		}));
 
 		exercisesGroupedByMuscleGroups.forEach(({ muscleGroup, exercises }) => {
-			const performancesByExercise = exercises.map((ex) => getProgressionPerformances(ex, workoutsOfMesocycle));
+			const performancesByExercise = exercises.map((ex) =>
+				getProgressionPerformances(ex, workoutsOfMesocycle, splitDayIndex)
+			);
 			if (performancesByExercise.every((performances) => performances.length < 2)) return;
 
 			const averageMuscleGroupPerformanceChanges = performancesByExercise

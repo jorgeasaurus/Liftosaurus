@@ -342,7 +342,10 @@ export const workouts = t.router({
 										id: true,
 										startDate: true,
 										endDate: true,
-										mesocycleExerciseSplitDays: { select: { name: true } }
+										mesocycleExerciseSplitDays: {
+											select: { name: true },
+											orderBy: { dayIndex: 'asc' }
+										}
 									}
 								}
 							}
@@ -562,7 +565,7 @@ export const workouts = t.router({
 					startDate: { not: null },
 					endDate: null
 				},
-				include: createActiveMesocycleWithProgressionDataInclude(input.splitDayIndex)
+				include: createActiveMesocycleWithProgressionDataInclude()
 			});
 
 			const workoutExercisesWithPreviousData: WorkoutExercisesWithPreviousData = {
@@ -584,7 +587,8 @@ export const workouts = t.router({
 
 			const previousExercises = getPreviousWorkoutExercisePerformances(
 				workoutExercisesWithPreviousData.todaysWorkoutExercises,
-				data.workoutsOfMesocycle
+				data.workoutsOfMesocycle,
+				splitDayIndex
 			);
 			if (previousExercises.length > 0) {
 				workoutExercisesWithPreviousData.previousWorkoutData = { exercises: previousExercises };
