@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
-	const TERMS_ACCEPTED_KEY = 'myfit_terms_accepted';
+	const TERMS_ACCEPTED_KEY = 'Liftosaurus_terms_accepted';
 	let open = $state(false);
 
 	onMount(() => {
@@ -29,7 +29,7 @@
 	function declineTerms() {
 		// User declined - they can't use the app
 		if (browser) {
-			alert('You must accept the Terms of Service to use MyFit.');
+			alert('You must accept the Terms of Service to use Liftosaurus.');
 			// Keep the dialog open
 		}
 	}
@@ -37,14 +37,14 @@
 
 <ResponsiveDialog title="Terms of Service" bind:open dismissible={false}>
 	{#snippet description()}
-		<span class="text-sm">Please read and accept our Terms of Service to continue using MyFit.</span>
+		<span class="text-sm">Please read and accept our Terms of Service to continue using Liftosaurus.</span>
 	{/snippet}
 
 	<div class="mt-4 max-h-[50vh] space-y-4 overflow-y-auto rounded-lg border bg-muted/30 p-4 text-sm">
 		<div>
 			<h3 class="mb-2 font-semibold text-foreground">Medical Disclaimer</h3>
 			<p class="text-muted-foreground">
-				The information provided by MyFit is for general informational purposes only and is not intended to be a
+				The information provided by Liftosaurus is for general informational purposes only and is not intended to be a
 				substitute for professional medical advice, diagnosis, or treatment.
 			</p>
 		</div>
@@ -62,7 +62,7 @@
 		<div>
 			<h3 class="mb-2 font-semibold text-foreground">Assumption of Risk</h3>
 			<p class="text-muted-foreground">
-				You acknowledge that physical exercise involves inherent risks of injury. By using MyFit's progression
+				You acknowledge that physical exercise involves inherent risks of injury. By using Liftosaurus's progression
 				algorithms and workout recommendations, you voluntarily assume all risks associated with such exercise,
 				including but not limited to muscle strains, joint injuries, cardiovascular events, and other physical injuries.
 			</p>
@@ -97,7 +97,7 @@
 			<p class="text-xs text-muted-foreground">
 				For complete Terms of Service, please visit:
 				<a href="/terms-of-service" class="font-semibold text-primary hover:underline" target="_blank">
-					myfit.fit/terms-of-service
+					Liftosaurus Terms of Service
 				</a>
 			</p>
 		</div>

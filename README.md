@@ -1,4 +1,4 @@
-# [MyFit](https://myfit.fit/)
+# [Liftosaurus](https://liftosaurus-jorgeasaurus-projects.vercel.app/)
 
 ![overview](https://github.com/user-attachments/assets/5290df63-ba02-49b1-93c8-9706046bd176)
 
@@ -6,7 +6,7 @@ A web-based workout tracking application designed to help users track their work
 
 ## Direct link
 
-For web app access, use the [direct link](https://myfit.fit/). Can be installed on device through supported browsers and platforms, recommended browser is Google Chrome.
+For web app access, use the [direct link](https://liftosaurus-jorgeasaurus-projects.vercel.app/). Can be installed on device through supported browsers and platforms, recommended browser is Google Chrome.
 
 ## Features
 
@@ -32,8 +32,8 @@ Follow these instructions to get a copy of the project up and running on your lo
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/WhyAsh5114/MyFit.git
-   cd MyFit
+   git clone https://github.com/WhyAsh5114/Liftosaurus.git
+   cd Liftosaurus
    ```
 
 2. Install dependencies:

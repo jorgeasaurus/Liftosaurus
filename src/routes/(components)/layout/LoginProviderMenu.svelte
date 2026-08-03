@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import GoogleIcon from 'virtual:icons/mdi/google';
 	import GitHubIcon from 'virtual:icons/mdi/github';
 	import { page } from '$app/stores';
 	import { signIn } from '@auth/sveltekit/client';
@@ -9,10 +8,7 @@
 
 	const LAST_USED_PROVIDER_KEY = 'last-used-auth-provider';
 
-	const providerList = [
-		{ name: 'google', logo: GoogleIcon, displayName: 'Google' },
-		{ name: 'github', logo: GitHubIcon, displayName: 'GitHub' }
-	];
+	const providerList = [{ name: 'github', logo: GitHubIcon, displayName: 'GitHub' }];
 
 	let lastUsedProvider = $state<string | null>(null);
 	let sortedProviders = $derived(

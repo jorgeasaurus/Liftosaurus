@@ -14,7 +14,7 @@ export default async function globalTeardown() {
 		where: {
 			email: {
 				startsWith: 'test-user-',
-				endsWith: '@myfit.com'
+				endsWith: '@Liftosaurus.com'
 			}
 		}
 	});

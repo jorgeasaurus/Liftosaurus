@@ -1,6 +1,6 @@
-# Contributing to MyFit
+# Contributing to Liftosaurus
 
-We welcome contributions to MyFit! Whether it's reporting an issue, improving documentation, adding new features, or fixing bugs, your help is greatly appreciated. Please follow the guidelines below to ensure a smooth contribution process.
+We welcome contributions to Liftosaurus! Whether it's reporting an issue, improving documentation, adding new features, or fixing bugs, your help is greatly appreciated. Please follow the guidelines below to ensure a smooth contribution process.
 
 ## Getting Started
 
@@ -18,8 +18,8 @@ Make sure you have the following tools installed:
 1. Fork the repository.
 2. Clone your forked repository:
    ```bash
-   git clone https://github.com/WhyAsh5114/MyFit.git
-   cd MyFit
+   git clone https://github.com/WhyAsh5114/Liftosaurus.git
+   cd Liftosaurus
    ```
 3. Install dependencies:
    ```bash
@@ -67,7 +67,7 @@ To use them, open your browser's developer tools, navigate to the `Application` 
 
 ### Reporting Issues
 
-If you find a bug or have a feature request, please check the [existing issues](https://github.com/WhyAsh5114/MyFit/issues) first. If your issue is not listed, create a new one and provide as much detail as possible.
+If you find a bug or have a feature request, please check the [existing issues](https://github.com/WhyAsh5114/Liftosaurus/issues) first. If your issue is not listed, create a new one and provide as much detail as possible.
 
 ### Proposing Changes
 
@@ -152,4 +152,4 @@ All PRs will be reviewed by project maintainers. We may request changes or provi
 
 ### Thank You
 
-Thank you for taking the time to contribute to MyFit! Your efforts help make this project better for everyone.
+Thank you for taking the time to contribute to Liftosaurus! Your efforts help make this project better for everyone.

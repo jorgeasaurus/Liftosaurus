@@ -23,9 +23,9 @@
 				<LoaderCircle class="animate-spin text-primary" height={48} width={48} />
 			</div>
 		{:else}
-			<img alt="MyFit logo" height={72} src="/favicon.webp" width={72} />
+			<img alt="Liftosaurus logo" class="brand-logo" height={72} src="/favicon.webp" width={72} />
 		{/if}
-		<h1 class="text-4xl font-bold">MyFit</h1>
+		<h1 class="text-4xl font-bold">Liftosaurus</h1>
 	</Button>
 	<NavLinks />
 	<div class="flex gap-1">

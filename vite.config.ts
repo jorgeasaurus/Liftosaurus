@@ -19,12 +19,12 @@ export default defineConfig({
 			base: '/',
 			manifest: {
 				id: '/?app=v3',
-				name: 'MyFit v3',
-				short_name: 'MyFit',
+				name: 'Liftosaurus',
+				short_name: 'Liftosaurus',
 				start_url: '/',
 				display: 'standalone',
-				background_color: '#0a0a0a',
-				theme_color: '#3079ca',
+				background_color: '#0d130d',
+				theme_color: '#2f5d3a',
 				orientation: 'portrait',
 				description: "A fitness app with all the logging and tracking options you'll ever need",
 				icons: [

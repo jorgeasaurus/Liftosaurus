@@ -239,6 +239,25 @@ CREATE TABLE "WorkoutExerciseMiniSet" (
     CONSTRAINT "WorkoutExerciseMiniSet_pkey" PRIMARY KEY ("id")
 );
 
+-- CockroachDB 26.2 can leave newly created tables schema-locked until the
+-- migration transaction finishes. Unlock them before adding indexes and FKs.
+ALTER TABLE "ExerciseSplit" SET (schema_locked = false);
+ALTER TABLE "ExerciseSplitDay" SET (schema_locked = false);
+ALTER TABLE "ExerciseTemplate" SET (schema_locked = false);
+ALTER TABLE "Mesocycle" SET (schema_locked = false);
+ALTER TABLE "MesocycleCyclicSetChange" SET (schema_locked = false);
+ALTER TABLE "MesocycleExerciseSplitDay" SET (schema_locked = false);
+ALTER TABLE "MesocycleExerciseTemplate" SET (schema_locked = false);
+ALTER TABLE "User" SET (schema_locked = false);
+ALTER TABLE "Account" SET (schema_locked = false);
+ALTER TABLE "Session" SET (schema_locked = false);
+ALTER TABLE "VerificationToken" SET (schema_locked = false);
+ALTER TABLE "WorkoutOfMesocycle" SET (schema_locked = false);
+ALTER TABLE "Workout" SET (schema_locked = false);
+ALTER TABLE "WorkoutExercise" SET (schema_locked = false);
+ALTER TABLE "WorkoutExerciseSet" SET (schema_locked = false);
+ALTER TABLE "WorkoutExerciseMiniSet" SET (schema_locked = false);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -295,4 +314,3 @@ ALTER TABLE "WorkoutExerciseSet" ADD CONSTRAINT "WorkoutExerciseSet_workoutExerc
 
 -- AddForeignKey
 ALTER TABLE "WorkoutExerciseMiniSet" ADD CONSTRAINT "WorkoutExerciseMiniSet_workoutExerciseSetId_fkey" FOREIGN KEY ("workoutExerciseSetId") REFERENCES "WorkoutExerciseSet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

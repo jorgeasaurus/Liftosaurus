@@ -40,7 +40,7 @@ export const test = baseTest.extend<{ autoTestFixture: string }, { workerStorage
 			const page = await browser.newPage({
 				storageState: {
 					origins: [
-						{ origin: 'http://localhost:4173', localStorage: [{ name: 'myfit_terms_accepted', value: 'true' }] }
+						{ origin: 'http://localhost:4173', localStorage: [{ name: 'Liftosaurus_terms_accepted', value: 'true' }] }
 					],
 					cookies: []
 				}

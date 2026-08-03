@@ -18,7 +18,7 @@ async function createUser() {
 			user: {
 				create: {
 					id: userId,
-					email: `test-user-${userId}@myfit.com`,
+					email: `test-user-${userId}@Liftosaurus.com`,
 					emailVerified: null
 				}
 			}

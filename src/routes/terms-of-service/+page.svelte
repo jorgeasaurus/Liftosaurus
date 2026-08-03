@@ -1,13 +1,13 @@
 <svelte:head>
-	<title>Terms of Service - MyFit</title>
-	<meta name="description" content="Terms of Service and legal disclaimers for MyFit workout tracking app." />
+	<title>Terms of Service - Liftosaurus</title>
+	<meta name="description" content="Terms of Service and legal disclaimers for Liftosaurus workout tracking app." />
 </svelte:head>
 
 <div class="prose prose-neutral max-w-none dark:prose-invert lg:prose-lg">
 	<h1>Terms of Service</h1>
 	<p>Last updated: October 09, 2025</p>
 	<p>
-		Please read these Terms of Service ("Terms") carefully before using MyFit (the "Service"). By accessing or using the
+		Please read these Terms of Service ("Terms") carefully before using Liftosaurus (the "Service"). By accessing or using the
 		Service, you agree to be bound by these Terms.
 	</p>
 
@@ -15,7 +15,7 @@
 
 	<h3>1. Not Medical Advice</h3>
 	<p>
-		The information provided by MyFit ("we," "us," or "our") on myfit.fit (the "Site") and our mobile application is for
+		The information provided by Liftosaurus ("we," "us," or "our") on liftosaurus-jorgeasaurus-projects.vercel.app (the "Site") and our mobile application is for
 		general informational purposes only. All information on the Site and our mobile application is provided in good
 		faith; however, we make no representation or warranty of any kind, express or implied, regarding the accuracy,
 		adequacy, validity, reliability, availability, or completeness of any information on the Site or our mobile
@@ -51,7 +51,7 @@
 	<h3>3. Assumption of Risk</h3>
 	<p>
 		You acknowledge and agree that physical exercise involves inherent risks of injury, illness, or even death. By using
-		MyFit's progression algorithms, workout recommendations, and training features, you voluntarily and knowingly assume
+		Liftosaurus's progression algorithms, workout recommendations, and training features, you voluntarily and knowingly assume
 		all risks associated with such exercise, whether foreseen or unforeseen, including but not limited to:
 	</p>
 	<ul>
@@ -77,7 +77,7 @@
 
 	<h3>4. No Liability</h3>
 	<p>
-		TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL MYFIT, ITS DEVELOPERS, CONTRIBUTORS,
+		TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL Liftosaurus, ITS DEVELOPERS, CONTRIBUTORS,
 		AFFILIATES, OR ANY OF THEIR RESPECTIVE OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR REPRESENTATIVES BE LIABLE FOR ANY
 		DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO:
 	</p>
@@ -100,7 +100,7 @@
 		<li>Any unauthorized access to or use of our servers and/or any personal information stored therein</li>
 	</ul>
 	<p>
-		This limitation of liability applies even if MyFit has been advised of the possibility of such damages. Some
+		This limitation of liability applies even if Liftosaurus has been advised of the possibility of such damages. Some
 		jurisdictions do not allow the exclusion or limitation of liability for consequential or incidental damages, so the
 		above limitation may not apply to you.
 	</p>
@@ -149,7 +149,7 @@
 	<h3>7. No Professional Relationship</h3>
 	<p>
 		Use of the Service does not create a doctor-patient relationship, trainer-client relationship, or any other
-		professional relationship between you and MyFit or its creators. The Service is provided for informational and
+		professional relationship between you and Liftosaurus or its creators. The Service is provided for informational and
 		tracking purposes only.
 	</p>
 
@@ -181,7 +181,7 @@
 
 	<h3>11. Indemnification</h3>
 	<p>
-		You agree to indemnify, defend, and hold harmless MyFit, its developers, contributors, and affiliates from and
+		You agree to indemnify, defend, and hold harmless Liftosaurus, its developers, contributors, and affiliates from and
 		against any and all claims, liabilities, damages, losses, costs, expenses, or fees (including reasonable attorneys'
 		fees) arising from:
 	</p>
@@ -207,7 +207,7 @@
 
 	<h3>14. Entire Agreement</h3>
 	<p>
-		These Terms constitute the entire agreement between you and MyFit regarding the use of the Service and supersede all
+		These Terms constitute the entire agreement between you and Liftosaurus regarding the use of the Service and supersede all
 		prior and contemporaneous written or oral agreements.
 	</p>
 

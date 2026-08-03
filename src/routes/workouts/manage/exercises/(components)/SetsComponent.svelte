@@ -177,7 +177,7 @@
 <div class="grid grid-cols-4 gap-1">
 	<span class="text-center text-sm font-medium">Reps</span>
 	<span class="text-center text-sm font-medium">
-		Load
+		Load (lbs)
 		{#if typeof exercise.bodyweightFraction === 'number'}
 			<Popover.Root>
 				<Popover.Trigger>
@@ -188,7 +188,7 @@
 						{exercise.bodyweightFraction * 100}% of your bodyweight is taken into account for this exercise. No need to
 						adjust the load manually.
 						<br /><br />
-						{Math.round(exercise.bodyweightFraction * workoutRunes.workoutData!.userBodyweight! * 100) / 100} kg will be
+						{Math.round(exercise.bodyweightFraction * workoutRunes.workoutData!.userBodyweight! * 100) / 100} lbs will be
 						automatically added to the load of each set.
 					</p>
 				</Popover.Content>

@@ -14,7 +14,7 @@ If you discover a security vulnerability in our Node.js web application or Cockr
 
 ### How to Report
 
-1. **Email**: Send an email to `myfit.auth@gmail.com` with the details of the vulnerability.
+1. **Email**: Send an email to `Liftosaurus.auth@gmail.com` with the details of the vulnerability.
 
    - Use the subject line: `Security Vulnerability Report - [Your Issue Title]`.
    - Provide a detailed description of the vulnerability, including:

@@ -104,7 +104,7 @@
 			{/if}
 		</div>
 		<div class="flex flex-col">
-			<span class="text-sm text-muted-foreground">User bodyweight</span>
+			<span class="text-sm text-muted-foreground">User bodyweight (lbs)</span>
 			<span class="font-semibold">{workout.userBodyweight}</span>
 		</div>
 		{#if workout.note}

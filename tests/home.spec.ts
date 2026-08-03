@@ -5,11 +5,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('page has expected h1', async ({ page }) => {
-	await expect(page.getByRole('heading', { name: 'MyFit' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Liftosaurus' })).toBeVisible();
 });
 
 test('has title', async ({ page }) => {
-	await expect(page).toHaveTitle(/MyFit/);
+	await expect(page).toHaveTitle(/Liftosaurus/);
 });
 
 test('login button opens provider list', async ({ page }) => {

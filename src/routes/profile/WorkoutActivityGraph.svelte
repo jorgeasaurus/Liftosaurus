@@ -76,7 +76,7 @@
 
 	function getColor(count: number, hasSkipped: boolean, hasRestDay: boolean): string {
 		if (hasSkipped) return 'bg-orange-500/70 dark:bg-orange-400/70';
-		if (hasRestDay) return 'bg-blue-500/70 dark:bg-blue-400/70';
+		if (hasRestDay) return 'bg-lime-700/60 dark:bg-lime-300/60';
 		if (count === 0) return 'bg-muted/30';
 		if (count === 1) return 'bg-green-500/30 dark:bg-green-400/30';
 		if (count === 2) return 'bg-green-500/60 dark:bg-green-400/60';

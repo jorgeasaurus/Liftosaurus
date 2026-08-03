@@ -1,6 +1,6 @@
 <svelte:head>
-	<title>Privacy Policy - MyFit</title>
-	<meta name="description" content="Learn how MyFit protects your data and respects your privacy." />
+	<title>Privacy Policy - Liftosaurus</title>
+	<meta name="description" content="Learn how Liftosaurus protects your data and respects your privacy." />
 </svelte:head>
 
 <div class="prose prose-neutral max-w-none dark:prose-invert lg:prose-lg">
@@ -39,13 +39,13 @@
 		</li>
 		<li>
 			<p>
-				<strong>Application</strong> refers to MyFit, the software program provided by the Company.
+				<strong>Application</strong> refers to Liftosaurus, the software program provided by the Company.
 			</p>
 		</li>
 		<li>
 			<p>
 				<strong>Company</strong> (referred to as either &quot;the Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot;
-				in this Agreement) refers to MyFit.
+				in this Agreement) refers to Liftosaurus.
 			</p>
 		</li>
 		<li>
@@ -94,8 +94,8 @@
 		</li>
 		<li>
 			<p>
-				<strong>Website</strong> refers to MyFit, accessible from
-				<a href="https://myfit.fit" rel="external nofollow noopener">https://myfit.fit</a>
+				<strong>Website</strong> refers to Liftosaurus, accessible from
+				<a href="https://liftosaurus-jorgeasaurus-projects.vercel.app" rel="external nofollow noopener">https://liftosaurus-jorgeasaurus-projects.vercel.app</a>
 			</p>
 		</li>
 		<li>
@@ -428,7 +428,7 @@
 	<p>If you have any questions about this Privacy Policy, You can contact us:</p>
 	<ul>
 		<li>
-			<p>By email: myfit.auth@gmail.com</p>
+			<p>By email: Liftosaurus.auth@gmail.com</p>
 		</li>
 	</ul>
 </div>

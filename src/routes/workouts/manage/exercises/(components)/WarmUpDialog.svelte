@@ -106,7 +106,7 @@
 					<Table.Row>
 						<Table.Head></Table.Head>
 						<Table.Head>Reps</Table.Head>
-						<Table.Head>Load</Table.Head>
+						<Table.Head>Load (lbs)</Table.Head>
 						<Table.Head>%RM</Table.Head>
 					</Table.Row>
 				</Table.Header>

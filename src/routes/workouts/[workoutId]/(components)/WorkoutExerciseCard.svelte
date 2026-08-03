@@ -48,7 +48,7 @@
 			<Table.Row class="h-2 border-none bg-secondary">
 				<Table.Head class="h-7 w-5"></Table.Head>
 				<Table.Head class="h-7 text-center text-foreground">Reps</Table.Head>
-				<Table.Head class="h-7 text-center text-foreground">Load</Table.Head>
+				<Table.Head class="h-7 text-center text-foreground">Load (lbs)</Table.Head>
 				<Table.Head class="h-7 text-center text-foreground">RIR</Table.Head>
 			</Table.Row>
 		</Table.Header>

@@ -82,7 +82,7 @@
 	<div class="custom-grid grid grid-cols-4 place-items-center gap-y-2">
 		<span class="text-sm font-medium">Reps</span>
 		<span class="text-sm font-medium">
-			Load
+			Load (lbs)
 			{#if exercise.bodyweightFraction !== null}
 				<Popover.Root>
 					<Popover.Trigger class="text-xs font-semibold text-muted-foreground underline">(BW)</Popover.Trigger>

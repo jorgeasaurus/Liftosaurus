@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://myfit.fit/</loc>
+    <loc>https://liftosaurus-jorgeasaurus-projects.vercel.app/</loc>
     <priority>1.0</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://myfit.fit/privacy-policy</loc>
+    <loc>https://liftosaurus-jorgeasaurus-projects.vercel.app/privacy-policy</loc>
     <priority>0.5</priority>
     <changefreq>yearly</changefreq>
   </url>
   <url>
-    <loc>https://myfit.fit/changelog</loc>
+    <loc>https://liftosaurus-jorgeasaurus-projects.vercel.app/changelog</loc>
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://myfit.fit/docs</loc>
+    <loc>https://liftosaurus-jorgeasaurus-projects.vercel.app/docs</loc>
     <priority>0.7</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://myfit.fit/donations</loc>
+    <loc>https://liftosaurus-jorgeasaurus-projects.vercel.app/donations</loc>
     <priority>0.4</priority>
     <changefreq>yearly</changefreq>
   </url>

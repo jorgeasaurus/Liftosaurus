@@ -1,6 +1,6 @@
 <svelte:head>
-	<title>Support MyFit</title>
-	<meta name="description" content="Support the development of MyFit and help us keep it free and privacy-first." />
+	<title>Support Liftosaurus</title>
+	<meta name="description" content="Support the development of Liftosaurus and help us keep it free and privacy-first." />
 </svelte:head>
 
 <div class="prose prose-neutral max-w-none dark:prose-invert lg:prose-lg">
@@ -19,9 +19,9 @@
 		</a>
 	</div>
 
-	<h2>How MyFit started</h2>
+	<h2>How Liftosaurus started</h2>
 	<p>
-		I'm just a college student who started MyFit as a fun side project. I never thought I'd actually get users 😅. My
+		I'm just a college student who started Liftosaurus as a fun side project. I never thought I'd actually get users 😅. My
 		original intention was just to have an app for personal use and as a resume project to help me get a software
 		engineering job. Over time, this project grew and gained a handful of users, which made me unreasonably happy.
 	</p>
@@ -42,7 +42,7 @@
 
 	<h2>How donations will be used</h2>
 	<p>
-		The primary way donations to MyFit will be used is for hosting the project (Vercel) and its database (CockroachDB).
+		The primary way donations to Liftosaurus will be used is for hosting the project (Vercel) and its database (CockroachDB).
 		If any are left over, it'll simply motivate me to work on this project further and improve it in every way possible.
 	</p>
 </div>

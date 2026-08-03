@@ -2,7 +2,7 @@
 
 ## Overview
 
-MyFit is a progressive web application (PWA) for tracking workouts and managing progressive overload in strength training. The application is built with modern web technologies and follows a full-stack TypeScript architecture with server-side rendering capabilities.
+Liftosaurus is a progressive web application (PWA) for tracking workouts and managing progressive overload in strength training. The application is built with modern web technologies and follows a full-stack TypeScript architecture with server-side rendering capabilities.
 
 ## Technology Stack
 
@@ -34,7 +34,7 @@ MyFit is a progressive web application (PWA) for tracking workouts and managing 
 ## Project Structure
 
 ```
-MyFit/
+Liftosaurus/
 ├── prisma/                          # Database layer
 │   ├── migrations/                  # Database migration history
 │   └── schema/                      # Modular Prisma schemas

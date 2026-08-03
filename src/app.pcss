@@ -4,65 +4,65 @@
 
 @layer base {
 	:root {
-		--background: 0 0% 100%;
-		--foreground: 0 0% 3.9%;
+		--background: 75 40% 98%;
+		--foreground: 133.3 15.8% 11.2%;
 
-		--primary: 211.56 61.6% 45.02%;
+		--primary: 134.3 32.9% 27.5%;
 		--primary-foreground: 0 0% 100%;
 
 		--card: 0 0% 100%;
-		--card-foreground: 212 60% 4.9%;
+		--card-foreground: 133.3 15.8% 11.2%;
 
 		--popover: 0 0% 100%;
-		--popover-foreground: 212 60% 4.9%;
+		--popover-foreground: 133.3 15.8% 11.2%;
 
-		--secondary: 211.3 58.97% 92.35%;
-		--secondary-foreground: 0 0% 0%;
+		--secondary: 73.3 30% 88.2%;
+		--secondary-foreground: 100 18.5% 15.9%;
 
-		--muted: 210 61.54% 94.9%;
-		--muted-foreground: 0 0% 40%;
+		--muted: 72 27.8% 92.9%;
+		--muted-foreground: 95.3 8.2% 40.6%;
 
-		--accent: 210 61.54% 94.9%;
-		--accent-foreground: 211.56 61.6% 49.02%;
+		--accent: 107.1 23.3% 88.2%;
+		--accent-foreground: 136.1 33.9% 23.7%;
 
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 210 40% 98%;
 
-		--border: 0 0% 90.2%;
-		--input: 0 0% 90.2%;
-		--ring: 211.56 61.6% 49.02%;
+		--border: 78.8 19% 83.5%;
+		--input: 78.8 19% 83.5%;
+		--ring: 98.4 29.1% 33.7%;
 
 		--radius: 0.5rem;
 	}
 
 	.dark {
-		--background: 0 0% 3.9%;
-		--foreground: 0 0% 98%;
+		--background: 120 18.8% 6.3%;
+		--foreground: 84 27.8% 92.9%;
 
-		--primary: 211.56 61.6% 45.02%;
+		--primary: 92.7 31.4% 34.3%;
 		--primary-foreground: 0 0% 100%;
 
-		--card: 0 0% 0%;
-		--card-foreground: 211.3 58.97% 92.35%;
+		--card: 120 20% 7.8%;
+		--card-foreground: 84 27.8% 92.9%;
 
-		--popover: 0 0% 0%;
-		--popover-foreground: 211.3 58.97% 92.35%;
+		--popover: 120 20% 7.8%;
+		--popover-foreground: 84 27.8% 92.9%;
 
-		--secondary: 212.22 61.36% 17.25%;
-		--secondary-foreground: 0 0% 100%;
+		--secondary: 104.2 22.4% 16.7%;
+		--secondary-foreground: 87.7 28.9% 91.2%;
 
-		--muted: 240 12.28% 11.18%;
-		--muted-foreground: 240 1.2% 60.78%;
+		--muted: 114 16.7% 11.8%;
+		--muted-foreground: 96 10.5% 62.7%;
 
-		--accent: 212.22 61.36% 17.25%;
-		--accent-foreground: 211.3 58.97% 92.35%;
+		--accent: 103.8 25.5% 20%;
+		--accent-foreground: 96.7 27.3% 87.1%;
 
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 210 40% 98%;
 
-		--border: 0 0% 14.9%;
-		--input: 0 0% 14.9%;
-		--ring: 211.56 61.6% 49.02%;
+		--border: 120 11.8% 18.2%;
+		--input: 120 10.3% 22.7%;
+		--ring: 88.4 23.5% 47.6%;
 
 		--radius: 0.5rem;
 	}
@@ -87,6 +87,18 @@
 
 body {
 	@apply flex !h-screen w-screen flex-col lg:flex-row;
+}
+
+.brand-logo {
+	filter: hue-rotate(283deg) saturate(75%) brightness(72%);
+}
+
+.dark .brand-logo {
+	filter: hue-rotate(283deg) saturate(55%) brightness(95%);
+}
+
+.brand-screenshot {
+	filter: hue-rotate(283deg) saturate(75%);
 }
 
 .text-lg-skeleton {

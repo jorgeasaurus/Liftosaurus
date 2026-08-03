@@ -192,7 +192,7 @@
 				startWorkout();
 			}}
 		>
-			<Label for="user-bodyweight">Bodyweight</Label>
+			<Label for="user-bodyweight">Bodyweight (lbs)</Label>
 			<Input
 				id="user-bodyweight"
 				placeholder="Type here"

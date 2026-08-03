@@ -8,7 +8,7 @@
 
 	function updateApp() {
 		updating = true;
-		const fieldsToKeep = ['myfit_terms_accepted', 'discord-dismiss', 'domain-move-dismiss', 'last-used-auth-provider'];
+		const fieldsToKeep = ['Liftosaurus_terms_accepted', 'discord-dismiss', 'domain-move-dismiss', 'last-used-auth-provider'];
 		const preservedValues: Record<string, string | null> = {};
 
 		fieldsToKeep.forEach((field) => {

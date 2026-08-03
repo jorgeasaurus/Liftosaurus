@@ -1,5 +1,5 @@
 {
-	"name": "myfit",
+	"name": "Liftosaurus",
 	"version": "0.0.0-semantically-released",
 	"packageManager": "pnpm@10.33.1",
 	"private": true,
@@ -8,6 +8,7 @@
 		"build": "vite build",
 		"preview": "vite preview --host",
 		"test": "playwright test",
+		"test:unit": "node --import tsx --test tests/unit/*.unit.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --compiler-warnings \"state_referenced_locally:ignore\"",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch --compiler-warnings \"state_referenced_locally:ignore\"",
 		"format": "prettier --write .",
@@ -15,6 +16,7 @@
 		"lint": "eslint . && prettier --check .",
 		"release": "release-it",
 		"create-user": "tsx src/lib/utils/userCreation.ts",
+		"import:rp": "tsx scripts/import-rp-mesocycle.ts",
 		"ci:full": "pnpm format && pnpm lint && pnpm check && pnpm test"
 	},
 	"devDependencies": {
