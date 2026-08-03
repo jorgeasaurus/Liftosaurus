@@ -18,13 +18,13 @@ export const ExerciseSplitDayScalarFieldEnumSchema = z.enum(['id','name','dayInd
 
 export const ExerciseTemplateScalarFieldEnumSchema = z.enum(['id','name','exerciseIndex','targetMuscleGroup','customMuscleGroup','bodyweightFraction','setType','repRangeStart','repRangeEnd','changeType','changeAmount','note','exerciseSplitDayId','topRepRangeStart','topRepRangeEnd']);
 
-export const MesocycleScalarFieldEnumSchema = z.enum(['id','name','userId','exerciseSplitId','RIRProgression','startDate','endDate','startOverloadPercentage','preferredProgressionVariable','lastSetToFailure','forceRIRMatching']);
+export const MesocycleScalarFieldEnumSchema = z.enum(['id','name','userId','exerciseSplitId','RIRProgression','startDate','endDate','startOverloadPercentage','preferredProgressionVariable','repRangeMode','lastSetToFailure','forceRIRMatching']);
 
 export const MesocycleCyclicSetChangeScalarFieldEnumSchema = z.enum(['id','mesocycleId','muscleGroup','customMuscleGroup','regardlessOfProgress','setIncreaseAmount','maxVolume']);
 
 export const MesocycleExerciseSplitDayScalarFieldEnumSchema = z.enum(['id','name','dayIndex','isRestDay','mesocycleId']);
 
-export const MesocycleExerciseTemplateScalarFieldEnumSchema = z.enum(['id','name','exerciseIndex','targetMuscleGroup','customMuscleGroup','bodyweightFraction','sets','setType','repRangeStart','repRangeEnd','changeType','changeAmount','note','mesocycleExerciseSplitDayId','overloadPercentage','lastSetToFailure','forceRIRMatching','minimumWeightChange','preferredProgressionVariable','topRepRangeStart','topRepRangeEnd']);
+export const MesocycleExerciseTemplateScalarFieldEnumSchema = z.enum(['id','name','exerciseIndex','targetMuscleGroup','customMuscleGroup','bodyweightFraction','sets','setType','repRangeStart','repRangeEnd','changeType','changeAmount','note','mesocycleExerciseSplitDayId','overloadPercentage','lastSetToFailure','forceRIRMatching','minimumWeightChange','preferredProgressionVariable','repRangeMode','adaptiveRepRangeStart','adaptiveRepRangeEnd','adaptiveTopRepRangeStart','adaptiveTopRepRangeEnd','adaptiveRepRangeSourceId','adaptiveTopRepRangeSourceId','adaptiveRepRangeResetAt','topRepRangeStart','topRepRangeEnd']);
 
 export const UserScalarFieldEnumSchema = z.enum(['id','name','email','emailVerified','image','createdAt','updatedAt','migratedFromV2']);
 
@@ -40,7 +40,7 @@ export const WorkoutOfMesocycleScalarFieldEnumSchema = z.enum(['id','workoutId',
 
 export const WorkoutScalarFieldEnumSchema = z.enum(['id','userBodyweight','startedAt','endedAt','userId','note']);
 
-export const WorkoutExerciseScalarFieldEnumSchema = z.enum(['id','exerciseIndex','name','workoutId','targetMuscleGroup','customMuscleGroup','bodyweightFraction','setType','changeType','changeAmount','repRangeStart','repRangeEnd','note','overloadPercentage','lastSetToFailure','forceRIRMatching','minimumWeightChange','preferredProgressionVariable','topRepRangeStart','topRepRangeEnd','isDeload']);
+export const WorkoutExerciseScalarFieldEnumSchema = z.enum(['id','exerciseIndex','name','workoutId','targetMuscleGroup','customMuscleGroup','bodyweightFraction','setType','changeType','changeAmount','repRangeStart','repRangeEnd','note','overloadPercentage','lastSetToFailure','forceRIRMatching','minimumWeightChange','preferredProgressionVariable','repRangeMode','mesocycleExerciseTemplateId','topRepRangeStart','topRepRangeEnd','isDeload']);
 
 export const WorkoutExerciseSetScalarFieldEnumSchema = z.enum(['id','setIndex','workoutExerciseId','reps','load','RIR','skipped']);
 
@@ -67,6 +67,10 @@ export type ChangeTypeType = `${z.infer<typeof ChangeTypeSchema>}`
 export const ProgressionVariableSchema = z.enum(['Reps','Load']);
 
 export type ProgressionVariableType = `${z.infer<typeof ProgressionVariableSchema>}`
+
+export const RepRangeModeSchema = z.enum(['Fixed','Adaptive']);
+
+export type RepRangeModeType = `${z.infer<typeof RepRangeModeSchema>}`
 
 export const WorkoutStatusSchema = z.enum(['Skipped','RestDay']);
 
@@ -136,6 +140,7 @@ export type ExerciseTemplate = z.infer<typeof ExerciseTemplateSchema>
 
 export const MesocycleSchema = z.object({
   preferredProgressionVariable: ProgressionVariableSchema,
+  repRangeMode: RepRangeModeSchema,
   id: z.string().cuid2(),
   name: z.string(),
   userId: z.string(),
@@ -189,6 +194,7 @@ export const MesocycleExerciseTemplateSchema = z.object({
   setType: SetTypeSchema,
   changeType: ChangeTypeSchema.nullable(),
   preferredProgressionVariable: ProgressionVariableSchema.nullable(),
+  repRangeMode: RepRangeModeSchema.nullable(),
   id: z.string().cuid2(),
   name: z.string(),
   exerciseIndex: z.number().int(),
@@ -204,6 +210,13 @@ export const MesocycleExerciseTemplateSchema = z.object({
   lastSetToFailure: z.boolean().nullable(),
   forceRIRMatching: z.boolean().nullable(),
   minimumWeightChange: z.number().nullable(),
+  adaptiveRepRangeStart: z.number().int().nullable(),
+  adaptiveRepRangeEnd: z.number().int().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().nullable(),
+  adaptiveRepRangeSourceId: z.string().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().nullable(),
   topRepRangeStart: z.number().int().nullable(),
   topRepRangeEnd: z.number().int().nullable(),
 })
@@ -326,6 +339,7 @@ export const WorkoutExerciseSchema = z.object({
   setType: SetTypeSchema,
   changeType: ChangeTypeSchema.nullable(),
   preferredProgressionVariable: ProgressionVariableSchema.nullable(),
+  repRangeMode: RepRangeModeSchema.nullable(),
   id: z.string().cuid2(),
   exerciseIndex: z.number().int(),
   name: z.string(),
@@ -340,6 +354,7 @@ export const WorkoutExerciseSchema = z.object({
   lastSetToFailure: z.boolean().nullable(),
   forceRIRMatching: z.boolean().nullable(),
   minimumWeightChange: z.number().nullable(),
+  mesocycleExerciseTemplateId: z.string().nullable(),
   topRepRangeStart: z.number().int().nullable(),
   topRepRangeEnd: z.number().int().nullable(),
   isDeload: z.boolean(),
@@ -517,6 +532,7 @@ export const MesocycleSelectSchema: z.ZodType<Prisma.MesocycleSelect> = z.object
   endDate: z.boolean().optional(),
   startOverloadPercentage: z.boolean().optional(),
   preferredProgressionVariable: z.boolean().optional(),
+  repRangeMode: z.boolean().optional(),
   lastSetToFailure: z.boolean().optional(),
   forceRIRMatching: z.boolean().optional(),
   user: z.union([z.boolean(),z.lazy(() => UserArgsSchema)]).optional(),
@@ -615,6 +631,14 @@ export const MesocycleExerciseTemplateSelectSchema: z.ZodType<Prisma.MesocycleEx
   forceRIRMatching: z.boolean().optional(),
   minimumWeightChange: z.boolean().optional(),
   preferredProgressionVariable: z.boolean().optional(),
+  repRangeMode: z.boolean().optional(),
+  adaptiveRepRangeStart: z.boolean().optional(),
+  adaptiveRepRangeEnd: z.boolean().optional(),
+  adaptiveTopRepRangeStart: z.boolean().optional(),
+  adaptiveTopRepRangeEnd: z.boolean().optional(),
+  adaptiveRepRangeSourceId: z.boolean().optional(),
+  adaptiveTopRepRangeSourceId: z.boolean().optional(),
+  adaptiveRepRangeResetAt: z.boolean().optional(),
   topRepRangeStart: z.boolean().optional(),
   topRepRangeEnd: z.boolean().optional(),
   mesocycleExerciseSplitDay: z.union([z.boolean(),z.lazy(() => MesocycleExerciseSplitDayArgsSchema)]).optional(),
@@ -847,6 +871,8 @@ export const WorkoutExerciseSelectSchema: z.ZodType<Prisma.WorkoutExerciseSelect
   forceRIRMatching: z.boolean().optional(),
   minimumWeightChange: z.boolean().optional(),
   preferredProgressionVariable: z.boolean().optional(),
+  repRangeMode: z.boolean().optional(),
+  mesocycleExerciseTemplateId: z.boolean().optional(),
   topRepRangeStart: z.boolean().optional(),
   topRepRangeEnd: z.boolean().optional(),
   isDeload: z.boolean().optional(),
@@ -1157,6 +1183,7 @@ export const MesocycleWhereInputSchema: z.ZodType<Prisma.MesocycleWhereInput> = 
   endDate: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.lazy(() => FloatFilterSchema),z.number() ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional(),
   lastSetToFailure: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   forceRIRMatching: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
@@ -1176,6 +1203,7 @@ export const MesocycleOrderByWithRelationInputSchema: z.ZodType<Prisma.Mesocycle
   endDate: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   startOverloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
   lastSetToFailure: z.lazy(() => SortOrderSchema).optional(),
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   user: z.lazy(() => UserOrderByWithRelationInputSchema).optional(),
@@ -1201,6 +1229,7 @@ export const MesocycleWhereUniqueInputSchema: z.ZodType<Prisma.MesocycleWhereUni
   endDate: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.lazy(() => FloatFilterSchema),z.number() ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional(),
   lastSetToFailure: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   forceRIRMatching: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
@@ -1220,6 +1249,7 @@ export const MesocycleOrderByWithAggregationInputSchema: z.ZodType<Prisma.Mesocy
   endDate: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   startOverloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
   lastSetToFailure: z.lazy(() => SortOrderSchema).optional(),
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   _count: z.lazy(() => MesocycleCountOrderByAggregateInputSchema).optional(),
@@ -1242,6 +1272,7 @@ export const MesocycleScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.Mes
   endDate: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.lazy(() => FloatWithAggregatesFilterSchema),z.number() ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableWithAggregatesFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeWithAggregatesFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional(),
   lastSetToFailure: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
   forceRIRMatching: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
 }).strict();
@@ -1402,6 +1433,14 @@ export const MesocycleExerciseTemplateWhereInputSchema: z.ZodType<Prisma.Mesocyc
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   mesocycleExerciseSplitDay: z.union([ z.lazy(() => MesocycleExerciseSplitDayScalarRelationFilterSchema),z.lazy(() => MesocycleExerciseSplitDayWhereInputSchema) ]).optional(),
@@ -1427,6 +1466,14 @@ export const MesocycleExerciseTemplateOrderByWithRelationInputSchema: z.ZodType<
   forceRIRMatching: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   minimumWeightChange: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveTopRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveTopRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeSourceId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveTopRepRangeSourceId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeResetAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   mesocycleExerciseSplitDay: z.lazy(() => MesocycleExerciseSplitDayOrderByWithRelationInputSchema).optional()
@@ -1458,6 +1505,14 @@ export const MesocycleExerciseTemplateWhereUniqueInputSchema: z.ZodType<Prisma.M
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
   mesocycleExerciseSplitDay: z.union([ z.lazy(() => MesocycleExerciseSplitDayScalarRelationFilterSchema),z.lazy(() => MesocycleExerciseSplitDayWhereInputSchema) ]).optional(),
@@ -1483,6 +1538,14 @@ export const MesocycleExerciseTemplateOrderByWithAggregationInputSchema: z.ZodTy
   forceRIRMatching: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   minimumWeightChange: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveTopRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveTopRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeSourceId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveTopRepRangeSourceId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  adaptiveRepRangeResetAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   _count: z.lazy(() => MesocycleExerciseTemplateCountOrderByAggregateInputSchema).optional(),
@@ -1515,6 +1578,14 @@ export const MesocycleExerciseTemplateScalarWhereWithAggregatesInputSchema: z.Zo
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableWithAggregatesFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableWithAggregatesFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableWithAggregatesFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
 }).strict();
@@ -2048,6 +2119,8 @@ export const WorkoutExerciseWhereInputSchema: z.ZodType<Prisma.WorkoutExerciseWh
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   isDeload: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
@@ -2074,6 +2147,8 @@ export const WorkoutExerciseOrderByWithRelationInputSchema: z.ZodType<Prisma.Wor
   forceRIRMatching: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   minimumWeightChange: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  mesocycleExerciseTemplateId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   isDeload: z.lazy(() => SortOrderSchema).optional(),
@@ -2106,6 +2181,8 @@ export const WorkoutExerciseWhereUniqueInputSchema: z.ZodType<Prisma.WorkoutExer
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number().int() ]).optional().nullable(),
   isDeload: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
@@ -2132,6 +2209,8 @@ export const WorkoutExerciseOrderByWithAggregationInputSchema: z.ZodType<Prisma.
   forceRIRMatching: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   minimumWeightChange: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  mesocycleExerciseTemplateId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeStart: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   topRepRangeEnd: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   isDeload: z.lazy(() => SortOrderSchema).optional(),
@@ -2164,6 +2243,8 @@ export const WorkoutExerciseScalarWhereWithAggregatesInputSchema: z.ZodType<Pris
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableWithAggregatesFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableWithAggregatesFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableWithAggregatesFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableWithAggregatesFilterSchema),z.number() ]).optional().nullable(),
   isDeload: z.union([ z.lazy(() => BoolWithAggregatesFilterSchema),z.boolean() ]).optional(),
@@ -2548,6 +2629,7 @@ export const MesocycleCreateInputSchema: z.ZodType<Prisma.MesocycleCreateInput> 
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   user: z.lazy(() => UserCreateNestedOneWithoutMesocyclesInputSchema),
@@ -2567,6 +2649,7 @@ export const MesocycleUncheckedCreateInputSchema: z.ZodType<Prisma.MesocycleUnch
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedCreateNestedManyWithoutMesocycleInputSchema).optional(),
@@ -2582,6 +2665,7 @@ export const MesocycleUpdateInputSchema: z.ZodType<Prisma.MesocycleUpdateInput> 
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   user: z.lazy(() => UserUpdateOneRequiredWithoutMesocyclesNestedInputSchema).optional(),
@@ -2601,6 +2685,7 @@ export const MesocycleUncheckedUpdateInputSchema: z.ZodType<Prisma.MesocycleUnch
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedUpdateManyWithoutMesocycleNestedInputSchema).optional(),
@@ -2618,6 +2703,7 @@ export const MesocycleCreateManyInputSchema: z.ZodType<Prisma.MesocycleCreateMan
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean()
 }).strict();
@@ -2630,6 +2716,7 @@ export const MesocycleUpdateManyMutationInputSchema: z.ZodType<Prisma.MesocycleU
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -2644,6 +2731,7 @@ export const MesocycleUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Mesocycle
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -2795,6 +2883,14 @@ export const MesocycleExerciseTemplateCreateInputSchema: z.ZodType<Prisma.Mesocy
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  adaptiveRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   mesocycleExerciseSplitDay: z.lazy(() => MesocycleExerciseSplitDayCreateNestedOneWithoutMesocycleSplitDayExercisesInputSchema)
@@ -2820,6 +2916,14 @@ export const MesocycleExerciseTemplateUncheckedCreateInputSchema: z.ZodType<Pris
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  adaptiveRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable()
 }).strict();
@@ -2843,6 +2947,14 @@ export const MesocycleExerciseTemplateUpdateInputSchema: z.ZodType<Prisma.Mesocy
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   mesocycleExerciseSplitDay: z.lazy(() => MesocycleExerciseSplitDayUpdateOneRequiredWithoutMesocycleSplitDayExercisesNestedInputSchema).optional()
@@ -2868,6 +2980,14 @@ export const MesocycleExerciseTemplateUncheckedUpdateInputSchema: z.ZodType<Pris
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
@@ -2892,6 +3012,14 @@ export const MesocycleExerciseTemplateCreateManyInputSchema: z.ZodType<Prisma.Me
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  adaptiveRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable()
 }).strict();
@@ -2915,6 +3043,14 @@ export const MesocycleExerciseTemplateUpdateManyMutationInputSchema: z.ZodType<P
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
@@ -2939,6 +3075,14 @@ export const MesocycleExerciseTemplateUncheckedUpdateManyInputSchema: z.ZodType<
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
@@ -3442,6 +3586,8 @@ export const WorkoutExerciseCreateInputSchema: z.ZodType<Prisma.WorkoutExerciseC
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional(),
@@ -3468,6 +3614,8 @@ export const WorkoutExerciseUncheckedCreateInputSchema: z.ZodType<Prisma.Workout
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional(),
@@ -3492,6 +3640,8 @@ export const WorkoutExerciseUpdateInputSchema: z.ZodType<Prisma.WorkoutExerciseU
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -3518,6 +3668,8 @@ export const WorkoutExerciseUncheckedUpdateInputSchema: z.ZodType<Prisma.Workout
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -3543,6 +3695,8 @@ export const WorkoutExerciseCreateManyInputSchema: z.ZodType<Prisma.WorkoutExerc
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional()
@@ -3566,6 +3720,8 @@ export const WorkoutExerciseUpdateManyMutationInputSchema: z.ZodType<Prisma.Work
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -3590,6 +3746,8 @@ export const WorkoutExerciseUncheckedUpdateManyInputSchema: z.ZodType<Prisma.Wor
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -4152,6 +4310,13 @@ export const EnumProgressionVariableFilterSchema: z.ZodType<Prisma.EnumProgressi
   not: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NestedEnumProgressionVariableFilterSchema) ]).optional(),
 }).strict();
 
+export const EnumRepRangeModeFilterSchema: z.ZodType<Prisma.EnumRepRangeModeFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeFilterSchema) ]).optional(),
+}).strict();
+
 export const ExerciseSplitNullableScalarRelationFilterSchema: z.ZodType<Prisma.ExerciseSplitNullableScalarRelationFilter> = z.object({
   is: z.lazy(() => ExerciseSplitWhereInputSchema).optional().nullable(),
   isNot: z.lazy(() => ExerciseSplitWhereInputSchema).optional().nullable()
@@ -4197,6 +4362,7 @@ export const MesocycleCountOrderByAggregateInputSchema: z.ZodType<Prisma.Mesocyc
   endDate: z.lazy(() => SortOrderSchema).optional(),
   startOverloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
   lastSetToFailure: z.lazy(() => SortOrderSchema).optional(),
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4215,6 +4381,7 @@ export const MesocycleMaxOrderByAggregateInputSchema: z.ZodType<Prisma.Mesocycle
   endDate: z.lazy(() => SortOrderSchema).optional(),
   startOverloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
   lastSetToFailure: z.lazy(() => SortOrderSchema).optional(),
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4228,6 +4395,7 @@ export const MesocycleMinOrderByAggregateInputSchema: z.ZodType<Prisma.Mesocycle
   endDate: z.lazy(() => SortOrderSchema).optional(),
   startOverloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
   lastSetToFailure: z.lazy(() => SortOrderSchema).optional(),
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4275,6 +4443,16 @@ export const EnumProgressionVariableWithAggregatesFilterSchema: z.ZodType<Prisma
   _count: z.lazy(() => NestedIntFilterSchema).optional(),
   _min: z.lazy(() => NestedEnumProgressionVariableFilterSchema).optional(),
   _max: z.lazy(() => NestedEnumProgressionVariableFilterSchema).optional()
+}).strict();
+
+export const EnumRepRangeModeWithAggregatesFilterSchema: z.ZodType<Prisma.EnumRepRangeModeWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumRepRangeModeFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumRepRangeModeFilterSchema).optional()
 }).strict();
 
 export const MesocycleScalarRelationFilterSchema: z.ZodType<Prisma.MesocycleScalarRelationFilter> = z.object({
@@ -4376,6 +4554,13 @@ export const EnumProgressionVariableNullableFilterSchema: z.ZodType<Prisma.EnumP
   not: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NestedEnumProgressionVariableNullableFilterSchema) ]).optional().nullable(),
 }).strict();
 
+export const EnumRepRangeModeNullableFilterSchema: z.ZodType<Prisma.EnumRepRangeModeNullableFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeNullableFilterSchema) ]).optional().nullable(),
+}).strict();
+
 export const MesocycleExerciseSplitDayScalarRelationFilterSchema: z.ZodType<Prisma.MesocycleExerciseSplitDayScalarRelationFilter> = z.object({
   is: z.lazy(() => MesocycleExerciseSplitDayWhereInputSchema).optional(),
   isNot: z.lazy(() => MesocycleExerciseSplitDayWhereInputSchema).optional()
@@ -4401,6 +4586,14 @@ export const MesocycleExerciseTemplateCountOrderByAggregateInputSchema: z.ZodTyp
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeSourceId: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeSourceId: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeResetAt: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4414,6 +4607,10 @@ export const MesocycleExerciseTemplateAvgOrderByAggregateInputSchema: z.ZodType<
   changeAmount: z.lazy(() => SortOrderSchema).optional(),
   overloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4438,6 +4635,14 @@ export const MesocycleExerciseTemplateMaxOrderByAggregateInputSchema: z.ZodType<
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeSourceId: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeSourceId: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeResetAt: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4462,6 +4667,14 @@ export const MesocycleExerciseTemplateMinOrderByAggregateInputSchema: z.ZodType<
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeSourceId: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeSourceId: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeResetAt: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4475,6 +4688,10 @@ export const MesocycleExerciseTemplateSumOrderByAggregateInputSchema: z.ZodType<
   changeAmount: z.lazy(() => SortOrderSchema).optional(),
   overloadPercentage: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
+  adaptiveTopRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional()
 }).strict();
@@ -4495,6 +4712,16 @@ export const EnumProgressionVariableNullableWithAggregatesFilterSchema: z.ZodTyp
   _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
   _min: z.lazy(() => NestedEnumProgressionVariableNullableFilterSchema).optional(),
   _max: z.lazy(() => NestedEnumProgressionVariableNullableFilterSchema).optional()
+}).strict();
+
+export const EnumRepRangeModeNullableWithAggregatesFilterSchema: z.ZodType<Prisma.EnumRepRangeModeNullableWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeNullableWithAggregatesFilterSchema) ]).optional().nullable(),
+  _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumRepRangeModeNullableFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumRepRangeModeNullableFilterSchema).optional()
 }).strict();
 
 export const DateTimeFilterSchema: z.ZodType<Prisma.DateTimeFilter> = z.object({
@@ -4868,6 +5095,8 @@ export const WorkoutExerciseCountOrderByAggregateInputSchema: z.ZodType<Prisma.W
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
+  mesocycleExerciseTemplateId: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
   isDeload: z.lazy(() => SortOrderSchema).optional()
@@ -4904,6 +5133,8 @@ export const WorkoutExerciseMaxOrderByAggregateInputSchema: z.ZodType<Prisma.Wor
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
+  mesocycleExerciseTemplateId: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
   isDeload: z.lazy(() => SortOrderSchema).optional()
@@ -4928,6 +5159,8 @@ export const WorkoutExerciseMinOrderByAggregateInputSchema: z.ZodType<Prisma.Wor
   forceRIRMatching: z.lazy(() => SortOrderSchema).optional(),
   minimumWeightChange: z.lazy(() => SortOrderSchema).optional(),
   preferredProgressionVariable: z.lazy(() => SortOrderSchema).optional(),
+  repRangeMode: z.lazy(() => SortOrderSchema).optional(),
+  mesocycleExerciseTemplateId: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeStart: z.lazy(() => SortOrderSchema).optional(),
   topRepRangeEnd: z.lazy(() => SortOrderSchema).optional(),
   isDeload: z.lazy(() => SortOrderSchema).optional()
@@ -5345,6 +5578,10 @@ export const EnumProgressionVariableFieldUpdateOperationsInputSchema: z.ZodType<
   set: z.lazy(() => ProgressionVariableSchema).optional()
 }).strict();
 
+export const EnumRepRangeModeFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumRepRangeModeFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => RepRangeModeSchema).optional()
+}).strict();
+
 export const UserUpdateOneRequiredWithoutMesocyclesNestedInputSchema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutMesocyclesNestedInput> = z.object({
   create: z.union([ z.lazy(() => UserCreateWithoutMesocyclesInputSchema),z.lazy(() => UserUncheckedCreateWithoutMesocyclesInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => UserCreateOrConnectWithoutMesocyclesInputSchema).optional(),
@@ -5529,6 +5766,10 @@ export const NullableBoolFieldUpdateOperationsInputSchema: z.ZodType<Prisma.Null
 
 export const NullableEnumProgressionVariableFieldUpdateOperationsInputSchema: z.ZodType<Prisma.NullableEnumProgressionVariableFieldUpdateOperationsInput> = z.object({
   set: z.lazy(() => ProgressionVariableSchema).optional().nullable()
+}).strict();
+
+export const NullableEnumRepRangeModeFieldUpdateOperationsInputSchema: z.ZodType<Prisma.NullableEnumRepRangeModeFieldUpdateOperationsInput> = z.object({
+  set: z.lazy(() => RepRangeModeSchema).optional().nullable()
 }).strict();
 
 export const MesocycleExerciseSplitDayUpdateOneRequiredWithoutMesocycleSplitDayExercisesNestedInputSchema: z.ZodType<Prisma.MesocycleExerciseSplitDayUpdateOneRequiredWithoutMesocycleSplitDayExercisesNestedInput> = z.object({
@@ -6317,6 +6558,13 @@ export const NestedEnumProgressionVariableFilterSchema: z.ZodType<Prisma.NestedE
   not: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NestedEnumProgressionVariableFilterSchema) ]).optional(),
 }).strict();
 
+export const NestedEnumRepRangeModeFilterSchema: z.ZodType<Prisma.NestedEnumRepRangeModeFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeFilterSchema) ]).optional(),
+}).strict();
+
 export const NestedDateTimeNullableWithAggregatesFilterSchema: z.ZodType<Prisma.NestedDateTimeNullableWithAggregatesFilter> = z.object({
   equals: z.coerce.date().optional().nullable(),
   in: z.coerce.date().array().optional().nullable(),
@@ -6357,6 +6605,16 @@ export const NestedEnumProgressionVariableWithAggregatesFilterSchema: z.ZodType<
   _max: z.lazy(() => NestedEnumProgressionVariableFilterSchema).optional()
 }).strict();
 
+export const NestedEnumRepRangeModeWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumRepRangeModeWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeWithAggregatesFilterSchema) ]).optional(),
+  _count: z.lazy(() => NestedIntFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumRepRangeModeFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumRepRangeModeFilterSchema).optional()
+}).strict();
+
 export const NestedBoolNullableFilterSchema: z.ZodType<Prisma.NestedBoolNullableFilter> = z.object({
   equals: z.boolean().optional().nullable(),
   not: z.union([ z.boolean(),z.lazy(() => NestedBoolNullableFilterSchema) ]).optional().nullable(),
@@ -6367,6 +6625,13 @@ export const NestedEnumProgressionVariableNullableFilterSchema: z.ZodType<Prisma
   in: z.lazy(() => ProgressionVariableSchema).array().optional().nullable(),
   notIn: z.lazy(() => ProgressionVariableSchema).array().optional().nullable(),
   not: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NestedEnumProgressionVariableNullableFilterSchema) ]).optional().nullable(),
+}).strict();
+
+export const NestedEnumRepRangeModeNullableFilterSchema: z.ZodType<Prisma.NestedEnumRepRangeModeNullableFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeNullableFilterSchema) ]).optional().nullable(),
 }).strict();
 
 export const NestedBoolNullableWithAggregatesFilterSchema: z.ZodType<Prisma.NestedBoolNullableWithAggregatesFilter> = z.object({
@@ -6385,6 +6650,16 @@ export const NestedEnumProgressionVariableNullableWithAggregatesFilterSchema: z.
   _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
   _min: z.lazy(() => NestedEnumProgressionVariableNullableFilterSchema).optional(),
   _max: z.lazy(() => NestedEnumProgressionVariableNullableFilterSchema).optional()
+}).strict();
+
+export const NestedEnumRepRangeModeNullableWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumRepRangeModeNullableWithAggregatesFilter> = z.object({
+  equals: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  in: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  notIn: z.lazy(() => RepRangeModeSchema).array().optional().nullable(),
+  not: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NestedEnumRepRangeModeNullableWithAggregatesFilterSchema) ]).optional().nullable(),
+  _count: z.lazy(() => NestedIntNullableFilterSchema).optional(),
+  _min: z.lazy(() => NestedEnumRepRangeModeNullableFilterSchema).optional(),
+  _max: z.lazy(() => NestedEnumRepRangeModeNullableFilterSchema).optional()
 }).strict();
 
 export const NestedDateTimeFilterSchema: z.ZodType<Prisma.NestedDateTimeFilter> = z.object({
@@ -6500,6 +6775,7 @@ export const MesocycleCreateWithoutExerciseSplitInputSchema: z.ZodType<Prisma.Me
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   user: z.lazy(() => UserCreateNestedOneWithoutMesocyclesInputSchema),
@@ -6517,6 +6793,7 @@ export const MesocycleUncheckedCreateWithoutExerciseSplitInputSchema: z.ZodType<
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedCreateNestedManyWithoutMesocycleInputSchema).optional(),
@@ -6633,6 +6910,7 @@ export const MesocycleScalarWhereInputSchema: z.ZodType<Prisma.MesocycleScalarWh
   endDate: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.lazy(() => FloatFilterSchema),z.number() ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional(),
   lastSetToFailure: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   forceRIRMatching: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
 }).strict();
@@ -7103,6 +7381,7 @@ export const MesocycleCreateWithoutMesocycleCyclicSetChangesInputSchema: z.ZodTy
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   user: z.lazy(() => UserCreateNestedOneWithoutMesocyclesInputSchema),
@@ -7121,6 +7400,7 @@ export const MesocycleUncheckedCreateWithoutMesocycleCyclicSetChangesInputSchema
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedCreateNestedManyWithoutMesocycleInputSchema).optional(),
@@ -7151,6 +7431,7 @@ export const MesocycleUpdateWithoutMesocycleCyclicSetChangesInputSchema: z.ZodTy
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   user: z.lazy(() => UserUpdateOneRequiredWithoutMesocyclesNestedInputSchema).optional(),
@@ -7169,6 +7450,7 @@ export const MesocycleUncheckedUpdateWithoutMesocycleCyclicSetChangesInputSchema
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedUpdateManyWithoutMesocycleNestedInputSchema).optional(),
@@ -7183,6 +7465,7 @@ export const MesocycleCreateWithoutMesocycleExerciseSplitDaysInputSchema: z.ZodT
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   user: z.lazy(() => UserCreateNestedOneWithoutMesocyclesInputSchema),
@@ -7201,6 +7484,7 @@ export const MesocycleUncheckedCreateWithoutMesocycleExerciseSplitDaysInputSchem
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   mesocycleCyclicSetChanges: z.lazy(() => MesocycleCyclicSetChangeUncheckedCreateNestedManyWithoutMesocycleInputSchema).optional(),
@@ -7231,6 +7515,14 @@ export const MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInpu
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  adaptiveRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable()
 }).strict();
@@ -7254,6 +7546,14 @@ export const MesocycleExerciseTemplateUncheckedCreateWithoutMesocycleExerciseSpl
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  adaptiveRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable()
 }).strict();
@@ -7287,6 +7587,7 @@ export const MesocycleUpdateWithoutMesocycleExerciseSplitDaysInputSchema: z.ZodT
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   user: z.lazy(() => UserUpdateOneRequiredWithoutMesocyclesNestedInputSchema).optional(),
@@ -7305,6 +7606,7 @@ export const MesocycleUncheckedUpdateWithoutMesocycleExerciseSplitDaysInputSchem
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   mesocycleCyclicSetChanges: z.lazy(() => MesocycleCyclicSetChangeUncheckedUpdateManyWithoutMesocycleNestedInputSchema).optional(),
@@ -7350,6 +7652,14 @@ export const MesocycleExerciseTemplateScalarWhereInputSchema: z.ZodType<Prisma.M
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
 }).strict();
@@ -7498,6 +7808,7 @@ export const MesocycleCreateWithoutUserInputSchema: z.ZodType<Prisma.MesocycleCr
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   exerciseSplit: z.lazy(() => ExerciseSplitCreateNestedOneWithoutUsedByMesocyclesInputSchema).optional(),
@@ -7515,6 +7826,7 @@ export const MesocycleUncheckedCreateWithoutUserInputSchema: z.ZodType<Prisma.Me
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedCreateNestedManyWithoutMesocycleInputSchema).optional(),
@@ -8006,6 +8318,7 @@ export const MesocycleCreateWithoutWorkoutsOfMesocycleInputSchema: z.ZodType<Pri
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   user: z.lazy(() => UserCreateNestedOneWithoutMesocyclesInputSchema),
@@ -8024,6 +8337,7 @@ export const MesocycleUncheckedCreateWithoutWorkoutsOfMesocycleInputSchema: z.Zo
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedCreateNestedManyWithoutMesocycleInputSchema).optional(),
@@ -8085,6 +8399,7 @@ export const MesocycleUpdateWithoutWorkoutsOfMesocycleInputSchema: z.ZodType<Pri
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   user: z.lazy(() => UserUpdateOneRequiredWithoutMesocyclesNestedInputSchema).optional(),
@@ -8103,6 +8418,7 @@ export const MesocycleUncheckedUpdateWithoutWorkoutsOfMesocycleInputSchema: z.Zo
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedUpdateManyWithoutMesocycleNestedInputSchema).optional(),
@@ -8183,6 +8499,8 @@ export const WorkoutExerciseCreateWithoutWorkoutInputSchema: z.ZodType<Prisma.Wo
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional(),
@@ -8207,6 +8525,8 @@ export const WorkoutExerciseUncheckedCreateWithoutWorkoutInputSchema: z.ZodType<
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional(),
@@ -8329,6 +8649,8 @@ export const WorkoutExerciseScalarWhereInputSchema: z.ZodType<Prisma.WorkoutExer
   forceRIRMatching: z.union([ z.lazy(() => BoolNullableFilterSchema),z.boolean() ]).optional().nullable(),
   minimumWeightChange: z.union([ z.lazy(() => FloatNullableFilterSchema),z.number() ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => EnumProgressionVariableNullableFilterSchema),z.lazy(() => ProgressionVariableSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => EnumRepRangeModeNullableFilterSchema),z.lazy(() => RepRangeModeSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   topRepRangeStart: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.lazy(() => IntNullableFilterSchema),z.number() ]).optional().nullable(),
   isDeload: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
@@ -8467,6 +8789,8 @@ export const WorkoutExerciseCreateWithoutSetsInputSchema: z.ZodType<Prisma.Worko
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional(),
@@ -8492,6 +8816,8 @@ export const WorkoutExerciseUncheckedCreateWithoutSetsInputSchema: z.ZodType<Pri
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional()
@@ -8557,6 +8883,8 @@ export const WorkoutExerciseUpdateWithoutSetsInputSchema: z.ZodType<Prisma.Worko
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8582,6 +8910,8 @@ export const WorkoutExerciseUncheckedUpdateWithoutSetsInputSchema: z.ZodType<Pri
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8687,6 +9017,7 @@ export const MesocycleCreateManyExerciseSplitInputSchema: z.ZodType<Prisma.Mesoc
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean()
 }).strict();
@@ -8722,6 +9053,7 @@ export const MesocycleUpdateWithoutExerciseSplitInputSchema: z.ZodType<Prisma.Me
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   user: z.lazy(() => UserUpdateOneRequiredWithoutMesocyclesNestedInputSchema).optional(),
@@ -8739,6 +9071,7 @@ export const MesocycleUncheckedUpdateWithoutExerciseSplitInputSchema: z.ZodType<
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedUpdateManyWithoutMesocycleNestedInputSchema).optional(),
@@ -8755,6 +9088,7 @@ export const MesocycleUncheckedUpdateManyWithoutExerciseSplitInputSchema: z.ZodT
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -8940,6 +9274,14 @@ export const MesocycleExerciseTemplateCreateManyMesocycleExerciseSplitDayInputSc
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  adaptiveRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeStart: z.number().int().optional().nullable(),
+  adaptiveTopRepRangeEnd: z.number().int().optional().nullable(),
+  adaptiveRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.string().optional().nullable(),
+  adaptiveRepRangeResetAt: z.coerce.date().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable()
 }).strict();
@@ -8963,6 +9305,14 @@ export const MesocycleExerciseTemplateUpdateWithoutMesocycleExerciseSplitDayInpu
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
@@ -8986,6 +9336,14 @@ export const MesocycleExerciseTemplateUncheckedUpdateWithoutMesocycleExerciseSpl
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
@@ -9009,6 +9367,14 @@ export const MesocycleExerciseTemplateUncheckedUpdateManyWithoutMesocycleExercis
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveTopRepRangeSourceId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  adaptiveRepRangeResetAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
 }).strict();
@@ -9049,6 +9415,7 @@ export const MesocycleCreateManyUserInputSchema: z.ZodType<Prisma.MesocycleCreat
   endDate: z.coerce.date().optional().nullable(),
   startOverloadPercentage: z.number(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional(),
   lastSetToFailure: z.boolean(),
   forceRIRMatching: z.boolean()
 }).strict();
@@ -9154,6 +9521,7 @@ export const MesocycleUpdateWithoutUserInputSchema: z.ZodType<Prisma.MesocycleUp
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   exerciseSplit: z.lazy(() => ExerciseSplitUpdateOneWithoutUsedByMesocyclesNestedInputSchema).optional(),
@@ -9171,6 +9539,7 @@ export const MesocycleUncheckedUpdateWithoutUserInputSchema: z.ZodType<Prisma.Me
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   mesocycleExerciseSplitDays: z.lazy(() => MesocycleExerciseSplitDayUncheckedUpdateManyWithoutMesocycleNestedInputSchema).optional(),
@@ -9187,6 +9556,7 @@ export const MesocycleUncheckedUpdateManyWithoutUserInputSchema: z.ZodType<Prism
   endDate: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   startOverloadPercentage: z.union([ z.number(),z.lazy(() => FloatFieldUpdateOperationsInputSchema) ]).optional(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => EnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => EnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional(),
   lastSetToFailure: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -9237,6 +9607,8 @@ export const WorkoutExerciseCreateManyWorkoutInputSchema: z.ZodType<Prisma.Worko
   forceRIRMatching: z.boolean().optional().nullable(),
   minimumWeightChange: z.number().optional().nullable(),
   preferredProgressionVariable: z.lazy(() => ProgressionVariableSchema).optional().nullable(),
+  repRangeMode: z.lazy(() => RepRangeModeSchema).optional().nullable(),
+  mesocycleExerciseTemplateId: z.string().optional().nullable(),
   topRepRangeStart: z.number().int().optional().nullable(),
   topRepRangeEnd: z.number().int().optional().nullable(),
   isDeload: z.boolean().optional()
@@ -9260,6 +9632,8 @@ export const WorkoutExerciseUpdateWithoutWorkoutInputSchema: z.ZodType<Prisma.Wo
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -9284,6 +9658,8 @@ export const WorkoutExerciseUncheckedUpdateWithoutWorkoutInputSchema: z.ZodType<
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
@@ -9308,6 +9684,8 @@ export const WorkoutExerciseUncheckedUpdateManyWithoutWorkoutInputSchema: z.ZodT
   forceRIRMatching: z.union([ z.boolean(),z.lazy(() => NullableBoolFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   minimumWeightChange: z.union([ z.number(),z.lazy(() => NullableFloatFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   preferredProgressionVariable: z.union([ z.lazy(() => ProgressionVariableSchema),z.lazy(() => NullableEnumProgressionVariableFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  repRangeMode: z.union([ z.lazy(() => RepRangeModeSchema),z.lazy(() => NullableEnumRepRangeModeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  mesocycleExerciseTemplateId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeStart: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   topRepRangeEnd: z.union([ z.number().int(),z.lazy(() => NullableIntFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   isDeload: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),

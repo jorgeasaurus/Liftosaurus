@@ -37,7 +37,19 @@
 		if (mode === 'edit') {
 			mesocycleRunes.loadMesocycle(getMesocycleWithoutIds(), mesocycle.id);
 		} else if (mode === 'clone') {
-			mesocycleRunes.loadMesocycle({ ...getMesocycleWithoutIds(), startDate: null, endDate: null });
+			const clonedMesocycle = getMesocycleWithoutIds();
+			for (const day of clonedMesocycle.mesocycleExerciseSplitDays) {
+				for (const exercise of day.mesocycleSplitDayExercises) {
+					exercise.adaptiveRepRangeStart = null;
+					exercise.adaptiveRepRangeEnd = null;
+					exercise.adaptiveTopRepRangeStart = null;
+					exercise.adaptiveTopRepRangeEnd = null;
+					exercise.adaptiveRepRangeSourceId = null;
+					exercise.adaptiveTopRepRangeSourceId = null;
+					exercise.adaptiveRepRangeResetAt = null;
+				}
+			}
+			mesocycleRunes.loadMesocycle({ ...clonedMesocycle, startDate: null, endDate: null });
 		}
 		goto(`/mesocycles/manage/basics`);
 	}
@@ -108,6 +120,14 @@
 			forceRIRMatching,
 			minimumWeightChange,
 			preferredProgressionVariable,
+			repRangeMode,
+			adaptiveRepRangeStart,
+			adaptiveRepRangeEnd,
+			adaptiveTopRepRangeStart,
+			adaptiveTopRepRangeEnd,
+			adaptiveRepRangeSourceId,
+			adaptiveTopRepRangeSourceId,
+			adaptiveRepRangeResetAt,
 			...rest
 		} = exercise;
 		return rest;

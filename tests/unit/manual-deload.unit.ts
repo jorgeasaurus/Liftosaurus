@@ -13,6 +13,7 @@ import {
 	markWorkoutExerciseStarted,
 	normalizePersistedWorkoutExercises,
 	progressiveOverloadMagic,
+	reconfigureWorkoutExerciseInProgress,
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithPreviousBodyweight
 } from '../../src/lib/utils/workoutUtils.js';
@@ -36,6 +37,44 @@ test('editing a normal exercise preserves its stable source template identity', 
 		getEditedManualDeloadMetadata(true, { sourceTemplateId: 'template-bench', originalSetCount: 3 }, 4),
 		{ sourceTemplateId: 'template-bench', originalSetCount: 3 }
 	);
+});
+
+test('reconfiguring or replacing an exercise preserves its stable template and manual-deload source identity', () => {
+	const current = manualDeloadExercise('Bench press', 'Chest');
+	current.mesocycleExerciseTemplateId = 'template-bench';
+	current.manualDeloadMetadata = { sourceTemplateId: 'template-bench', originalSetCount: 1 };
+	current.workStarted = true;
+
+	const replacement = reconfigureWorkoutExerciseInProgress(current, {
+		id: 'unrelated-library-template',
+		name: 'Incline dumbbell press',
+		targetMuscleGroup: 'Chest',
+		customMuscleGroup: null,
+		bodyweightFraction: null,
+		sets: 2,
+		setType: 'Straight',
+		repRangeStart: 8,
+		repRangeEnd: 12,
+		changeType: null,
+		changeAmount: null,
+		note: null,
+		overloadPercentage: null,
+		lastSetToFailure: null,
+		forceRIRMatching: null,
+		minimumWeightChange: 5,
+		preferredProgressionVariable: null,
+		repRangeMode: 'Adaptive',
+		topRepRangeStart: null,
+		topRepRangeEnd: null
+	});
+
+	assert.equal(replacement.name, 'Incline dumbbell press');
+	assert.equal(replacement.mesocycleExerciseTemplateId, 'template-bench');
+	assert.deepEqual(replacement.manualDeloadMetadata, {
+		sourceTemplateId: 'template-bench',
+		originalSetCount: 2
+	});
+	assert.equal(replacement.workStarted, true);
 });
 
 test('requires final exercise templates to have unique contiguous indices in workout order', () => {
@@ -69,6 +108,7 @@ function progressionFixture(includeDeload: boolean): ActiveMesocycleWithProgress
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
 		preferredProgressionVariable: null,
+		repRangeMode: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null
 	};
@@ -76,6 +116,7 @@ function progressionFixture(includeDeload: boolean): ActiveMesocycleWithProgress
 		...exerciseTemplate,
 		id: 'normal-bench',
 		workoutId: 'normal-workout',
+		mesocycleExerciseTemplateId: 'template-bench',
 		sets: [
 			{
 				id: 'normal-set-1',
@@ -232,6 +273,8 @@ function manualDeloadExercise(
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
 		preferredProgressionVariable: null,
+		repRangeMode: null,
+		mesocycleExerciseTemplateId: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		sets: [
@@ -268,6 +311,8 @@ function previousWorkoutExercise(name: string): WorkoutExerciseWithPreviousBodyw
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
 		preferredProgressionVariable: null,
+		repRangeMode: null,
+		mesocycleExerciseTemplateId: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		isDeload: false,
@@ -281,6 +326,37 @@ test('manual deload performance does not change the next workout targets', () =>
 	const afterDeload = progressiveOverloadMagic(progressionFixture(true), 2, 190, 0);
 
 	assert.deepEqual(afterDeload, withoutDeload);
+});
+
+test('legacy progression fallback ignores the same exercise name on another split day', () => {
+	const fixture = progressionFixture(false);
+	const targetDayWorkout = fixture.workoutsOfMesocycle[0];
+	targetDayWorkout.workout.workoutExercises[0].mesocycleExerciseTemplateId = null;
+	const expected = progressiveOverloadMagic(fixture, 2, 190, 0);
+	const wrongDayWorkout = structuredClone(targetDayWorkout);
+	wrongDayWorkout.id = 'wrong-day-progression-membership';
+	wrongDayWorkout.workoutId = 'wrong-day-progression-workout';
+	wrongDayWorkout.splitDayIndex = 1;
+	wrongDayWorkout.workout.id = 'wrong-day-progression-workout';
+	wrongDayWorkout.workout.workoutExercises[0].id = 'wrong-day-progression-bench';
+	wrongDayWorkout.workout.workoutExercises[0].workoutId = 'wrong-day-progression-workout';
+	wrongDayWorkout.workout.workoutExercises[0].sets[0].reps = 30;
+	wrongDayWorkout.workout.workoutExercises[0].sets[0].load = 300;
+	fixture.workoutsOfMesocycle.push(wrongDayWorkout);
+
+	assert.deepEqual(progressiveOverloadMagic(fixture, 2, 190, 0), expected);
+});
+
+test('stable template identity follows an exercise moved between split days', () => {
+	const expectedFixture = progressionFixture(false);
+	const movedFixture = progressionFixture(false);
+	movedFixture.workoutsOfMesocycle[0].splitDayIndex = 1;
+	movedFixture.workoutsOfMesocycle[0].workout.workoutExercises[0].name = 'Old bench name';
+
+	assert.deepEqual(
+		progressiveOverloadMagic(movedFixture, 2, 190, 0),
+		progressiveOverloadMagic(expectedFixture, 2, 190, 0)
+	);
 });
 
 test("mixed deload workouts use each exercise's latest normal performance and bodyweight", () => {
@@ -304,8 +380,12 @@ test("mixed deload workouts use each exercise's latest normal performance and bo
 	});
 
 	const performances = getPreviousWorkoutExercisePerformances(
-		[{ name: 'Bench press' }, { name: 'Cable fly' }],
-		fixture.workoutsOfMesocycle
+		[
+			{ name: 'Bench press', mesocycleExerciseTemplateId: null },
+			{ name: 'Cable fly', mesocycleExerciseTemplateId: null }
+		],
+		fixture.workoutsOfMesocycle,
+		0
 	);
 
 	assert.deepEqual(
@@ -315,6 +395,38 @@ test("mixed deload workouts use each exercise's latest normal performance and bo
 			{ name: 'Cable fly', userBodyweight: 195 }
 		]
 	);
+});
+
+test('legacy previous performance fallback stays within the requested split day', () => {
+	const fixture = progressionFixture(false);
+	const targetDayWorkout = fixture.workoutsOfMesocycle[0];
+	targetDayWorkout.workout.workoutExercises[0].mesocycleExerciseTemplateId = null;
+	fixture.workoutsOfMesocycle.push({
+		...structuredClone(targetDayWorkout),
+		id: 'wrong-day-membership',
+		workoutId: 'wrong-day-workout',
+		splitDayIndex: 1,
+		workout: {
+			...structuredClone(targetDayWorkout.workout),
+			id: 'wrong-day-workout',
+			userBodyweight: 250,
+			workoutExercises: [
+				{
+					...structuredClone(targetDayWorkout.workout.workoutExercises[0]),
+					id: 'wrong-day-bench',
+					workoutId: 'wrong-day-workout'
+				}
+			]
+		}
+	});
+
+	const [performance] = getPreviousWorkoutExercisePerformances(
+		[{ name: 'Bench press', mesocycleExerciseTemplateId: null }],
+		fixture.workoutsOfMesocycle,
+		0
+	);
+
+	assert.equal(performance.userBodyweight, 190);
 });
 
 test('manual deload halves parent and mini-set targets once using pound increments', () => {

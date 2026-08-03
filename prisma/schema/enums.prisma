@@ -40,6 +40,11 @@ enum ProgressionVariable {
   Load
 }
 
+enum RepRangeMode {
+  Fixed
+  Adaptive
+}
+
 enum WorkoutStatus {
   Skipped
   RestDay

@@ -288,6 +288,8 @@ describe('workout draft storage', () => {
 					forceRIRMatching: historicalExercise.forceRIRMatching ?? null,
 					minimumWeightChange: historicalExercise.minimumWeightChange ?? null,
 					preferredProgressionVariable: historicalExercise.preferredProgressionVariable ?? null,
+					repRangeMode: historicalExercise.repRangeMode ?? null,
+					mesocycleExerciseTemplateId: historicalExercise.mesocycleExerciseTemplateId ?? null,
 					topRepRangeStart: historicalExercise.topRepRangeStart ?? null,
 					topRepRangeEnd: historicalExercise.topRepRangeEnd ?? null,
 					sets: [

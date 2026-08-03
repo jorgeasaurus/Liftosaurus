@@ -4,7 +4,7 @@ import {
 	canApplyManualDeloadToWorkout,
 	type WorkoutExerciseInProgress,
 	createWorkoutExerciseInProgressFromMesocycleExerciseTemplate,
-	getEditedManualDeloadMetadata,
+	reconfigureWorkoutExerciseInProgress,
 	type ManualDeloadTarget
 } from '$lib/utils/workoutUtils';
 import type { Prisma } from '@prisma/client';
@@ -321,18 +321,7 @@ function createWorkoutRunes() {
 		if (!editingExercise || editingExerciseIndex === undefined || workoutExercises === null) return false;
 		if (exerciseNameExists(exercise.name, editingExerciseIndex)) return false;
 		const currentExercise = workoutExercises[editingExerciseIndex];
-		const { isDeload, manualDeloadMetadata, workStarted } = currentExercise;
-		workoutExercises[editingExerciseIndex] = createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
-			exercise,
-			currentExercise.sets
-		);
-		workoutExercises[editingExerciseIndex].isDeload = isDeload;
-		workoutExercises[editingExerciseIndex].manualDeloadMetadata = getEditedManualDeloadMetadata(
-			Boolean(isDeload),
-			manualDeloadMetadata,
-			exercise.sets
-		);
-		workoutExercises[editingExerciseIndex].workStarted = workStarted;
+		workoutExercises[editingExerciseIndex] = reconfigureWorkoutExerciseInProgress(currentExercise, exercise);
 		await saveStoresToLocalStorage();
 		return true;
 	}

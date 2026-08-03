@@ -25,6 +25,13 @@ export function createMesocycleExerciseSplitRunes() {
 	if (globalThis.localStorage) {
 		const savedState = localStorage.getItem('mesocycleExerciseSplitRunes');
 		if (savedState) ({ splitDays, splitExercises, mesocycle } = JSON.parse(savedState));
+		if (savedState)
+			splitExercises = splitExercises.map((day) =>
+				day.map((exercise) => ({
+					...exercise,
+					adaptiveRepRangeResetAt: exercise.adaptiveRepRangeResetAt ? new Date(exercise.adaptiveRepRangeResetAt) : null
+				}))
+			);
 	}
 
 	function addSplitDay() {
@@ -101,7 +108,18 @@ export function createMesocycleExerciseSplitRunes() {
 	}
 
 	function copyExercises() {
-		copiedExercises = structuredClone($state.snapshot(splitExercises[selectedSplitDayIndex]));
+		copiedExercises = $state.snapshot(splitExercises[selectedSplitDayIndex]).map((exercise) => {
+			const copy = structuredClone(exercise);
+			delete copy.id;
+			copy.adaptiveRepRangeStart = null;
+			copy.adaptiveRepRangeEnd = null;
+			copy.adaptiveTopRepRangeStart = null;
+			copy.adaptiveTopRepRangeEnd = null;
+			copy.adaptiveRepRangeSourceId = null;
+			copy.adaptiveTopRepRangeSourceId = null;
+			copy.adaptiveRepRangeResetAt = null;
+			return copy;
+		});
 	}
 
 	function pasteExercises() {
@@ -111,7 +129,7 @@ export function createMesocycleExerciseSplitRunes() {
 	}
 
 	function cutExercises() {
-		copyExercises();
+		copiedExercises = structuredClone($state.snapshot(splitExercises[selectedSplitDayIndex]));
 		splitExercises[selectedSplitDayIndex] = [];
 		saveStoresToLocalStorage();
 	}
@@ -145,12 +163,12 @@ export function createMesocycleExerciseSplitRunes() {
 		resetStores();
 		mesocycle = structuredClone($state.snapshot(mesocycleWithExerciseSplit));
 		splitDays = mesocycleWithExerciseSplit.mesocycleExerciseSplitDays.map((splitDay) => {
-			const { id, mesocycleId, mesocycleSplitDayExercises, ...rest } = splitDay;
+			const { mesocycleId, mesocycleSplitDayExercises, ...rest } = splitDay;
 			return rest;
 		});
 		splitExercises = mesocycleWithExerciseSplit.mesocycleExerciseSplitDays.map((splitDay) =>
 			splitDay.mesocycleSplitDayExercises.map((exercise) => {
-				const { id, mesocycleExerciseSplitDayId, ...rest } = exercise;
+				const { mesocycleExerciseSplitDayId, ...rest } = exercise;
 				return rest;
 			})
 		);

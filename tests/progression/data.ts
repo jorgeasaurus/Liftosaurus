@@ -1,6 +1,17 @@
 import type { ActiveMesocycleWithProgressionData } from '../../src/lib/trpc/routes/workouts';
 
-export const testMesocycle: ActiveMesocycleWithProgressionData = {
+const adaptiveTemplateDefaults = {
+	repRangeMode: null,
+	adaptiveRepRangeStart: null,
+	adaptiveRepRangeEnd: null,
+	adaptiveTopRepRangeStart: null,
+	adaptiveTopRepRangeEnd: null,
+	adaptiveRepRangeSourceId: null,
+	adaptiveTopRepRangeSourceId: null,
+	adaptiveRepRangeResetAt: null
+} as const;
+
+export const testMesocycle = {
 	id: 'cm25sw3zk000w14ycgmmnfk8o',
 	name: 'MyMeso',
 	userId: 'cm25sutzy000010xygns28ax0',
@@ -10,6 +21,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 	endDate: null,
 	startOverloadPercentage: 2.5,
 	preferredProgressionVariable: 'Reps',
+	repRangeMode: 'Fixed',
 	lastSetToFailure: true,
 	forceRIRMatching: true,
 	mesocycleExerciseSplitDays: [
@@ -40,6 +52,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -63,6 +76,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -86,6 +100,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -109,6 +124,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -141,6 +157,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -164,6 +181,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -187,6 +205,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -210,6 +229,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -242,6 +262,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -265,6 +286,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -288,6 +310,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -311,6 +334,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -343,6 +367,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -366,6 +391,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -389,6 +415,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -412,6 +439,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -444,6 +472,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -467,6 +496,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -490,6 +520,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -513,6 +544,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -545,6 +577,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -568,6 +601,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -591,6 +625,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				},
@@ -614,6 +649,7 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 					forceRIRMatching: null,
 					minimumWeightChange: null,
 					preferredProgressionVariable: null,
+					...adaptiveTemplateDefaults,
 					topRepRangeStart: null,
 					topRepRangeEnd: null
 				}
@@ -721,4 +757,4 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 		}
 	],
 	workoutsOfMesocycle: []
-};
+} satisfies ActiveMesocycleWithProgressionData;

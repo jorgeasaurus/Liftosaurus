@@ -348,6 +348,8 @@ export const users = t.router({
 							forceRIRMatching: null,
 							minimumWeightChange: 5,
 							preferredProgressionVariable: null,
+							repRangeMode: null,
+							mesocycleExerciseTemplateId: null,
 							overloadPercentage: 0, // Assumption (concept didn't exist in V2)
 							topRepRangeStart: null,
 							topRepRangeEnd: null,

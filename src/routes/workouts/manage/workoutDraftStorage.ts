@@ -5,6 +5,7 @@ import {
 	MesocycleSchema,
 	MuscleGroupSchema,
 	ProgressionVariableSchema,
+	RepRangeModeSchema,
 	WorkoutExerciseMiniSetSchema,
 	WorkoutExerciseSchema,
 	WorkoutExerciseSetSchema,
@@ -240,6 +241,8 @@ const inProgressExerciseSchema: z.ZodType<WorkoutExerciseInProgress, z.ZodTypeDe
 		})
 		.extend({
 			preferredProgressionVariable: ProgressionVariableSchema.nullable().default(null),
+			repRangeMode: RepRangeModeSchema.nullable().default(null),
+			mesocycleExerciseTemplateId: z.string().nullable().default(null),
 			isDeload: z.boolean().default(false),
 			manualDeloadMetadata: z
 				.object({
@@ -255,7 +258,8 @@ const inProgressExerciseSchema: z.ZodType<WorkoutExerciseInProgress, z.ZodTypeDe
 		.transform((exercise) => normalizePersistedWorkoutExercises([exercise])[0]);
 
 const persistedMesocycleSchema = MesocycleSchema.extend({
-	preferredProgressionVariable: ProgressionVariableSchema.default('Reps')
+	preferredProgressionVariable: ProgressionVariableSchema.default('Reps'),
+	repRangeMode: RepRangeModeSchema.default('Fixed')
 }).strict();
 
 const workoutDataSchema: z.ZodType<WorkoutData, z.ZodTypeDef, unknown> = z
@@ -291,6 +295,8 @@ const completedMiniSetSchema = WorkoutExerciseMiniSetSchema.strict();
 const completedSetSchema = WorkoutExerciseSetSchema.extend({ miniSets: z.array(completedMiniSetSchema) }).strict();
 const completedExerciseSchema = WorkoutExerciseSchema.extend({
 	preferredProgressionVariable: ProgressionVariableSchema.nullable().default(null),
+	repRangeMode: RepRangeModeSchema.nullable().default(null),
+	mesocycleExerciseTemplateId: z.string().nullable().default(null),
 	isDeload: z.boolean().default(false),
 	sets: z.array(completedSetSchema)
 }).strict();

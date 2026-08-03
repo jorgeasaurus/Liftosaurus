@@ -1,5 +1,8 @@
 import { prisma } from '$lib/prisma';
+import { reconcileAdaptiveRepRangesInTransaction, toProposedAdaptivePerformance } from '$lib/trpc/adaptiveRepRanges';
 import { t } from '$lib/trpc/t';
+import { runSerializableTransaction } from '$lib/trpc/transaction';
+import { createWorkoutGraph, syncWorkoutExerciseTemplates } from '$lib/trpc/workoutCompletion';
 import { arraySum } from '$lib/utils';
 import {
 	buildBodyweightSeries,
@@ -10,7 +13,6 @@ import {
 import {
 	getPreviousWorkoutExercisePerformances,
 	hasAlignedManualDeloadMetadata,
-	hasContiguousExerciseTemplateOrder,
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithPreviousBodyweight
@@ -26,7 +28,6 @@ import {
 	type Mesocycle,
 	type MesocycleExerciseSplitDay,
 	type MuscleGroup,
-	type PrismaPromise,
 	type WorkoutExercise,
 	type WorkoutOfMesocycle
 } from '@prisma/client';
@@ -115,7 +116,8 @@ const createWorkoutSchema = z.strictObject({
 				})
 				.nullable()
 		)
-		.optional()
+		.optional(),
+	confirmAdaptiveRepRangeOutliers: z.boolean().optional()
 });
 
 const loadWorkoutsSchema = z.strictObject({
@@ -316,52 +318,80 @@ export const workouts = t.router({
 		})
 	),
 
-	deleteById: t.procedure.input(z.string().cuid2()).mutation(async ({ input, ctx }) => {
-		const workoutToDelete = await prisma.workout.findUniqueOrThrow({
-			where: { userId: ctx.userId, id: input },
-			select: {
-				workoutOfMesocycle: {
+	deleteById: t.procedure
+		.input(
+			z.union([
+				z.string().cuid2(),
+				z.strictObject({ id: z.string().cuid2(), confirmAdaptiveRepRangeOutliers: z.boolean().optional() })
+			])
+		)
+		.mutation(async ({ input, ctx }) => {
+			const workoutId = typeof input === 'string' ? input : input.id;
+			const confirmAdaptiveRepRangeOutliers =
+				typeof input === 'string' ? false : (input.confirmAdaptiveRepRangeOutliers ?? false);
+			await runSerializableTransaction(async (tx) => {
+				const workoutToDelete = await tx.workout.findUniqueOrThrow({
+					where: { userId: ctx.userId, id: workoutId },
 					select: {
-						id: true,
-						splitDayIndex: true,
-						mesocycle: {
+						workoutOfMesocycle: {
 							select: {
 								id: true,
-								startDate: true,
-								endDate: true,
-								mesocycleExerciseSplitDays: { select: { name: true } }
+								splitDayIndex: true,
+								mesocycle: {
+									select: {
+										id: true,
+										startDate: true,
+										endDate: true,
+										mesocycleExerciseSplitDays: {
+											select: { name: true },
+											orderBy: { dayIndex: 'asc' }
+										}
+									}
+								}
 							}
 						}
 					}
-				}
-			}
-		});
-
-		const mesocycle = workoutToDelete.workoutOfMesocycle?.mesocycle;
-		if (mesocycle && mesocycle.startDate && mesocycle.endDate === null) {
-			const wom = workoutToDelete.workoutOfMesocycle!;
-			const workoutsOfMeso = await prisma.workout.findMany({
-				where: { workoutOfMesocycle: { mesocycleId: mesocycle.id } },
-				select: { workoutOfMesocycle: { select: { splitDayIndex: true } } }
-			});
-
-			const workoutsPerSplitDay: number[] = Array(mesocycle.mesocycleExerciseSplitDays.length).fill(0);
-			workoutsOfMeso.forEach((w) => workoutsPerSplitDay[w.workoutOfMesocycle!.splitDayIndex]++);
-
-			const maxSplitDayWorkouts = Math.max(...workoutsPerSplitDay);
-			const lastSplitDayPerformed = workoutsPerSplitDay.findLastIndex((count) => count === maxSplitDayWorkouts);
-
-			if (lastSplitDayPerformed !== wom.splitDayIndex) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: `You can only delete the latest workout of the active mesocycle: ${mesocycle.mesocycleExerciseSplitDays[lastSplitDayPerformed].name} (Day ${lastSplitDayPerformed + 1})`
 				});
-			}
-		}
 
-		await prisma.workout.delete({ where: { id: input, userId: ctx.userId } });
-		return { message: 'Workout deleted successfully' };
-	}),
+				const mesocycle = workoutToDelete.workoutOfMesocycle?.mesocycle;
+				if (mesocycle && mesocycle.startDate && mesocycle.endDate === null) {
+					const wom = workoutToDelete.workoutOfMesocycle!;
+					const workoutsOfMeso = await tx.workout.findMany({
+						where: { workoutOfMesocycle: { mesocycleId: mesocycle.id } },
+						select: { workoutOfMesocycle: { select: { splitDayIndex: true } } }
+					});
+
+					const workoutsPerSplitDay: number[] = Array(mesocycle.mesocycleExerciseSplitDays.length).fill(0);
+					workoutsOfMeso.forEach((w) => workoutsPerSplitDay[w.workoutOfMesocycle!.splitDayIndex]++);
+
+					const maxSplitDayWorkouts = Math.max(...workoutsPerSplitDay);
+					const lastSplitDayPerformed = workoutsPerSplitDay.findLastIndex((count) => count === maxSplitDayWorkouts);
+
+					if (lastSplitDayPerformed !== wom.splitDayIndex) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: `You can only delete the latest workout of the active mesocycle: ${mesocycle.mesocycleExerciseSplitDays[lastSplitDayPerformed].name} (Day ${lastSplitDayPerformed + 1})`
+						});
+					}
+				}
+
+				await tx.workout.delete({ where: { id: workoutId, userId: ctx.userId } });
+				if (mesocycle) {
+					const adaptiveResult = await reconcileAdaptiveRepRangesInTransaction({
+						tx,
+						mesocycleId: mesocycle.id,
+						userId: ctx.userId
+					});
+					if (adaptiveResult.confirmationRequired && !confirmAdaptiveRepRangeOutliers) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Confirm adaptive working sets outside the 5–30 rep range before saving'
+						});
+					}
+				}
+			});
+			return { message: 'Workout deleted successfully' };
+		}),
 
 	getTodaysWorkoutData: t.procedure.query(async ({ ctx }) => {
 		const data = await prisma.mesocycle.findFirst({
@@ -535,7 +565,7 @@ export const workouts = t.router({
 					startDate: { not: null },
 					endDate: null
 				},
-				include: createActiveMesocycleWithProgressionDataInclude(input.splitDayIndex)
+				include: createActiveMesocycleWithProgressionDataInclude()
 			});
 
 			const workoutExercisesWithPreviousData: WorkoutExercisesWithPreviousData = {
@@ -557,7 +587,8 @@ export const workouts = t.router({
 
 			const previousExercises = getPreviousWorkoutExercisePerformances(
 				workoutExercisesWithPreviousData.todaysWorkoutExercises,
-				data.workoutsOfMesocycle
+				data.workoutsOfMesocycle,
+				splitDayIndex
 			);
 			if (previousExercises.length > 0) {
 				workoutExercisesWithPreviousData.previousWorkoutData = { exercises: previousExercises };
@@ -625,180 +656,100 @@ export const workouts = t.router({
 				})
 			);
 
-		const transactionQueries: PrismaPromise<unknown>[] = [
-			prisma.workout.create({ data: workout }),
-			prisma.workoutExercise.createMany({ data: workoutExercises }),
-			prisma.workoutExerciseSet.createMany({ data: workoutExercisesSets }),
-			prisma.workoutExerciseMiniSet.createMany({ data: workoutExercisesMiniSets })
-		];
+		let mesocycleCompleted: boolean | undefined;
+		await runSerializableTransaction(async (tx) => {
+			const transactionWorkoutExercises = workoutExercises.map((exercise) => ({ ...exercise }));
+			if (!workoutOfMesocycle) {
+				await createWorkoutGraph({
+					tx,
+					workout,
+					workoutExercises: transactionWorkoutExercises,
+					workoutExerciseSets: workoutExercisesSets,
+					workoutExerciseMiniSets: workoutExercisesMiniSets
+				});
+				return;
+			}
 
-		if (!workoutOfMesocycle) {
-			await prisma.$transaction(transactionQueries);
-			return { message: 'Workout created successfully' };
-		}
-
-		// Update mesocycle data using this new workout
-		const mesocycleData = await prisma.mesocycle.findFirst({
-			where: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId },
-			select: {
-				RIRProgression: true,
-				mesocycleExerciseSplitDays: {
-					select: {
-						id: true,
-						mesocycleSplitDayExercises: { select: { id: true, name: true } }
+			const mesocycleData = await tx.mesocycle.findFirst({
+				where: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId },
+				select: {
+					RIRProgression: true,
+					mesocycleExerciseSplitDays: {
+						select: { id: true },
+						orderBy: { dayIndex: 'asc' }
 					},
-					orderBy: { dayIndex: 'asc' }
-				},
-				workoutsOfMesocycle: {
-					select: { workoutId: true, splitDayIndex: true },
-					orderBy: { workout: { startedAt: 'desc' } }
+					workoutsOfMesocycle: {
+						select: { workoutId: true, splitDayIndex: true },
+						orderBy: { workout: { startedAt: 'desc' } }
+					}
 				}
-			}
-		});
-
-		if (!mesocycleData) {
-			throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle not found' });
-		}
-
-		// Update mesocycle's exercise templates according to new workout
-		if (workoutOfMesocycle.workoutStatus === null) {
-			const todaysSplitDay = mesocycleData.mesocycleExerciseSplitDays[workoutOfMesocycle.splitDayIndex];
-			if (!todaysSplitDay) {
-				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Related mesocycle exercise split day not found' });
-			}
-			const preservedTemplates: { id: string; name: string; exerciseIndex: number }[] = [];
-			const finalTemplateIdentities: { name: string; exerciseIndex: number }[] = [];
-			const updatedTemplateData = workoutExercises.flatMap((exercise, exerciseIdx) => {
-				if (exercise.isDeload) {
-					const metadata = input.manualDeloadMetadata?.[exerciseIdx];
-					const sourceTemplate = metadata?.sourceTemplateId
-						? todaysSplitDay.mesocycleSplitDayExercises.find(({ id }) => id === metadata.sourceTemplateId)
-						: undefined;
-					const legacyTemplate = !metadata
-						? todaysSplitDay.mesocycleSplitDayExercises.find(({ name }) => name === exercise.name)
-						: undefined;
-					const templateToPreserve = sourceTemplate ?? legacyTemplate;
-
-					if (templateToPreserve) {
-						const preservedTemplate = {
-							...templateToPreserve,
-							exerciseIndex: exercise.exerciseIndex
-						};
-						preservedTemplates.push(preservedTemplate);
-						finalTemplateIdentities.push(preservedTemplate);
-						return [];
-					}
-
-					if (!metadata) {
-						throw new TRPCError({
-							code: 'BAD_REQUEST',
-							message: `Unable to restore the pre-deload template for ${exercise.name}`
-						});
-					}
-
-					if (metadata.sourceTemplateId) {
-						throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid deload source template' });
-					}
-
-					const { workoutId, isDeload, ...template } = exercise;
-					const templateData = {
-						...template,
-						mesocycleExerciseSplitDayId: todaysSplitDay.id,
-						sets: metadata.originalSetCount
-					};
-					finalTemplateIdentities.push(templateData);
-					return [templateData];
-				}
-
-				const { workoutId, isDeload, ...template } = exercise;
-				const templateData = {
-					...template,
-					mesocycleExerciseSplitDayId: todaysSplitDay.id,
-					sets: input.workoutExercisesSets[exerciseIdx].length
-				};
-				finalTemplateIdentities.push(templateData);
-				return [templateData];
 			});
-			const preservedTemplateIds = preservedTemplates.map(({ id }) => id);
-			const preservedTemplateIdSet = new Set(preservedTemplateIds);
-			if (preservedTemplateIdSet.size !== preservedTemplateIds.length) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: 'A deload source template can only be restored once'
-				});
-			}
-			const finalTemplateNames = finalTemplateIdentities.map(({ name }) => name);
-			if (new Set(finalTemplateNames).size !== finalTemplateNames.length) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: 'Duplicate exercise names are not allowed in the next mesocycle workout'
-				});
-			}
-			if (!hasContiguousExerciseTemplateOrder(finalTemplateIdentities)) {
-				throw new TRPCError({
-					code: 'BAD_REQUEST',
-					message: 'Exercise template order must use contiguous indices matching the workout order'
-				});
+			if (!mesocycleData) {
+				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle not found' });
 			}
 
-			transactionQueries.push(
-				...preservedTemplates.map(({ id, exerciseIndex }) =>
-					prisma.mesocycleExerciseTemplate.updateMany({
-						where: {
-							id,
-							mesocycleExerciseSplitDay: {
-								dayIndex: workoutOfMesocycle.splitDayIndex,
-								mesocycle: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId }
-							}
-						},
-						data: { exerciseIndex }
+			if (workoutOfMesocycle.workoutStatus === null) {
+				await syncWorkoutExerciseTemplates({
+					tx,
+					userId: ctx.userId,
+					mesocycleId: workoutOfMesocycle.mesocycle.id,
+					splitDayIndex: workoutOfMesocycle.splitDayIndex,
+					workoutExercises: transactionWorkoutExercises,
+					workoutExerciseSets: input.workoutExercisesSets,
+					manualDeloadMetadata: input.manualDeloadMetadata
+				});
+				const proposedPerformances = transactionWorkoutExercises.map((exercise, exerciseIdx) =>
+					toProposedAdaptivePerformance({
+						exercise: { ...exercise, id: exercise.id as string },
+						sets: input.workoutExercisesSets[exerciseIdx],
+						performedAt: workout.endedAt as Date,
+						workoutStatus: workoutOfMesocycle.workoutStatus,
+						splitDayIndex: workoutOfMesocycle.splitDayIndex
 					})
-				),
-				prisma.mesocycleExerciseTemplate.deleteMany({
-					where: {
-						id: { notIn: preservedTemplateIds },
-						mesocycleExerciseSplitDay: {
-							dayIndex: workoutOfMesocycle.splitDayIndex,
-							mesocycle: {
-								id: workoutOfMesocycle.mesocycle.id,
-								userId: ctx.userId
-							}
-						}
-					}
-				}),
-				prisma.mesocycleExerciseTemplate.createMany({ data: updatedTemplateData })
+				);
+				const adaptiveResult = await reconcileAdaptiveRepRangesInTransaction({
+					tx,
+					mesocycleId: workoutOfMesocycle.mesocycle.id,
+					userId: ctx.userId,
+					proposedPerformances
+				});
+				if (adaptiveResult.confirmationRequired && !input.confirmAdaptiveRepRangeOutliers) {
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message: 'Confirm adaptive working sets outside the 5–30 rep range before saving'
+					});
+				}
+			}
+
+			await createWorkoutGraph({
+				tx,
+				workout,
+				workoutExercises: transactionWorkoutExercises,
+				workoutExerciseSets: workoutExercisesSets,
+				workoutExerciseMiniSets: workoutExercisesMiniSets
+			});
+
+			const currentCycleWorkouts = mesocycleData.workoutsOfMesocycle.slice(
+				0,
+				mesocycleData.workoutsOfMesocycle.length % mesocycleData.mesocycleExerciseSplitDays.length
 			);
-		}
-
-		// Delete skipped workout if repeating
-		const currentCycleWorkouts = mesocycleData.workoutsOfMesocycle.slice(
-			0,
-			mesocycleData.workoutsOfMesocycle.length % mesocycleData.mesocycleExerciseSplitDays.length
-		);
-		const repeatOfSkippedWorkout = currentCycleWorkouts.find(
-			(wm) => wm.splitDayIndex === input.workoutData.workoutOfMesocycle?.splitDayIndex
-		);
-
-		// End mesocycle if all workouts completed (shouldn't happen when repeating skipped workouts)
-		let mesocycleCompleted: boolean | undefined = undefined;
-		const totalWorkouts = arraySum(mesocycleData.RIRProgression) * mesocycleData.mesocycleExerciseSplitDays.length;
-		const completedWorkouts = mesocycleData.workoutsOfMesocycle.length + 1; // +1 as we assume this new workout to be completed as well
-		mesocycleCompleted = completedWorkouts >= totalWorkouts;
-
-		if (repeatOfSkippedWorkout) {
-			transactionQueries.push(
-				prisma.workout.delete({ where: { id: repeatOfSkippedWorkout.workoutId, userId: ctx.userId } })
+			const repeatOfSkippedWorkout = currentCycleWorkouts.find(
+				(wm) => wm.splitDayIndex === workoutOfMesocycle.splitDayIndex
 			);
-		} else if (mesocycleCompleted) {
-			transactionQueries.push(
-				prisma.mesocycle.update({
+
+			const totalWorkouts = arraySum(mesocycleData.RIRProgression) * mesocycleData.mesocycleExerciseSplitDays.length;
+			const completedWorkouts = mesocycleData.workoutsOfMesocycle.length + 1;
+			mesocycleCompleted = completedWorkouts >= totalWorkouts;
+
+			if (repeatOfSkippedWorkout) {
+				await tx.workout.delete({ where: { id: repeatOfSkippedWorkout.workoutId, userId: ctx.userId } });
+			} else if (mesocycleCompleted) {
+				await tx.mesocycle.update({
 					where: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId },
 					data: { endDate: new Date() }
-				})
-			);
-		}
-
-		await prisma.$transaction(transactionQueries);
+				});
+			}
+		});
 
 		let message = 'Workout created successfully';
 		if (workoutOfMesocycle?.workoutStatus === 'RestDay') {
@@ -822,14 +773,6 @@ export const workouts = t.router({
 			if (input.data.draftOwnerUserId !== ctx.userId) {
 				throw new TRPCError({ code: 'FORBIDDEN', message: 'Workout draft belongs to another user' });
 			}
-			const existingWorkout = await prisma.workout.findFirst({
-				where: { id: input.id, userId: ctx.userId },
-				select: { workoutOfMesocycle: true }
-			});
-			if (!existingWorkout) {
-				throw new TRPCError({ code: 'NOT_FOUND', message: 'Workout not found' });
-			}
-
 			const workout: Prisma.WorkoutUncheckedCreateInput = {
 				id: input.id,
 				userId: ctx.userId,
@@ -839,14 +782,11 @@ export const workouts = t.router({
 				note: input.data.workoutData.note
 			};
 
-			const workoutOfMesocycle = existingWorkout.workoutOfMesocycle;
-
 			const workoutExercises: Prisma.WorkoutExerciseUncheckedCreateInput[] = input.data.workoutExercises.map((ex) => ({
 				...ex,
 				workoutId: workout.id as string,
 				id: createId()
 			}));
-
 			const workoutExercisesSets: Prisma.WorkoutExerciseSetUncheckedCreateInput[] =
 				input.data.workoutExercisesSets.flatMap((sets, exerciseIdx) =>
 					sets.map((set) => ({
@@ -855,7 +795,6 @@ export const workouts = t.router({
 						workoutExerciseId: workoutExercises[exerciseIdx].id as string
 					}))
 				);
-
 			let setIndex = 0;
 			const workoutExercisesMiniSets: Prisma.WorkoutExerciseMiniSetUncheckedCreateInput[] =
 				input.data.workoutExercisesMiniSets.flatMap((sets) =>
@@ -869,16 +808,67 @@ export const workouts = t.router({
 					})
 				);
 
-			const transactionQueries = [
-				prisma.workout.delete({ where: { id: input.id, userId: ctx.userId } }),
-				prisma.workout.create({ data: workout }),
-				prisma.workoutExercise.createMany({ data: workoutExercises }),
-				prisma.workoutExerciseSet.createMany({ data: workoutExercisesSets }),
-				prisma.workoutExerciseMiniSet.createMany({ data: workoutExercisesMiniSets }),
-				...(workoutOfMesocycle ? [prisma.workoutOfMesocycle.create({ data: workoutOfMesocycle })] : [])
-			];
+			await runSerializableTransaction(async (tx) => {
+				const existingWorkout = await tx.workout.findFirst({
+					where: { id: input.id, userId: ctx.userId },
+					select: { workoutOfMesocycle: true }
+				});
+				if (!existingWorkout) throw new TRPCError({ code: 'NOT_FOUND', message: 'Workout not found' });
 
-			await prisma.$transaction(transactionQueries);
+				const workoutOfMesocycle = existingWorkout.workoutOfMesocycle;
+				if (workoutOfMesocycle) {
+					const requestedTemplateIds = [
+						...new Set(
+							workoutExercises.flatMap(({ mesocycleExerciseTemplateId }) =>
+								mesocycleExerciseTemplateId ? [mesocycleExerciseTemplateId] : []
+							)
+						)
+					];
+					const validTemplateCount = await tx.mesocycleExerciseTemplate.count({
+						where: {
+							id: { in: requestedTemplateIds },
+							mesocycleExerciseSplitDay: {
+								mesocycle: { id: workoutOfMesocycle.mesocycleId, userId: ctx.userId }
+							}
+						}
+					});
+					if (validTemplateCount !== requestedTemplateIds.length) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid exercise source template' });
+					}
+					const proposedPerformances = workoutExercises.map((exercise, exerciseIdx) =>
+						toProposedAdaptivePerformance({
+							exercise: { ...exercise, id: exercise.id as string },
+							sets: input.data.workoutExercisesSets[exerciseIdx],
+							performedAt: new Date(workout.endedAt as Date | string),
+							workoutStatus: workoutOfMesocycle.workoutStatus,
+							splitDayIndex: workoutOfMesocycle.splitDayIndex
+						})
+					);
+					const adaptiveResult = await reconcileAdaptiveRepRangesInTransaction({
+						tx,
+						mesocycleId: workoutOfMesocycle.mesocycleId,
+						userId: ctx.userId,
+						proposedPerformances,
+						excludedWorkoutIds: [input.id]
+					});
+					if (adaptiveResult.confirmationRequired && !input.data.confirmAdaptiveRepRangeOutliers) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Confirm adaptive working sets outside the 5–30 rep range before saving'
+						});
+					}
+				}
+
+				await tx.workout.delete({ where: { id: input.id, userId: ctx.userId } });
+				await createWorkoutGraph({
+					tx,
+					workout,
+					workoutExercises,
+					workoutExerciseSets: workoutExercisesSets,
+					workoutExerciseMiniSets: workoutExercisesMiniSets,
+					workoutOfMesocycle: workoutOfMesocycle ?? undefined
+				});
+			});
 			return { message: 'Workout edited successfully' };
 		}),
 

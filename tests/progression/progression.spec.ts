@@ -31,7 +31,7 @@ test('progress first cycle, no changes', () => {
 		const exercisesWithoutSets = testMesocycle.mesocycleExerciseSplitDays[i].mesocycleSplitDayExercises.map(
 			(exercise) => {
 				const { id, mesocycleExerciseSplitDayId, sets, ...rest } = exercise;
-				return { ...rest, isDeload: false };
+				return { ...rest, mesocycleExerciseTemplateId: id, isDeload: false };
 			}
 		);
 		const outputWithoutSets = output.map((exercise) => {

@@ -11,6 +11,7 @@ const defaultMesocycle: MesocycleWithoutIds = {
 	endDate: null,
 	startOverloadPercentage: 2.5,
 	preferredProgressionVariable: 'Reps',
+	repRangeMode: 'Fixed',
 	lastSetToFailure: true,
 	forceRIRMatching: true
 };
@@ -68,7 +69,8 @@ export function createMesocycleRunes() {
 				const mesocycleExerciseTemplate: Prisma.MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInput = {
 					...rest,
 					sets: 0,
-					preferredProgressionVariable: null
+					preferredProgressionVariable: null,
+					repRangeMode: null
 				};
 				return mesocycleExerciseTemplate;
 			})
