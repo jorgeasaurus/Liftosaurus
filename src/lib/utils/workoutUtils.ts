@@ -41,7 +41,8 @@ export type SetDetails = {
 };
 
 type CommonBergerType = {
-	bodyweightFraction: number | null;
+	oldBodyweightFraction: number | null;
+	newBodyweightFraction: number | null;
 	oldUserBodyweight?: number;
 	newUserBodyweight?: number;
 	oldSet: SetDetails;
@@ -66,10 +67,17 @@ type BergerInput = BergerNewReps | BergerOverloadPercentage;
 
 export function solveBergerFormula(input: BergerInput) {
 	const { variableToSolve, knownValues } = input;
-	const { oldSet, newSet, bodyweightFraction = null, oldUserBodyweight = 0, newUserBodyweight = 0 } = knownValues;
+	const {
+		oldSet,
+		newSet,
+		oldBodyweightFraction,
+		newBodyweightFraction,
+		oldUserBodyweight = 0,
+		newUserBodyweight = 0
+	} = knownValues;
 
-	const oldLoad = oldSet.load + (bodyweightFraction ?? 0) * oldUserBodyweight;
-	const newLoad = newSet.load + (bodyweightFraction ?? 0) * newUserBodyweight;
+	const oldLoad = oldSet.load + (oldBodyweightFraction ?? 0) * oldUserBodyweight;
+	const newLoad = newSet.load + (newBodyweightFraction ?? 0) * newUserBodyweight;
 
 	const exponentialMultiplier = Math.pow(Math.E, (131 * (oldSet.reps + oldSet.RIR)) / 5000);
 
@@ -99,7 +107,8 @@ export function solveBergerFormula(input: BergerInput) {
 					knownValues: {
 						newSet: { ...newMiniSet, miniSets: [] },
 						oldSet: { ...prevMiniSet, miniSets: [] },
-						bodyweightFraction,
+						oldBodyweightFraction,
+						newBodyweightFraction,
 						newUserBodyweight,
 						oldUserBodyweight
 					}
@@ -273,7 +282,8 @@ function getPerformanceChanges(performances: { exercise: WorkoutExercise; oldUse
 					knownValues: {
 						oldSet,
 						newSet,
-						bodyweightFraction: newPerformance.exercise.bodyweightFraction,
+						oldBodyweightFraction: oldPerformance.exercise.bodyweightFraction,
+						newBodyweightFraction: newPerformance.exercise.bodyweightFraction,
 						newUserBodyweight: newPerformance.oldUserBodyweight,
 						oldUserBodyweight: oldPerformance.oldUserBodyweight
 					}
@@ -338,7 +348,8 @@ function increaseLoadOfSets(ex: WorkoutExerciseInProgress, userBodyweight: numbe
 			knownValues: {
 				oldSet: { reps: set.reps, load: set.load, RIR: set.RIR, miniSets: cleanedMiniSets },
 				newSet: { load: newLoad, RIR: set.RIR, miniSets: cleanedMiniSets },
-				bodyweightFraction: ex.bodyweightFraction ?? null,
+				oldBodyweightFraction: ex.bodyweightFraction ?? null,
+				newBodyweightFraction: ex.bodyweightFraction ?? null,
 				newUserBodyweight: userBodyweight,
 				oldUserBodyweight: userBodyweight,
 				overloadPercentage: 0
@@ -426,7 +437,8 @@ export function progressiveOverloadMagic(
 						newSet,
 						oldUserBodyweight: lastPerformance.oldUserBodyweight,
 						newUserBodyweight: userBodyweight,
-						bodyweightFraction: ex.bodyweightFraction ?? null
+						oldBodyweightFraction: lastPerformance.exercise.bodyweightFraction,
+						newBodyweightFraction: ex.bodyweightFraction ?? null
 					}
 				});
 

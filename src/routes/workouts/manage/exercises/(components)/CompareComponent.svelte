@@ -37,7 +37,8 @@
 				newSet: { reps, load, RIR, miniSets: cleanupInProgressMiniSets(miniSets) },
 				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
 				oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
-				bodyweightFraction: exercise.bodyweightFraction ?? null
+				oldBodyweightFraction: prevExercise.bodyweightFraction,
+				newBodyweightFraction: exercise.bodyweightFraction ?? null
 			}
 		});
 
@@ -69,7 +70,8 @@
 				newSet: { ...current, miniSets: [] },
 				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
 				oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
-				bodyweightFraction: exercise.bodyweightFraction ?? null
+				oldBodyweightFraction: prevExercise?.bodyweightFraction ?? exercise.bodyweightFraction ?? null,
+				newBodyweightFraction: exercise.bodyweightFraction ?? null
 			}
 		});
 		return actualOverload;

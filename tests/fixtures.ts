@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import path from 'path';
 import type { UserData } from './global-setup';
+import { getFixtureServerDetails } from './fixtureServer';
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -31,6 +32,8 @@ export const test = baseTest.extend<{ autoTestFixture: string }, { workerStorage
 	workerStorageState: [
 		async ({ browser, userData }, use) => {
 			const { userId, sessionToken } = userData;
+			const baseURL = test.info().project.use.baseURL as string;
+			const server = getFixtureServerDetails(baseURL);
 
 			// Use parallelIndex as a unique identifier for each worker.
 			const id = test.info().parallelIndex;
@@ -39,9 +42,7 @@ export const test = baseTest.extend<{ autoTestFixture: string }, { workerStorage
 			// Important: make sure we authenticate in a clean environment by unsetting storage state.
 			const page = await browser.newPage({
 				storageState: {
-					origins: [
-						{ origin: 'http://localhost:4173', localStorage: [{ name: 'Liftosaurus_terms_accepted', value: 'true' }] }
-					],
+					origins: [{ origin: server.origin, localStorage: [{ name: 'Liftosaurus_terms_accepted', value: 'true' }] }],
 					cookies: []
 				}
 			});
@@ -52,13 +53,11 @@ export const test = baseTest.extend<{ autoTestFixture: string }, { workerStorage
 					name: 'authjs.session-token',
 					value: sessionToken,
 					path: '/',
-					domain: 'localhost'
+					domain: server.cookieDomain,
+					secure: server.cookieSecure
 				}
 			]);
-			// Wait until the page receives the cookies.
-			// Reload to get user info
-			await page.reload();
-			await page.goto('localhost:4173/profile');
+			await page.goto(server.profileURL);
 			await expect(page.getByRole('main')).toContainText(userId);
 			// End of authentication steps.
 

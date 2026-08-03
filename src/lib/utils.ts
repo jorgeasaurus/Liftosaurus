@@ -1,4 +1,4 @@
-import { parseDate } from '@internationalized/date';
+import { fromDate, getLocalTimeZone, parseDate, toCalendarDate } from '@internationalized/date';
 import { type ClassValue, clsx } from 'clsx';
 import { cubicOut } from 'svelte/easing';
 import type { TransitionConfig } from 'svelte/transition';
@@ -59,6 +59,10 @@ export const flyAndScale = (
 export function dateToCalendarDate(date: Date | undefined) {
 	if (!date) date = new Date();
 	return parseDate(date.toISOString().slice(0, 10));
+}
+
+export function dateToLocalCalendarDate(date: Date | undefined, timeZone = getLocalTimeZone()) {
+	return toCalendarDate(fromDate(date ?? new Date(), timeZone));
 }
 
 export function generateShadesAndTints(count: number): string[] {

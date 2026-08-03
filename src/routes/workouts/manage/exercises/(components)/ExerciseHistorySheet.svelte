@@ -5,23 +5,50 @@
 	import * as Accordion from '$lib/components/ui/accordion';
 	import { trpc } from '$lib/trpc/client';
 	import type { RouterOutputs } from '$lib/trpc/router';
-	import { untrack } from 'svelte';
+	import {
+		createExerciseChartHistoryResource,
+		type ExerciseChartHistoryResourceState
+	} from '$lib/utils/exerciseChartHistory';
 	import CopyIcon from 'virtual:icons/lucide/clipboard-copy';
 	import WorkoutExerciseCard from '../../../[workoutId]/(components)/WorkoutExerciseCard.svelte';
 	import { workoutRunes } from '../../workoutRunes.svelte';
 	import type { InfiniteEvent } from 'svelte-infinite-loading';
 	import ExerciseStatsChart from '../../../../exercise-stats/ExerciseStatsChart.svelte';
 
+	type ChartWorkoutExercise = RouterOutputs['workouts']['getExerciseChartHistory']['items'][number];
+
 	let exercisesFound: RouterOutputs['workouts']['getExerciseHistory'] = $state([]);
+	let chartHistoryState = $state<ExerciseChartHistoryResourceState<ChartWorkoutExercise>>({ status: 'idle' });
+	let historyLoaderIdentifier = $state(0);
+	let historyLoaderGeneration = 0;
+	let chartAccordionValue = $state<string>();
+	const chartHistoryResource = createExerciseChartHistoryResource<ChartWorkoutExercise>({
+		query: (input) => trpc().workouts.getExerciseChartHistory.query(input),
+		onStateChange: (nextState) => (chartHistoryState = nextState)
+	});
 
 	$effect(() => {
-		if (untrack(() => exercisesFound.at(-1)?.name) !== workoutRunes.exerciseHistorySheetName) {
-			exercisesFound = [];
+		const exerciseName = workoutRunes.exerciseHistorySheetName;
+		const sheetOpen = workoutRunes.exerciseHistorySheetOpen;
+		historyLoaderIdentifier = ++historyLoaderGeneration;
+		exercisesFound = [];
+		chartHistoryResource.reset();
+		chartAccordionValue = undefined;
+		if (!sheetOpen || exerciseName === undefined) return;
+	});
+
+	$effect(() => {
+		const exerciseName = workoutRunes.exerciseHistorySheetName;
+		if (chartAccordionValue !== 'chart' || !workoutRunes.exerciseHistorySheetOpen || exerciseName === undefined) {
+			chartHistoryResource.cancelLoading();
+			return;
 		}
+		if (chartHistoryState.status === 'idle') void chartHistoryResource.load(exerciseName);
 	});
 
 	async function loadMore(infiniteEvent: InfiniteEvent) {
 		const exerciseName = workoutRunes.exerciseHistorySheetName;
+		const requestId = historyLoaderIdentifier;
 		const lastExerciseFound = exercisesFound.at(-1);
 		if (exerciseName === undefined) return;
 
@@ -29,6 +56,7 @@
 			cursorId: lastExerciseFound?.id,
 			exerciseName
 		});
+		if (requestId !== historyLoaderIdentifier || exerciseName !== workoutRunes.exerciseHistorySheetName) return;
 		if (newExercisesFound.length === 0) {
 			infiniteEvent.detail.complete();
 			return;
@@ -48,11 +76,24 @@
 				{workoutRunes.exerciseHistorySheetName}
 			</Sheet.Description>
 		</Sheet.Header>
-		<Accordion.Root>
-			<Accordion.Item value="item-1">
-				<Accordion.Trigger>Show progression chart?</Accordion.Trigger>
+		<Accordion.Root bind:value={chartAccordionValue}>
+			<Accordion.Item value="chart">
+				<Accordion.Trigger>Show progression chart</Accordion.Trigger>
 				<Accordion.Content>
-					<ExerciseStatsChart exercises={exercisesFound} selectedExercise={workoutRunes.exerciseHistorySheetName!} />
+					{#if chartHistoryState.status === 'error'}
+						<div role="alert" class="muted-text-box flex items-center justify-between gap-2">
+							<span>Could not load chart history.</span>
+							<Button size="sm" onclick={() => chartHistoryResource.retry(workoutRunes.exerciseHistorySheetName!)}>
+								Retry chart
+							</Button>
+						</div>
+					{:else}
+						<ExerciseStatsChart
+							exercises={chartHistoryState.status === 'loaded' ? chartHistoryState.data : undefined}
+							selectedExercise={workoutRunes.exerciseHistorySheetName!}
+							historyTruncated={chartHistoryState.status === 'loaded' && chartHistoryState.truncated}
+						/>
+					{/if}
 				</Accordion.Content>
 			</Accordion.Item>
 		</Accordion.Root>
@@ -80,7 +121,7 @@
 				</div>
 				<WorkoutExerciseCard {exercise} date={new Date(exercise.workout.startedAt)} />
 			{/each}
-			<DefaultInfiniteLoader {loadMore} identifier={workoutRunes.exerciseHistorySheetName} entityPlural="exercises" />
+			<DefaultInfiniteLoader {loadMore} identifier={historyLoaderIdentifier} entityPlural="exercises" />
 		</div>
 	</Sheet.Content>
 </Sheet.Root>

@@ -724,6 +724,70 @@ export const workouts = t.router({
 			});
 		}),
 
+	getExerciseChartHistory: t.procedure
+		.input(
+			z.strictObject({
+				exerciseName: z.string(),
+				cursor: z.strictObject({ startedAt: z.date(), id: z.string().cuid2() }).optional()
+			})
+		)
+		.query(async ({ ctx, input }) => {
+			const chartPageSize = 50;
+			const exercises = await prisma.workoutExercise.findMany({
+				where: {
+					name: input.exerciseName,
+					AND: [
+						{ workout: { userId: ctx.userId } },
+						...(input.cursor
+							? [
+									{
+										OR: [
+											{ workout: { startedAt: { lt: input.cursor.startedAt } } },
+											{ workout: { startedAt: input.cursor.startedAt }, id: { lt: input.cursor.id } }
+										]
+									}
+								]
+							: [])
+					]
+				},
+				select: {
+					id: true,
+					bodyweightFraction: true,
+					workout: {
+						select: {
+							startedAt: true,
+							userBodyweight: true,
+							workoutOfMesocycle: { select: { mesocycle: { select: { name: true } } } }
+						}
+					},
+					sets: {
+						select: {
+							setIndex: true,
+							reps: true,
+							load: true,
+							RIR: true,
+							skipped: true,
+							miniSets: {
+								select: { miniSetIndex: true, reps: true, load: true, RIR: true },
+								orderBy: { miniSetIndex: 'asc' }
+							}
+						},
+						orderBy: { setIndex: 'asc' }
+					}
+				},
+				orderBy: [{ workout: { startedAt: 'desc' } }, { id: 'desc' }],
+				take: chartPageSize + 1
+			});
+
+			const hasNextPage = exercises.length > chartPageSize;
+			const items = hasNextPage ? exercises.slice(0, chartPageSize) : exercises;
+			const lastItem = items.at(-1);
+			return {
+				items,
+				nextCursor: hasNextPage && lastItem ? { id: lastItem.id, startedAt: lastItem.workout.startedAt } : undefined
+			};
+		}),
+
 	getUserExercises: t.procedure.input(z.enum(['minimal', 'extensive'])).query(async ({ ctx, input }) => {
 		const selectQuery: Prisma.WorkoutExerciseSelect | undefined =
 			input === 'minimal' ? { name: true, targetMuscleGroup: true, customMuscleGroup: true } : undefined;

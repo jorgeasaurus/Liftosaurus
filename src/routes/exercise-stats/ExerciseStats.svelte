@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import DefaultInfiniteLoader from '$lib/components/DefaultInfiniteLoader.svelte';
+	import * as Accordion from '$lib/components/ui/accordion';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Command from '$lib/components/ui/command/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -10,8 +11,12 @@
 	import * as Select from '$lib/components/ui/select';
 	import { trpc } from '$lib/trpc/client.js';
 	import type { RouterOutputs } from '$lib/trpc/router';
-	import { dateToCalendarDate } from '$lib/utils';
-	import { cn } from '$lib/utils.js';
+	import { cn, dateToLocalCalendarDate } from '$lib/utils.js';
+	import {
+		createExerciseChartHistoryResource,
+		createUserPreservingDefaultSelection,
+		type ExerciseChartHistoryResourceState
+	} from '$lib/utils/exerciseChartHistory.js';
 	import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
 	import type { DateRange, Selected } from 'bits-ui';
 	import type { InfiniteEvent } from 'svelte-infinite-loading';
@@ -25,7 +30,9 @@
 	import ExerciseStatsChart from './ExerciseStatsChart.svelte';
 
 	type WorkoutExercise = RouterOutputs['workouts']['getExerciseHistory'][number];
+	type ChartWorkoutExercise = RouterOutputs['workouts']['getExerciseChartHistory']['items'][number];
 	type BasicExerciseData = Pick<WorkoutExercise, 'name' | 'targetMuscleGroup' | 'customMuscleGroup'>;
+	type CardHistoryStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 	const df = new DateFormatter('en-US', {
 		dateStyle: 'medium'
@@ -42,6 +49,11 @@
 	let searchOpen = $state(true);
 	let selectedExercise = $state<string>();
 	let exerciseInstances = $state<WorkoutExercise[]>();
+	let historyLoaderIdentifier = $state(0);
+	let cardHistoryRequestId = 0;
+	let chartAccordionValue = $state<string>();
+	let cardHistoryStatus: CardHistoryStatus = $state('idle');
+	let chartHistoryState = $state<ExerciseChartHistoryResourceState<ChartWorkoutExercise>>({ status: 'idle' });
 
 	let filteredExercisesByMuscleGroup = $derived(
 		exercisesByMuscleGroup
@@ -53,19 +65,53 @@
 	);
 
 	let dateRange: DateRange = $state({
-		start: dateToCalendarDate(new Date()),
-		end: dateToCalendarDate(new Date())
+		start: dateToLocalCalendarDate(new Date()),
+		end: dateToLocalCalendarDate(new Date())
+	});
+	const dateRangeSelection = createUserPreservingDefaultSelection(dateRange, {
+		cardHistory: 0,
+		completeChartHistory: 1
+	});
+	const chartHistoryResource = createExerciseChartHistoryResource<ChartWorkoutExercise>({
+		query: (input) => trpc().workouts.getExerciseChartHistory.query(input),
+		onStateChange: (nextState) => {
+			chartHistoryState = nextState;
+			if (nextState.status === 'loaded' && nextState.data.length > 0) {
+				dateRange = dateRangeSelection.applyDefault('completeChartHistory', {
+					start: dateToLocalCalendarDate(nextState.data[0].workout.startedAt),
+					end: dateToLocalCalendarDate(nextState.data.at(-1)!.workout.startedAt)
+				});
+			}
+		}
 	});
 	let mesocycleNames = $derived.by(() => {
-		if (!exerciseInstances) return [];
-		return Array.from(new Set(exerciseInstances.map((ex) => ex.workout.workoutOfMesocycle?.mesocycle.name ?? null)));
+		const source = chartHistoryState.status === 'loaded' ? chartHistoryState.data : exerciseInstances;
+		if (!source) return [];
+		return Array.from(new Set(source.map((ex) => ex.workout.workoutOfMesocycle?.mesocycle.name ?? null)));
 	});
 	let selectedMesocycleNames: Selected<string | null>[] = $state([]);
+	let hasFilterableHistory = $derived(
+		(exerciseInstances?.length ?? 0) > 0 || (chartHistoryState.status === 'loaded' && chartHistoryState.data.length > 0)
+	);
 
-	let filteredExerciseInstances = $derived.by(() => {
+	let filteredCardExerciseInstances = $derived.by(() => {
 		if (!exerciseInstances) return [];
 		return exerciseInstances.filter((ex) => {
-			const date = dateToCalendarDate(ex.workout.startedAt);
+			const date = dateToLocalCalendarDate(ex.workout.startedAt);
+			if (dateRange.start && dateRange.start > date) return false;
+			if (dateRange.end && dateRange.end < date) return false;
+			if (
+				selectedMesocycleNames.length > 0 &&
+				!selectedMesocycleNames.some((s) => s.value === (ex.workout.workoutOfMesocycle?.mesocycle.name ?? null))
+			)
+				return false;
+			return true;
+		});
+	});
+	let filteredChartExerciseInstances = $derived.by(() => {
+		if (chartHistoryState.status !== 'loaded') return undefined;
+		return chartHistoryState.data.filter((ex) => {
+			const date = dateToLocalCalendarDate(ex.workout.startedAt);
 			if (dateRange.start && dateRange.start > date) return false;
 			if (dateRange.end && dateRange.end < date) return false;
 			if (
@@ -78,13 +124,27 @@
 	});
 
 	$effect(() => {
+		cardHistoryRequestId += 1;
 		selectedExercise = undefined;
 		exercisesByMuscleGroup = undefined;
 		searchText = '';
 		searchOpen = true;
-		exerciseInstances = [];
+		exerciseInstances = undefined;
+		chartHistoryResource.reset();
+		dateRangeSelection.reset();
+		chartAccordionValue = undefined;
+		cardHistoryStatus = 'idle';
 		renameExerciseOpen = false;
 		loadExercises();
+	});
+
+	$effect(() => {
+		const exerciseName = selectedExercise;
+		if (chartAccordionValue !== 'chart' || exerciseName === undefined) {
+			chartHistoryResource.cancelLoading();
+			return;
+		}
+		if (chartHistoryState.status === 'idle') void chartHistoryResource.load(exerciseName);
 	});
 
 	async function loadExercises() {
@@ -98,16 +158,44 @@
 	}
 
 	async function selectExercise(name: string) {
+		historyLoaderIdentifier += 1;
 		searchText = name;
 		searchOpen = false;
 		selectedExercise = name;
-		exerciseInstances = await trpc().workouts.getExerciseHistory.query({ exerciseName: name });
-		dateRange.start = dateToCalendarDate(exerciseInstances[exerciseInstances.length - 1].workout.startedAt);
-		dateRange.end = dateToCalendarDate(exerciseInstances[0].workout.startedAt);
+		exerciseInstances = undefined;
+		chartHistoryResource.reset();
+		dateRangeSelection.reset();
+		chartAccordionValue = undefined;
+		selectedMesocycleNames = [];
+		cardHistoryStatus = 'idle';
+
+		void loadCardHistory(name);
+	}
+
+	async function loadCardHistory(name: string) {
+		const requestId = ++cardHistoryRequestId;
+		cardHistoryStatus = 'loading';
+		try {
+			const cardHistory = await trpc().workouts.getExerciseHistory.query({ exerciseName: name });
+			if (requestId !== cardHistoryRequestId || name !== selectedExercise) return;
+			exerciseInstances = cardHistory;
+			cardHistoryStatus = 'loaded';
+			if (cardHistory.length > 0) {
+				dateRange = dateRangeSelection.applyDefault('cardHistory', {
+					start: dateToLocalCalendarDate(cardHistory.at(-1)!.workout.startedAt),
+					end: dateToLocalCalendarDate(cardHistory[0].workout.startedAt)
+				});
+			}
+		} catch {
+			if (requestId !== cardHistoryRequestId || name !== selectedExercise) return;
+			exerciseInstances = [];
+			cardHistoryStatus = 'error';
+		}
 	}
 
 	async function loadMore(infiniteEvent: InfiniteEvent) {
 		const exerciseName = selectedExercise;
+		const requestId = historyLoaderIdentifier;
 		const lastExerciseFound = exerciseInstances?.at(-1);
 		if (exerciseName === undefined) return;
 
@@ -115,6 +203,7 @@
 			cursorId: lastExerciseFound?.id,
 			exerciseName
 		});
+		if (requestId !== historyLoaderIdentifier || exerciseName !== selectedExercise) return;
 		if (newExercisesFound.length === 0) {
 			infiniteEvent.detail.complete();
 			return;
@@ -123,8 +212,10 @@
 		infiniteEvent.detail.loaded();
 		if (!exerciseInstances) exerciseInstances = [];
 		exerciseInstances?.push(...newExercisesFound);
-		dateRange.start = dateToCalendarDate(exerciseInstances[exerciseInstances.length - 1].workout.startedAt);
-		dateRange.end = dateToCalendarDate(exerciseInstances[0].workout.startedAt);
+		dateRange = dateRangeSelection.applyDefault('cardHistory', {
+			start: dateToLocalCalendarDate(exerciseInstances.at(-1)!.workout.startedAt),
+			end: dateRange.end
+		});
 		if (newExercisesFound.length < 10) infiniteEvent.detail.complete();
 	}
 
@@ -211,7 +302,7 @@
 				size="icon"
 				aria-label="Filter exercises"
 				class="shrink-0"
-				disabled={(exerciseInstances?.length ?? 0) === 0}
+				disabled={selectedExercise === undefined || !hasFilterableHistory}
 			>
 				<FilterIcon />
 			</Button>
@@ -243,7 +334,12 @@
 						</Button>
 					</Popover.Trigger>
 					<Popover.Content class="w-auto p-0" align="start">
-						<RangeCalendar bind:value={dateRange} initialFocus placeholder={dateRange?.start} />
+						<RangeCalendar
+							value={dateRange}
+							onValueChange={(value) => (dateRange = dateRangeSelection.select(value))}
+							initialFocus
+							placeholder={dateRange?.start}
+						/>
 					</Popover.Content>
 				</Popover.Root>
 				<span class="font-semibold">Filter by mesocycles</span>
@@ -266,12 +362,42 @@
 
 <div class="flex flex-col gap-2">
 	{#if selectedExercise}
-		<ExerciseStatsChart {selectedExercise} exercises={filteredExerciseInstances} />
-		{#if exerciseInstances}
-			{#each filteredExerciseInstances as instance}
-				<WorkoutExerciseCard exercise={instance} date={new Date(instance.workout.startedAt)} />
+		<Accordion.Root bind:value={chartAccordionValue}>
+			<Accordion.Item value="chart">
+				<Accordion.Trigger>Show progression chart</Accordion.Trigger>
+				<Accordion.Content>
+					{#if chartHistoryState.status === 'error'}
+						<div role="alert" class="muted-text-box flex items-center justify-between gap-2">
+							<span>Could not load chart history.</span>
+							<Button size="sm" onclick={() => chartHistoryResource.retry(selectedExercise!)}>Retry chart</Button>
+						</div>
+					{:else}
+						<ExerciseStatsChart
+							{selectedExercise}
+							exercises={filteredChartExerciseInstances}
+							historyTruncated={chartHistoryState.status === 'loaded' && chartHistoryState.truncated}
+						/>
+					{/if}
+				</Accordion.Content>
+			</Accordion.Item>
+		</Accordion.Root>
+		{#if cardHistoryStatus === 'loading'}
+			<div role="status" class="muted-text-box flex items-center gap-2">
+				<LoaderCircle class="animate-spin" />
+				<span>Loading performance history.</span>
+			</div>
+		{:else if cardHistoryStatus === 'error'}
+			<div role="alert" class="muted-text-box flex items-center justify-between gap-2">
+				<span>Could not load performance history.</span>
+				<Button size="sm" onclick={() => loadCardHistory(selectedExercise!)}>Retry performances</Button>
+			</div>
+		{:else if cardHistoryStatus === 'loaded' && exerciseInstances}
+			{#each filteredCardExerciseInstances as instance}
+				<div data-testid="exercise-performance-card">
+					<WorkoutExerciseCard exercise={instance} date={new Date(instance.workout.startedAt)} />
+				</div>
 			{/each}
-			<DefaultInfiniteLoader {loadMore} identifier={selectedExercise} entityPlural="exercises" />
+			<DefaultInfiniteLoader {loadMore} identifier={historyLoaderIdentifier} entityPlural="exercises" />
 		{/if}
 	{/if}
 </div>
