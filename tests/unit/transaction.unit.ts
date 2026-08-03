@@ -23,13 +23,37 @@ test('Cockroach serialization conflicts retry while other failures surface immed
 	assert.equal(otherAttempts, 1);
 });
 
+test('Cockroach serialization retries use capped exponential jittered backoff', async () => {
+	let attempts = 0;
+	const delays: number[] = [];
+	const result = await retryTransactionConflicts(
+		async () => {
+			attempts += 1;
+			if (attempts < 5) throw Object.assign(new Error('serialization conflict'), { code: 'P2034' });
+			return 'committed';
+		},
+		{
+			sleep: async (milliseconds) => {
+				delays.push(milliseconds);
+			},
+			random: () => 0.5
+		}
+	);
+
+	assert.equal(result, 'committed');
+	assert.deepEqual(delays, [7.5, 15, 30, 37.5]);
+});
+
 test('Cockroach serialization retries are bounded', async () => {
 	let attempts = 0;
 	await assert.rejects(
-		retryTransactionConflicts(async () => {
-			attempts += 1;
-			throw Object.assign(new Error('serialization conflict'), { code: 'P2034' });
-		}),
+		retryTransactionConflicts(
+			async () => {
+				attempts += 1;
+				throw Object.assign(new Error('serialization conflict'), { code: 'P2034' });
+			},
+			{ sleep: async () => undefined }
+		),
 		/serialization conflict/
 	);
 	assert.equal(attempts, 5);

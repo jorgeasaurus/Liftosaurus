@@ -117,7 +117,10 @@
 			}
 		}
 
-		if (createData === undefined) return;
+		if (createData === undefined) {
+			savingWorkout = false;
+			return;
+		}
 		const mesocycleMode = workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.repRangeMode ?? 'Fixed';
 		const hasPendingAdaptiveOutlier = workoutRunes.workoutExercises?.some((exercise) => {
 			if ((exercise.repRangeMode ?? mesocycleMode) !== 'Adaptive') return false;
