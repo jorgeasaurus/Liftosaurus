@@ -12,6 +12,7 @@
 	import { settingsRunes } from './settingsRunes.svelte';
 	import H2 from '$lib/components/ui/typography/H2.svelte';
 	import RefreshCcw from 'virtual:icons/lucide/refresh-ccw';
+	import Download from 'virtual:icons/lucide/download';
 	import MotivationalQuotes from '$lib/components/settings/MotivationalQuotes.svelte';
 
 	let hasError = $state(false);
@@ -77,6 +78,25 @@
 <H2>Settings</H2>
 
 <div class="space-y-6">
+	<Card.Root class="w-full" data-testid="data-export">
+		<Card.Header>
+			<Card.Title>Export your data</Card.Title>
+			<Card.Description>
+				Download a complete JSON backup or your set history as a spreadsheet-ready CSV.
+			</Card.Description>
+		</Card.Header>
+		<Card.Content class="flex flex-col gap-3 sm:flex-row">
+			<Button class="w-full gap-2" href="/api/export/json" download>
+				<Download class="h-4 w-4" />
+				Download JSON backup
+			</Button>
+			<Button class="w-full gap-2" href="/api/export/csv" download variant="secondary">
+				<Download class="h-4 w-4" />
+				Download workout CSV
+			</Button>
+		</Card.Content>
+	</Card.Root>
+
 	<Card.Root class="w-full">
 		<Card.Header>
 			<Card.Title>Notifications</Card.Title>
