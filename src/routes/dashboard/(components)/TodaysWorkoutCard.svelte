@@ -16,9 +16,8 @@
 	};
 	let { todaysWorkoutData, pastWorkouts }: PropsType = $props();
 
-	function createNewWorkout() {
-		if (workoutRunes.editingWorkoutId !== null) workoutRunes.resetStores();
-		goto('/workouts/manage/start');
+	async function createNewWorkout() {
+		if (await workoutRunes.beginNewWorkout()) await goto('/workouts/manage/start');
 	}
 </script>
 
@@ -72,7 +71,7 @@
 				You can log workouts even without a mesocycle, you'll miss out on automatic progression and mesocycle statistics
 			</Card.Content>
 			<Card.Footer class="flex flex-col items-end gap-2">
-				<Button href="/workouts/manage/start" variant="secondary">Start a workout without mesocycle</Button>
+				<Button onclick={createNewWorkout} variant="secondary">Start a workout without mesocycle</Button>
 				<Button href="/mesocycles">Go to mesocycles</Button>
 			</Card.Footer>
 		{/if}

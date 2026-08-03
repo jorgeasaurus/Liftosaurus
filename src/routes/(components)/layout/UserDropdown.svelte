@@ -5,9 +5,8 @@
 	import SettingsIcon from 'virtual:icons/lucide/settings';
 	import LogoutIcon from 'virtual:icons/lucide/log-out';
 
-	function logOut() {
-		signOut();
-		localStorage.clear();
+	async function logOut() {
+		await signOut();
 	}
 </script>
 

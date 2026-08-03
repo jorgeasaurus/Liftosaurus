@@ -16,21 +16,23 @@ async function globalSetup(config: FullConfig) {
 		sessionToken: randomUUID()
 	}));
 
-	testUsersData.forEach(async ({ userId, sessionToken }) => {
-		await prisma.session.create({
-			data: {
-				sessionToken,
-				expires: new Date(Number(new Date()) + 1000 * 60 * 60),
-				user: {
-					create: {
-						id: userId,
-						email: `test-user-${userId}@Liftosaurus.com`,
-						emailVerified: null
+	await Promise.all(
+		testUsersData.map(({ userId, sessionToken }) =>
+			prisma.session.create({
+				data: {
+					sessionToken,
+					expires: new Date(Number(new Date()) + 1000 * 60 * 60),
+					user: {
+						create: {
+							id: userId,
+							email: `test-user-${userId}@Liftosaurus.com`,
+							emailVerified: null
+						}
 					}
 				}
-			}
-		});
-	});
+			})
+		)
+	);
 	process.env.TEST_USERS_DATA = JSON.stringify(testUsersData);
 }
 

@@ -102,7 +102,7 @@
 				{@const wm = exercise.workout.workoutOfMesocycle}
 				<div class="mb-1 mt-4 flex items-start gap-1">
 					<Button
-						onclick={() => workoutRunes.copyExerciseSetNumbersFromHistory(exercise)}
+						onclick={async () => await workoutRunes.copyExerciseSetNumbersFromHistory(exercise)}
 						size="icon"
 						variant="secondary"
 					>

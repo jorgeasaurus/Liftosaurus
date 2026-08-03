@@ -10,19 +10,25 @@
 		reordering: boolean;
 		comparing: boolean;
 		itemList: (WorkoutExerciseInProgress & { isDndShadowItem?: boolean })[];
+		onFinalize?: () => void | Promise<void>;
 	};
 
-	let { itemList = $bindable(), reordering, comparing, readOnly }: PropsType = $props();
+	let { itemList = $bindable(), reordering, comparing, readOnly, onFinalize }: PropsType = $props();
 
 	function handleSort(e: CustomEvent<DndEvent<WorkoutExerciseInProgress>>) {
 		itemList = e.detail.items;
+	}
+
+	async function handleFinalize(e: CustomEvent<DndEvent<WorkoutExerciseInProgress>>) {
+		handleSort(e);
+		await onFinalize?.();
 	}
 </script>
 
 <div
 	class="flex h-px grow flex-col gap-1 overflow-y-auto"
 	onconsider={handleSort}
-	onfinalize={handleSort}
+	onfinalize={handleFinalize}
 	use:dragHandleZone={{
 		items: itemList,
 		flipDurationMs: 200,

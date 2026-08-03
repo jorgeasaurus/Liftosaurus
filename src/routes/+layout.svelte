@@ -1,18 +1,26 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { pwaInfo } from 'virtual:pwa-info';
 	import '../app.pcss';
 	import DesktopLayout from './(components)/layout/DesktopLayout.svelte';
 	import MobileLayout from './(components)/layout/MobileLayout.svelte';
 	import UpdateDataLossDialog from './(components)/layout/UpdateDataLossDialog.svelte';
 	import TermsOfServiceDialog from '$lib/components/TermsOfServiceDialog.svelte';
+	import { workoutRunes } from './workouts/manage/workoutRunes.svelte';
+	import type { LayoutData } from './$types';
 
 	import { overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('name');
 
-	const { children } = $props();
+	let { children, data }: { children: Snippet; data: LayoutData } = $props();
+	if (browser) workoutRunes.bindSession(data.session?.user?.id ?? null);
+	$effect(() => {
+		if (browser) workoutRunes.bindSession(data.session?.user?.id ?? null);
+	});
 	const webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
 	let isMobile: undefined | boolean = $state(undefined);
 

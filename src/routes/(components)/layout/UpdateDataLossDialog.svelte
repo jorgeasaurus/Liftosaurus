@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ResponsiveDialog from '$lib/components/ResponsiveDialog.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { activateAppUpdate } from '$lib/utils/pwaUpdate';
 	import LoaderCircle from 'virtual:icons/lucide/loader-circle';
 	import { updateDataLossDialog, updateServiceWorker } from './PWAFunctions.svelte';
 
@@ -8,22 +9,7 @@
 
 	function updateApp() {
 		updating = true;
-		const fieldsToKeep = ['Liftosaurus_terms_accepted', 'discord-dismiss', 'domain-move-dismiss', 'last-used-auth-provider'];
-		const preservedValues: Record<string, string | null> = {};
-
-		fieldsToKeep.forEach((field) => {
-			preservedValues[field] = localStorage.getItem(field);
-		});
-
-		localStorage.clear();
-
-		fieldsToKeep.forEach((field) => {
-			if (preservedValues[field] !== null) {
-				localStorage.setItem(field, preservedValues[field]!);
-			}
-		});
-
-		updateServiceWorker!(true);
+		activateAppUpdate(updateServiceWorker!);
 	}
 </script>
 

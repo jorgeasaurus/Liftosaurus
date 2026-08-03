@@ -30,9 +30,9 @@
 
 	type CommonProps<T> = {
 		editingExercise: T | undefined;
-		addExercise: (exercise: T) => boolean;
+		addExercise: (exercise: T) => boolean | Promise<boolean>;
 		setEditingExercise: (exercise: undefined) => void;
-		editExercise: (exercise: T) => boolean;
+		editExercise: (exercise: T) => boolean | Promise<boolean>;
 	};
 
 	type PropsType =
@@ -140,7 +140,7 @@
 		currentExercise = structuredClone(defaultExercise);
 	}
 
-	function submitForm(e: SubmitEvent) {
+	async function submitForm(e: SubmitEvent) {
 		e.preventDefault();
 		let result = false;
 		if ('isUserExercise' in currentExercise) {
@@ -148,11 +148,11 @@
 		}
 		const finishedExercise = currentExercise as NonUndefined<typeof props.editingExercise>;
 		if ('sets' in finishedExercise) {
-			if (mode === 'Add') result = props.addExercise(finishedExercise);
-			else result = props.editExercise(finishedExercise);
+			if (mode === 'Add') result = await props.addExercise(finishedExercise);
+			else result = await props.editExercise(finishedExercise);
 		} else if (props.context === 'exerciseSplit') {
-			if (mode === 'Add') result = props.addExercise(finishedExercise);
-			else result = props.editExercise(finishedExercise);
+			if (mode === 'Add') result = await props.addExercise(finishedExercise);
+			else result = await props.editExercise(finishedExercise);
 		}
 
 		if (!result) {

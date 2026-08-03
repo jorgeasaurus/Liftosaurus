@@ -15,12 +15,14 @@
 	import type { RouterOutputs } from '$lib/trpc/router.js';
 	import { cn, convertCamelCaseToNormal } from '$lib/utils.js';
 	import type { WorkoutStatus } from '@prisma/client';
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import CheckIcon from 'virtual:icons/lucide/check';
 	import LoaderCircle from 'virtual:icons/lucide/loader-circle';
 	import RedoIcon from 'virtual:icons/lucide/rotate-cw';
 	import SkipIcon from 'virtual:icons/lucide/skip-forward';
 	import { workoutRunes } from '../workoutRunes.svelte.js';
+	import { selectWorkoutStartData } from './workoutStartData';
 
 	let { data } = $props();
 
@@ -38,6 +40,7 @@
 
 	let useActiveMesocycle = $state(false);
 	let workoutData: RouterOutputs['workouts']['getTodaysWorkoutData'] | 'loading' = $state('loading');
+	let defaultWorkoutData = $state<RouterOutputs['workouts']['getTodaysWorkoutData']>();
 	let userBodyweight: null | number = $state(workoutRunes.workoutData?.userBodyweight ?? null);
 	let targetedMuscleGroups = $derived.by(() => {
 		let result: string[] = [];
@@ -52,14 +55,33 @@
 	let completingWorkout = $state(false);
 	let skipWorkoutWithWorkoutExercisesDialogOpen = $state(false);
 	let skippedWorkoutsOfCycle = $state<RouterOutputs['workouts']['getSkippedWorkoutsOfCurrentCycle']>();
+	let appliedExternalStorageRevision = workoutRunes.externalStorageRevision;
+
+	function applyWorkoutData(nextWorkoutData: RouterOutputs['workouts']['getTodaysWorkoutData']) {
+		workoutData = nextWorkoutData;
+		userBodyweight = nextWorkoutData.userBodyweight;
+		useActiveMesocycle = nextWorkoutData.workoutOfMesocycle !== undefined;
+	}
 
 	$effect(() => {
+		const requestRevision = untrack(() => workoutRunes.externalStorageRevision);
 		data.workoutData.then((data) => {
-			if (workoutRunes.editingWorkoutId === null) workoutData = data;
-			else workoutData = workoutRunes.workoutData as RouterOutputs['workouts']['getTodaysWorkoutData'];
-
-			userBodyweight = userBodyweight ?? workoutData.userBodyweight;
-			if (workoutData.workoutOfMesocycle !== undefined) useActiveMesocycle = true;
+			defaultWorkoutData = data;
+			const selection = selectWorkoutStartData({
+				defaultWorkoutData: data,
+				restoredWorkoutData: workoutRunes.workoutData,
+				editing: workoutRunes.editingWorkoutId !== null,
+				requestRevision,
+				currentRevision: workoutRunes.externalStorageRevision,
+				appliedRevision: appliedExternalStorageRevision
+			});
+			appliedExternalStorageRevision = selection.appliedRevision;
+			if (selection.restoredDraft) applyWorkoutData(selection.workoutData);
+			else {
+				workoutData = selection.workoutData;
+				userBodyweight = userBodyweight ?? workoutData.userBodyweight;
+				if (workoutData.workoutOfMesocycle !== undefined) useActiveMesocycle = true;
+			}
 		});
 
 		data.skippedWorkouts?.then((skippedWorkouts) => {
@@ -68,10 +90,27 @@
 		if (data.skippedWorkouts === undefined) skippedWorkoutsOfCycle = undefined;
 	});
 
+	$effect(() => {
+		const externalStorageRevision = workoutRunes.externalStorageRevision;
+		if (externalStorageRevision === appliedExternalStorageRevision) return;
+
+		if (defaultWorkoutData === undefined) return;
+		const selection = selectWorkoutStartData({
+			defaultWorkoutData,
+			restoredWorkoutData: workoutRunes.workoutData,
+			editing: workoutRunes.editingWorkoutId !== null,
+			requestRevision: appliedExternalStorageRevision,
+			currentRevision: externalStorageRevision,
+			appliedRevision: appliedExternalStorageRevision
+		});
+		appliedExternalStorageRevision = selection.appliedRevision;
+		applyWorkoutData(selection.workoutData);
+	});
+
 	async function startWorkout(fromDialog = false, mode: 'keepCurrent' | 'overwrite' = 'overwrite') {
 		if (workoutRunes.editingWorkoutId) {
 			if (workoutRunes.workoutData) workoutRunes.workoutData.userBodyweight = userBodyweight;
-			workoutRunes.saveStoresToLocalStorage();
+			await workoutRunes.saveStoresToLocalStorage();
 			await goto('./exercises?editing');
 			return;
 		}
@@ -95,18 +134,25 @@
 				};
 			workoutRunes.workoutExercises = null;
 		} else if (workoutRunes.workoutData === null) workoutRunes.workoutData = workoutData;
-		workoutRunes.saveStoresToLocalStorage();
+		await workoutRunes.saveStoresToLocalStorage();
 
 		const workoutOfMesocycle = workoutRunes.workoutData.workoutOfMesocycle;
 		let exercisesLink = `./exercises?userBodyweight=${userBodyweight}`;
 		if (useActiveMesocycle) exercisesLink += '&useActiveMesocycle';
 		if (mode === 'keepCurrent') exercisesLink += '&keepCurrent';
 		if (workoutOfMesocycle) exercisesLink += `&splitDayIndex=${workoutOfMesocycle.splitDayIndex}`;
-		goto(exercisesLink);
+		await goto(exercisesLink);
+	}
+
+	async function repeatSkippedWorkout(splitDayIndex: number) {
+		if (await workoutRunes.beginNewWorkout()) {
+			await goto(`/workouts/manage/start?repeatSkipped=${splitDayIndex}`);
+		}
 	}
 
 	async function completeWorkout(workoutStatus: WorkoutStatus, force = false) {
 		if (workoutData === 'loading') return;
+		if (workoutRunes.ownerUserId === null) return;
 		if (typeof userBodyweight !== 'number') {
 			toast.error('Enter your bodyweight');
 			return;
@@ -118,6 +164,7 @@
 
 		completingWorkout = true;
 		const { message, mesocycleCompleted } = await trpc().workouts.create.mutate({
+			draftOwnerUserId: workoutRunes.ownerUserId,
 			workoutData: {
 				userBodyweight,
 				workoutOfMesocycle: {
@@ -132,7 +179,7 @@
 		});
 		toast.success(message);
 		skipWorkoutWithWorkoutExercisesDialogOpen = false;
-		workoutRunes.resetStores();
+		await workoutRunes.resetStores();
 		await invalidate('workouts:start');
 		completingWorkout = false;
 
@@ -236,11 +283,7 @@
 			</Card.Header>
 			<Card.Content class="flex flex-wrap gap-1">
 				{#each skippedWorkoutsOfCycle as skippedWorkout}
-					<Button
-						variant="secondary"
-						class="gap-2"
-						href="/workouts/manage/start?repeatSkipped={skippedWorkout.splitDayIndex}"
-					>
+					<Button variant="secondary" class="gap-2" onclick={() => repeatSkippedWorkout(skippedWorkout.splitDayIndex)}>
 						{skippedWorkout.splitDayName}
 						<RedoIcon />
 					</Button>

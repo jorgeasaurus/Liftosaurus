@@ -93,6 +93,7 @@ const workoutInputDataSchema = z.object({
 });
 
 const createWorkoutSchema = z.strictObject({
+	draftOwnerUserId: z.string().cuid2(),
 	workoutData: workoutInputDataSchema,
 	workoutExercises: z.array(WorkoutExerciseCreateWithoutWorkoutInputSchema),
 	workoutExercisesSets: z.array(z.array(WorkoutExerciseSetCreateWithoutWorkoutExerciseInputSchema)),
@@ -479,6 +480,9 @@ export const workouts = t.router({
 		}),
 
 	create: t.procedure.input(createWorkoutSchema).mutation(async ({ ctx, input }) => {
+		if (input.draftOwnerUserId !== ctx.userId) {
+			throw new TRPCError({ code: 'FORBIDDEN', message: 'Workout draft belongs to another user' });
+		}
 		const workout: Prisma.WorkoutUncheckedCreateInput = {
 			id: createId(),
 			userId: ctx.userId,
@@ -604,7 +608,9 @@ export const workouts = t.router({
 		mesocycleCompleted = completedWorkouts >= totalWorkouts;
 
 		if (repeatOfSkippedWorkout) {
-			transactionQueries.push(prisma.workout.delete({ where: { id: repeatOfSkippedWorkout.workoutId } }));
+			transactionQueries.push(
+				prisma.workout.delete({ where: { id: repeatOfSkippedWorkout.workoutId, userId: ctx.userId } })
+			);
 		} else if (mesocycleCompleted) {
 			transactionQueries.push(
 				prisma.mesocycle.update({
@@ -635,6 +641,17 @@ export const workouts = t.router({
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
+			if (input.data.draftOwnerUserId !== ctx.userId) {
+				throw new TRPCError({ code: 'FORBIDDEN', message: 'Workout draft belongs to another user' });
+			}
+			const existingWorkout = await prisma.workout.findFirst({
+				where: { id: input.id, userId: ctx.userId },
+				select: { workoutOfMesocycle: true }
+			});
+			if (!existingWorkout) {
+				throw new TRPCError({ code: 'NOT_FOUND', message: 'Workout not found' });
+			}
+
 			const workout: Prisma.WorkoutUncheckedCreateInput = {
 				id: input.id,
 				userId: ctx.userId,
@@ -644,9 +661,7 @@ export const workouts = t.router({
 				note: input.data.workoutData.note
 			};
 
-			const workoutOfMesocycle = await prisma.workoutOfMesocycle.findFirst({
-				where: { workoutId: input.id }
-			});
+			const workoutOfMesocycle = existingWorkout.workoutOfMesocycle;
 
 			const workoutExercises: Prisma.WorkoutExerciseUncheckedCreateInput[] = input.data.workoutExercises.map((ex) => ({
 				...ex,
@@ -677,7 +692,7 @@ export const workouts = t.router({
 				);
 
 			const transactionQueries = [
-				prisma.workout.delete({ where: { id: input.id } }),
+				prisma.workout.delete({ where: { id: input.id, userId: ctx.userId } }),
 				prisma.workout.create({ data: workout }),
 				prisma.workoutExercise.createMany({ data: workoutExercises }),
 				prisma.workoutExerciseSet.createMany({ data: workoutExercisesSets }),
