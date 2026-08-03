@@ -4,9 +4,6 @@ import { getPlaywrightPort } from './tests/playwright-port';
 const port = getPlaywrightPort(process.env.PLAYWRIGHT_PORT);
 const baseURL = `http://localhost:${port}`;
 
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
-const baseURL = `http://localhost:${port}`;
-
 const config: PlaywrightTestConfig = {
 	webServer: {
 		command: `pnpm build && pnpm preview --port ${port}`,
