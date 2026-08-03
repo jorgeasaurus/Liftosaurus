@@ -1,6 +1,7 @@
 import { devices, type PlaywrightTestConfig } from '@playwright/test';
+import { getPlaywrightPort } from './tests/playwright-port';
 
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
+const port = getPlaywrightPort(process.env.PLAYWRIGHT_PORT);
 const baseURL = `http://localhost:${port}`;
 
 const config: PlaywrightTestConfig = {
