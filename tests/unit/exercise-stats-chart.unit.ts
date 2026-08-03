@@ -4,6 +4,7 @@ import {
 	buildExerciseChartDatasets,
 	getExerciseChartSetCount,
 	hasExerciseBodyweightLoad,
+	resolveExerciseChartType,
 	type ExerciseChartPerformance
 } from '../../src/lib/utils/exerciseStatsChart.js';
 import {
@@ -103,6 +104,14 @@ test('offers load-and-bodyweight when any historical performance has a bodyweigh
 
 	assert.equal(hasExerciseBodyweightLoad(performances), true);
 	assert.equal(hasExerciseBodyweightLoad(performances.slice(0, 1)), false);
+});
+
+test('preserves load-and-bodyweight while history loads, then falls back only when loaded history cannot support it', () => {
+	let chartType = resolveExerciseChartType('load-and-bodyweight', undefined);
+	assert.equal(chartType, 'load-and-bodyweight');
+
+	chartType = resolveExerciseChartType(chartType, [performance(1, [{ setIndex: 0, load: 100 }])]);
+	assert.equal(chartType, 'absolute-load');
 });
 
 test('treats equal effective loads as zero overload when bodyweight fractions change, including mini-sets', () => {

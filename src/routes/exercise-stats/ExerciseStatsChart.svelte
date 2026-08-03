@@ -11,6 +11,7 @@
 		buildExerciseChartDatasets,
 		getExerciseChartSetCount,
 		hasExerciseBodyweightLoad,
+		resolveExerciseChartType,
 		type ExerciseChartType
 	} from '$lib/utils/exerciseStatsChart';
 	import { MAX_EXERCISE_CHART_PERFORMANCES } from '$lib/utils/exerciseChartHistory';
@@ -63,7 +64,8 @@
 	});
 
 	$effect(() => {
-		if (!hasBodyweightLoad && chartType === 'load-and-bodyweight') chartType = 'absolute-load';
+		const supportedChartType = resolveExerciseChartType(chartType, exercises);
+		if (supportedChartType !== chartType) chartType = supportedChartType;
 	});
 
 	$effect(() => {

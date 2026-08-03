@@ -34,6 +34,14 @@ export function hasExerciseBodyweightLoad(performances: ExerciseChartPerformance
 	return performances.some((performance) => typeof performance.bodyweightFraction === 'number');
 }
 
+export function resolveExerciseChartType(
+	chartType: ExerciseChartType,
+	performances: ExerciseChartPerformance[] | undefined
+): ExerciseChartType {
+	if (performances === undefined || chartType !== 'load-and-bodyweight') return chartType;
+	return hasExerciseBodyweightLoad(performances) ? chartType : 'absolute-load';
+}
+
 export function buildExerciseChartDatasets(
 	performances: ExerciseChartPerformance[],
 	chartType: ExerciseChartType,
