@@ -6,6 +6,7 @@ import {
 	applyManualDeloadToWorkout,
 	canApplyManualDeloadToWorkout,
 	getComparableWorkoutExercisePairs,
+	getEditedManualDeloadMetadata,
 	getPreviousWorkoutExercisePerformances,
 	hasAlignedManualDeloadMetadata,
 	hasContiguousExerciseTemplateOrder,
@@ -20,6 +21,21 @@ test('manual deload metadata must align with the submitted exercises when provid
 	assert.equal(hasAlignedManualDeloadMetadata([{}, {}], undefined), true);
 	assert.equal(hasAlignedManualDeloadMetadata([{}, {}], [null, null]), true);
 	assert.equal(hasAlignedManualDeloadMetadata([{}, {}], [null]), false);
+});
+
+test('editing a normal exercise preserves its stable source template identity', () => {
+	assert.deepEqual(
+		getEditedManualDeloadMetadata(false, { sourceTemplateId: 'template-bench', originalSetCount: 3 }, 4),
+		{ sourceTemplateId: 'template-bench', originalSetCount: 4 }
+	);
+	assert.deepEqual(getEditedManualDeloadMetadata(false, undefined, 4), {
+		sourceTemplateId: null,
+		originalSetCount: 4
+	});
+	assert.deepEqual(
+		getEditedManualDeloadMetadata(true, { sourceTemplateId: 'template-bench', originalSetCount: 3 }, 4),
+		{ sourceTemplateId: 'template-bench', originalSetCount: 3 }
+	);
 });
 
 test('requires final exercise templates to have unique contiguous indices in workout order', () => {

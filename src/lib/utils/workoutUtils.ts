@@ -257,6 +257,18 @@ export function hasAlignedManualDeloadMetadata(
 	return manualDeloadMetadata === undefined || manualDeloadMetadata.length === exercises.length;
 }
 
+export function getEditedManualDeloadMetadata(
+	isDeload: boolean,
+	currentMetadata: WorkoutExerciseInProgress['manualDeloadMetadata'],
+	editedSetCount: number
+): WorkoutExerciseInProgress['manualDeloadMetadata'] {
+	if (isDeload) return currentMetadata;
+	return {
+		sourceTemplateId: currentMetadata?.sourceTemplateId ?? null,
+		originalSetCount: editedSetCount
+	};
+}
+
 export function normalizePersistedWorkoutExercises(
 	exercises: WorkoutExerciseInProgress[]
 ): WorkoutExerciseInProgress[] {

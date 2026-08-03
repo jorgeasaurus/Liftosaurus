@@ -40,8 +40,8 @@
 		await workoutRunes.saveStoresToLocalStorage();
 	}
 
-	function applyDeload(target: ManualDeloadTarget) {
-		if (!workoutRunes.applyManualDeload(target)) return;
+	async function applyDeload(target: ManualDeloadTarget) {
+		if (!(await workoutRunes.applyManualDeload(target))) return;
 		isContextMenuOpen = false;
 	}
 </script>
