@@ -24,6 +24,9 @@
 
 	let savingWorkout = $state(false);
 	let workoutExercises = $derived(workoutRunes.workoutExercises ?? []);
+	const adaptiveOutlierMessage = 'Confirm adaptive working sets outside the 5–30 rep range before saving';
+	const adaptiveOutlierPrompt =
+		'This will establish an adaptive target outside the recommended 5–30 rep range. Continue?';
 
 	function preProcessSetData() {
 		if (workoutRunes.workoutData === null || workoutRunes.workoutExercises === null) return;
@@ -92,6 +95,16 @@
 		return createData;
 	}
 
+	async function persistWorkout(createData: RouterInputs['workouts']['create']) {
+		if (workoutRunes.editingWorkoutId === null) return trpc().workouts.create.mutate(createData);
+		const result = await trpc().workouts.editById.mutate({
+			id: workoutRunes.editingWorkoutId,
+			endedAt: workoutRunes.workoutData?.endedAt as Date | string,
+			data: createData
+		});
+		return { ...result, mesocycleCompleted: undefined };
+	}
+
 	async function saveWorkout() {
 		let createData;
 		try {
@@ -105,21 +118,46 @@
 		}
 
 		if (createData === undefined) return;
+		const mesocycleMode = workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.repRangeMode ?? 'Fixed';
+		const hasPendingAdaptiveOutlier = workoutRunes.workoutExercises?.some((exercise) => {
+			if ((exercise.repRangeMode ?? mesocycleMode) !== 'Adaptive') return false;
+			const isOutlier = (reps: number | undefined) => reps !== undefined && (reps < 5 || reps > 30);
+			const firstStandardSet = exercise.sets.find(
+				(set, setIndex) => !set.skipped && (exercise.setType !== 'TopBackoff' || setIndex > 0)
+			);
+			const standardNeedsConfirmation =
+				exercise.repRangeStart === 5 && exercise.repRangeEnd === 30 && isOutlier(firstStandardSet?.reps);
+			if (exercise.setType !== 'TopBackoff') return standardNeedsConfirmation;
+
+			const firstTopSet = exercise.sets.find((set, setIndex) => !set.skipped && setIndex === 0);
+			return (
+				standardNeedsConfirmation ||
+				(exercise.topRepRangeStart === 5 && exercise.topRepRangeEnd === 30 && isOutlier(firstTopSet?.reps))
+			);
+		});
+		if (hasPendingAdaptiveOutlier && !window.confirm(adaptiveOutlierPrompt)) {
+			savingWorkout = false;
+			return;
+		}
+		createData.confirmAdaptiveRepRangeOutliers = Boolean(hasPendingAdaptiveOutlier);
 
 		try {
-			let message, mesocycleCompleted;
-			if (workoutRunes.editingWorkoutId === null) {
-				({ message, mesocycleCompleted } = await trpc().workouts.create.mutate(createData));
-			} else {
-				message = (
-					await trpc().workouts.editById.mutate({
-						id: workoutRunes.editingWorkoutId,
-						endedAt: workoutRunes.workoutData?.endedAt as Date | string,
-						data: createData
-					})
-				).message;
+			let result;
+			try {
+				result = await persistWorkout(createData);
+			} catch (error) {
+				if (
+					!(error instanceof TRPCClientError) ||
+					!error.message.includes(adaptiveOutlierMessage) ||
+					createData.confirmAdaptiveRepRangeOutliers ||
+					!window.confirm(adaptiveOutlierPrompt)
+				) {
+					throw error;
+				}
+				createData.confirmAdaptiveRepRangeOutliers = true;
+				result = await persistWorkout(createData);
 			}
-			toast.success(message);
+			toast.success(result.message);
 			await invalidate('workouts:all');
 			await workoutRunes.resetStores();
 			// Reset meso editing store as it won't change if workout affects meso split days and same mesocycle gets edited
@@ -129,7 +167,7 @@
 			// So to prevent this from happening, just reset the meso split runes after a workout is completed
 			mesocycleExerciseSplitRunes.resetStores();
 
-			if (mesocycleCompleted) {
+			if (result.mesocycleCompleted) {
 				await goto(`/mesocycles/${workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.id}?completion`);
 			} else {
 				await goto('/workouts');

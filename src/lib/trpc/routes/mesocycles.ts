@@ -1,6 +1,7 @@
 import { prisma } from '$lib/prisma';
 import { z } from 'zod';
 import { t } from '$lib/trpc/t';
+import { runSerializableTransaction } from '$lib/trpc/transaction';
 import {
 	ExerciseSplitDayCreateWithoutExerciseSplitInputSchema,
 	ExerciseSplitSchema,
@@ -13,6 +14,16 @@ import {
 import { Prisma } from '@prisma/client';
 import { createId } from '@paralleldrive/cuid2';
 import { TRPCError } from '@trpc/server';
+
+const clearedAdaptiveRepRangeState = {
+	adaptiveRepRangeStart: null,
+	adaptiveRepRangeEnd: null,
+	adaptiveTopRepRangeStart: null,
+	adaptiveTopRepRangeEnd: null,
+	adaptiveRepRangeSourceId: null,
+	adaptiveTopRepRangeSourceId: null,
+	adaptiveRepRangeResetAt: null
+} as const;
 
 const zodMesocycleCreateInput = z.strictObject({
 	mesocycle: MesocycleUncheckedCreateWithoutUserInputSchema,
@@ -31,13 +42,19 @@ const zodMesocycleEditInput = z.strictObject({
 	mesocycleCyclicSetChanges: z.array(MesocycleCyclicSetChangeCreateWithoutMesocycleInputSchema)
 });
 
-const zodUpdateExerciseSplitInput = z.strictObject({
-	mesocycleExerciseSplitDays: z.array(MesocycleExerciseSplitDayCreateWithoutMesocycleInputSchema),
-	mesocycleExerciseTemplates: z.array(
-		z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema)
-	),
-	mesocycleId: z.string().cuid2()
-});
+const zodUpdateExerciseSplitInput = z
+	.strictObject({
+		mesocycleExerciseSplitDays: z.array(MesocycleExerciseSplitDayCreateWithoutMesocycleInputSchema),
+		mesocycleExerciseTemplates: z.array(
+			z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema)
+		),
+		mesocycleId: z.string().cuid2()
+	})
+	.superRefine((input, ctx) => {
+		if (input.mesocycleExerciseSplitDays.length !== input.mesocycleExerciseTemplates.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every split day must have an exercise template list' });
+		}
+	});
 
 const getActiveMesocycle = async (userId: string) => {
 	return await prisma.mesocycle.findFirst({
@@ -118,6 +135,7 @@ export const mesocycles = t.router({
 			input.mesocycleExerciseTemplates.flatMap((dayExercises, dayNumber) =>
 				dayExercises.map((exercise) => ({
 					...exercise,
+					...clearedAdaptiveRepRangeState,
 					mesocycleExerciseSplitDayId: mesocycleExerciseSplitDays[dayNumber].id as string
 				}))
 			);
@@ -151,6 +169,31 @@ export const mesocycles = t.router({
 				});
 			});
 			return { message: 'Mesocycle edited successfully' };
+		}),
+
+	resetAdaptiveRepRanges: t.procedure
+		.input(z.strictObject({ mesocycleId: z.string().cuid2(), templateId: z.string().cuid2() }))
+		.mutation(async ({ input, ctx }) => {
+			const resetAt = new Date();
+			const updated = await prisma.$transaction(async (tx) =>
+				tx.mesocycleExerciseTemplate.updateMany({
+					where: {
+						id: input.templateId,
+						mesocycleExerciseSplitDay: { mesocycle: { id: input.mesocycleId, userId: ctx.userId } }
+					},
+					data: {
+						adaptiveRepRangeStart: null,
+						adaptiveRepRangeEnd: null,
+						adaptiveTopRepRangeStart: null,
+						adaptiveTopRepRangeEnd: null,
+						adaptiveRepRangeSourceId: null,
+						adaptiveTopRepRangeSourceId: null,
+						adaptiveRepRangeResetAt: resetAt
+					}
+				})
+			);
+			if (updated.count !== 1) throw new TRPCError({ code: 'NOT_FOUND', message: 'Exercise template not found' });
+			return { message: 'Adaptive rep range reset', resetAt };
 		}),
 
 	deleteById: t.procedure.input(z.string().cuid2()).mutation(async ({ input, ctx }) => {
@@ -192,32 +235,104 @@ export const mesocycles = t.router({
 		}),
 
 	updateExerciseSplit: t.procedure.input(zodUpdateExerciseSplitInput).mutation(async ({ input, ctx }) => {
-		// TODO: #125
-		const mesocycle = await prisma.mesocycle.findUniqueOrThrow({
-			where: { id: input.mesocycleId, userId: ctx.userId },
-			select: { id: true }
-		});
-		const deleteQuery = prisma.mesocycleExerciseSplitDay.deleteMany({
-			where: { mesocycleId: mesocycle.id }
-		});
+		await runSerializableTransaction(async (tx) => {
+			const mesocycle = await tx.mesocycle.findUnique({
+				where: { id: input.mesocycleId, userId: ctx.userId },
+				select: {
+					id: true,
+					mesocycleExerciseSplitDays: {
+						select: { id: true, mesocycleSplitDayExercises: { select: { id: true } } }
+					}
+				}
+			});
+			if (!mesocycle) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mesocycle not found' });
 
-		const newSplitDaysIds = Array.from({ length: input.mesocycleExerciseSplitDays.length }).map(() => createId());
-		const createSplitDaysQuery = prisma.mesocycleExerciseSplitDay.createMany({
-			data: input.mesocycleExerciseSplitDays.map((splitDay, idx) => ({
-				...splitDay,
-				id: newSplitDaysIds[idx],
-				mesocycleId: mesocycle.id
-			}))
+			const existingDayIds = new Set(mesocycle.mesocycleExerciseSplitDays.map(({ id }) => id));
+			const existingTemplateIds = new Set(
+				mesocycle.mesocycleExerciseSplitDays.flatMap(({ mesocycleSplitDayExercises }) =>
+					mesocycleSplitDayExercises.map(({ id }) => id)
+				)
+			);
+			const dayIds = input.mesocycleExerciseSplitDays.map(({ id }) => id ?? createId());
+			const templateIdsByDay = input.mesocycleExerciseTemplates.map((dayExercises) =>
+				dayExercises.map(({ id }) => id ?? createId())
+			);
+			const templateIds = templateIdsByDay.flat();
+
+			if (
+				new Set(dayIds).size !== dayIds.length ||
+				new Set(templateIds).size !== templateIds.length ||
+				input.mesocycleExerciseSplitDays.some(({ id }) => id && !existingDayIds.has(id)) ||
+				input.mesocycleExerciseTemplates.some((day) => day.some(({ id }) => id && !existingTemplateIds.has(id)))
+			) {
+				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid exercise split identity' });
+			}
+
+			for (const [dayIndex, splitDay] of input.mesocycleExerciseSplitDays.entries()) {
+				const { id, ...dayData } = splitDay;
+				const dayId = dayIds[dayIndex];
+				if (id) {
+					const updated = await tx.mesocycleExerciseSplitDay.updateMany({
+						where: { id, mesocycleId: mesocycle.id },
+						data: dayData
+					});
+					if (updated.count !== 1) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid split day' });
+				} else {
+					await tx.mesocycleExerciseSplitDay.create({
+						data: { ...dayData, id: dayId, mesocycleId: mesocycle.id }
+					});
+				}
+			}
+
+			for (const [dayIndex] of input.mesocycleExerciseSplitDays.entries()) {
+				const dayId = dayIds[dayIndex];
+				for (const [exerciseIndex, exercise] of input.mesocycleExerciseTemplates[dayIndex].entries()) {
+					const {
+						id: exerciseId,
+						adaptiveRepRangeStart: _adaptiveRepRangeStart,
+						adaptiveRepRangeEnd: _adaptiveRepRangeEnd,
+						adaptiveTopRepRangeStart: _adaptiveTopRepRangeStart,
+						adaptiveTopRepRangeEnd: _adaptiveTopRepRangeEnd,
+						adaptiveRepRangeSourceId: _adaptiveRepRangeSourceId,
+						adaptiveTopRepRangeSourceId: _adaptiveTopRepRangeSourceId,
+						adaptiveRepRangeResetAt: _adaptiveRepRangeResetAt,
+						...exerciseData
+					} = exercise;
+					const templateId = templateIdsByDay[dayIndex][exerciseIndex];
+					if (exerciseId) {
+						const updated = await tx.mesocycleExerciseTemplate.updateMany({
+							where: {
+								id: exerciseId,
+								mesocycleExerciseSplitDay: { mesocycleId: mesocycle.id }
+							},
+							data: { ...exerciseData, mesocycleExerciseSplitDayId: dayId }
+						});
+						if (updated.count !== 1) {
+							throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid exercise split identity' });
+						}
+					} else {
+						await tx.mesocycleExerciseTemplate.create({
+							data: {
+								...exerciseData,
+								...clearedAdaptiveRepRangeState,
+								id: templateId,
+								mesocycleExerciseSplitDayId: dayId
+							}
+						});
+					}
+				}
+			}
+
+			await tx.mesocycleExerciseTemplate.deleteMany({
+				where: {
+					id: { notIn: templateIds },
+					mesocycleExerciseSplitDay: { mesocycleId: mesocycle.id }
+				}
+			});
+			await tx.mesocycleExerciseSplitDay.deleteMany({
+				where: { id: { notIn: dayIds }, mesocycleId: mesocycle.id }
+			});
 		});
-		const createSplitExercisesQuery = prisma.mesocycleExerciseTemplate.createMany({
-			data: input.mesocycleExerciseTemplates.flatMap((dayExercises, idx) => {
-				return dayExercises.map((exercise) => ({
-					...exercise,
-					mesocycleExerciseSplitDayId: newSplitDaysIds[idx]
-				}));
-			})
-		});
-		await prisma.$transaction([deleteQuery, createSplitDaysQuery, createSplitExercisesQuery]);
 		return { message: 'Mesocycle exercise split edited successfully' };
 	}),
 

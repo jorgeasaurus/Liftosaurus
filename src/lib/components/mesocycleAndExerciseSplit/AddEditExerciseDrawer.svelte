@@ -12,7 +12,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { trpc } from '$lib/trpc/client';
 	import { convertCamelCaseToNormal } from '$lib/utils';
-	import { ChangeType, MuscleGroup, ProgressionVariable, SetType } from '$lib/utils/prismaEnums';
+	import { ChangeType, MuscleGroup, ProgressionVariable, RepRangeMode, SetType } from '$lib/utils/prismaEnums';
 	import type { Mesocycle } from '@prisma/client';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -86,7 +86,15 @@
 		forceRIRMatching: null,
 		lastSetToFailure: null,
 		minimumWeightChange: null,
-		preferredProgressionVariable: null
+		preferredProgressionVariable: null,
+		repRangeMode: null,
+		adaptiveRepRangeStart: null,
+		adaptiveRepRangeEnd: null,
+		adaptiveTopRepRangeStart: null,
+		adaptiveTopRepRangeEnd: null,
+		adaptiveRepRangeSourceId: null,
+		adaptiveTopRepRangeSourceId: null,
+		adaptiveRepRangeResetAt: null
 	};
 
 	const defaultExercise: Partial<FullExerciseTemplate> = {
@@ -503,6 +511,29 @@
 				</Sheet.Description>
 			</Sheet.Header>
 			<form class="mt-8 grid h-fit gap-x-2 gap-y-4" onsubmit={submitOverrides}>
+				<div class="flex flex-col gap-1.5">
+					<Select.Root
+						name="exercise-rep-range-mode"
+						onSelectedChange={(value) => {
+							if (!('sets' in currentExercise)) return;
+							currentExercise.repRangeMode =
+								value?.value === 'Fixed' || value?.value === 'Adaptive' ? value.value : null;
+						}}
+						selected={{
+							value: currentExercise.repRangeMode ?? 'Inherit',
+							label: currentExercise.repRangeMode ? `${currentExercise.repRangeMode} rep ranges` : 'Mesocycle default'
+						}}
+					>
+						<Select.Label class="p-0 text-sm font-medium leading-none">Rep range strategy</Select.Label>
+						<Select.Trigger><Select.Value /></Select.Trigger>
+						<Select.Content>
+							<Select.Item label="Mesocycle default" value="Inherit" />
+							{#each Object.values(RepRangeMode) as mode}
+								<Select.Item label={`${mode} rep ranges`} value={mode} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 				<div class="flex flex-col gap-1.5">
 					<Select.Root
 						name="exercise-preferred-progression-variable"

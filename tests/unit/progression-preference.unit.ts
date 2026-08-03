@@ -5,10 +5,17 @@ import { progressiveOverloadMagic } from '../../src/lib/utils/workoutUtils.js';
 import { normalizeSavedMesocycleState } from '../../src/routes/mesocycles/manage/mesocycleStorage.js';
 
 type ProgressionVariable = 'Reps' | 'Load';
+type RepRangeMode = 'Fixed' | 'Adaptive';
 
 type FixtureOptions = {
 	mesocyclePreference?: ProgressionVariable;
 	exercisePreference?: ProgressionVariable | null;
+	mesocycleRepRangeMode?: RepRangeMode;
+	exerciseRepRangeMode?: RepRangeMode | null;
+	adaptiveRepRangeStart?: number | null;
+	adaptiveRepRangeEnd?: number | null;
+	adaptiveTopRepRangeStart?: number | null;
+	adaptiveTopRepRangeEnd?: number | null;
 	setType?: 'Straight' | 'Drop' | 'MyorepMatch' | 'TopBackoff';
 	reps?: number[];
 	skipped?: boolean[];
@@ -49,7 +56,15 @@ function progressionFixture(options: FixtureOptions = {}): ActiveMesocycleWithPr
 		minimumWeightChange: options.minimumWeightChange ?? 5,
 		topRepRangeStart: options.topRepRangeStart ?? null,
 		topRepRangeEnd: options.topRepRangeEnd ?? null,
-		preferredProgressionVariable: options.exercisePreference ?? null
+		preferredProgressionVariable: options.exercisePreference ?? null,
+		repRangeMode: options.exerciseRepRangeMode ?? null,
+		adaptiveRepRangeStart: options.adaptiveRepRangeStart ?? null,
+		adaptiveRepRangeEnd: options.adaptiveRepRangeEnd ?? null,
+		adaptiveTopRepRangeStart: options.adaptiveTopRepRangeStart ?? null,
+		adaptiveTopRepRangeEnd: options.adaptiveTopRepRangeEnd ?? null,
+		adaptiveRepRangeSourceId: null,
+		adaptiveTopRepRangeSourceId: null,
+		adaptiveRepRangeResetAt: null
 	};
 	const sets = reps.map((setReps, setIndex) => ({
 		id: `set-${setIndex}`,
@@ -79,6 +94,7 @@ function progressionFixture(options: FixtureOptions = {}): ActiveMesocycleWithPr
 		lastSetToFailure: false,
 		forceRIRMatching: false,
 		preferredProgressionVariable: options.mesocyclePreference ?? 'Reps',
+		repRangeMode: options.mesocycleRepRangeMode ?? 'Fixed',
 		mesocycleExerciseSplitDays: [
 			{
 				id: 'day',
@@ -163,6 +179,44 @@ test('TopBackoff uses its top-set lower bound when checking load feasibility', (
 	assert.equal(result.sets[0].load, 100);
 });
 
+test('pending adaptive rails stay broad while learned rails constrain load-first progression', () => {
+	const pending = progress({ mesocyclePreference: 'Load', mesocycleRepRangeMode: 'Adaptive', reps: [8] });
+	const established = progress({
+		mesocyclePreference: 'Load',
+		mesocycleRepRangeMode: 'Adaptive',
+		adaptiveRepRangeStart: 8,
+		adaptiveRepRangeEnd: 12,
+		reps: [8]
+	});
+
+	assert.equal(pending.repRangeStart, 5);
+	assert.equal(pending.repRangeEnd, 30);
+	assert.equal(pending.sets[0].load, 105);
+	assert.equal(established.repRangeStart, 8);
+	assert.equal(established.repRangeEnd, 12);
+	assert.equal(established.sets[0].load, 100);
+});
+
+test('reps-first uses independently learned TopBackoff rails', () => {
+	const result = progress({
+		mesocyclePreference: 'Reps',
+		mesocycleRepRangeMode: 'Adaptive',
+		setType: 'TopBackoff',
+		reps: [8, 12],
+		adaptiveTopRepRangeStart: 6,
+		adaptiveTopRepRangeEnd: 8,
+		adaptiveRepRangeStart: 10,
+		adaptiveRepRangeEnd: 12,
+		topRepRangeStart: 1,
+		topRepRangeEnd: 2
+	});
+
+	assert.equal(result.topRepRangeStart, 6);
+	assert.equal(result.topRepRangeEnd, 8);
+	assert.equal(result.repRangeStart, 10);
+	assert.equal(result.repRangeEnd, 12);
+});
+
 test('same-load MyorepMatch sets and mini sets progress atomically', () => {
 	const result = progress({
 		mesocyclePreference: 'Load',
@@ -232,7 +286,10 @@ test('legacy saved mesocycles default to reps-first without replacing explicit o
 	});
 
 	assert.equal(legacy.mesocycle.preferredProgressionVariable, 'Reps');
+	assert.equal(legacy.mesocycle.repRangeMode, 'Fixed');
 	assert.equal(legacy.mesocycleExerciseTemplates?.[0][0].preferredProgressionVariable, null);
+	assert.equal(legacy.mesocycleExerciseTemplates?.[0][0].repRangeMode, null);
+	assert.equal(legacy.mesocycleExerciseTemplates?.[0][0].adaptiveRepRangeResetAt, null);
 	assert.equal(explicit.mesocycle.preferredProgressionVariable, 'Load');
 	assert.equal(explicit.mesocycleExerciseTemplates?.[0][0].preferredProgressionVariable, 'Reps');
 });

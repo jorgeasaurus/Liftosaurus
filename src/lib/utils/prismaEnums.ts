@@ -10,6 +10,7 @@ import {
 	MuscleGroupSchema,
 	ProgressionVariableSchema,
 	QuotesDisplayModeSchema,
+	RepRangeModeSchema,
 	SetTypeSchema
 } from '$lib/zodSchemas';
 
@@ -24,6 +25,9 @@ export type ChangeType = keyof typeof ChangeType;
 
 export const ProgressionVariable = ProgressionVariableSchema.enum;
 export type ProgressionVariable = keyof typeof ProgressionVariable;
+
+export const RepRangeMode = RepRangeModeSchema.enum;
+export type RepRangeMode = keyof typeof RepRangeMode;
 
 export const QuotesDisplayMode = QuotesDisplayModeSchema.enum;
 export type QuotesDisplayMode = keyof typeof QuotesDisplayMode;

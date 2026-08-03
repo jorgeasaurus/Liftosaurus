@@ -1,6 +1,6 @@
 import type { ActiveMesocycleWithProgressionData } from '../../src/lib/trpc/routes/workouts';
 
-export const testMesocycle: ActiveMesocycleWithProgressionData = {
+export const testMesocycle = {
 	id: 'cm25sw3zk000w14ycgmmnfk8o',
 	name: 'MyMeso',
 	userId: 'cm25sutzy000010xygns28ax0',
@@ -721,4 +721,4 @@ export const testMesocycle: ActiveMesocycleWithProgressionData = {
 		}
 	],
 	workoutsOfMesocycle: []
-};
+} as unknown as ActiveMesocycleWithProgressionData;

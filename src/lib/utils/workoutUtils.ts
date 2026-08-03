@@ -1,5 +1,6 @@
 import type { MesocycleExerciseTemplateWithoutIdsOrIndex } from '$lib/components/mesocycleAndExerciseSplit/commonTypes';
 import type { ActiveMesocycleWithProgressionData } from '$lib/trpc/routes/workouts';
+import { resolveRepRange } from '$lib/utils/adaptiveRepRanges';
 import { arrayAverage, arraySum, floorToNearestMultiple, groupBy } from '../utils';
 import type { Workout, WorkoutExercise } from './types';
 import { type Prisma } from '@prisma/client';
@@ -159,13 +160,17 @@ export function hasContiguousExerciseTemplateOrder(templates: { exerciseIndex: n
 }
 
 function getProgressionPerformances(
-	exerciseName: string,
+	exerciseIdentity: Pick<WorkoutExerciseInProgress, 'name' | 'mesocycleExerciseTemplateId'>,
 	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle']
 ): PreviousPerformance[] {
 	return workoutsOfMesocycle.flatMap(({ workout }) => {
-		const exercise = workout.workoutExercises.find(
-			(exercise) => exercise.name === exerciseName && isProgressionPerformance(exercise)
-		);
+		const exercise = workout.workoutExercises.find((candidate) => {
+			if (!isProgressionPerformance(candidate)) return false;
+			if (!exerciseIdentity.mesocycleExerciseTemplateId || !candidate.mesocycleExerciseTemplateId) {
+				return candidate.name === exerciseIdentity.name;
+			}
+			return candidate.mesocycleExerciseTemplateId === exerciseIdentity.mesocycleExerciseTemplateId;
+		});
 		return exercise ? [{ exercise, oldUserBodyweight: workout.userBodyweight }] : [];
 	});
 }
@@ -326,10 +331,25 @@ export function getPreviousWorkoutExercisePerformances(
 }
 
 export function createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
-	exerciseTemplate: MesocycleExerciseTemplateWithoutIdsOrIndex,
+	exerciseTemplate: MesocycleExerciseTemplateWithoutIdsOrIndex & {
+		mesocycleExerciseTemplateId?: string | null;
+	},
 	oldSets?: WorkoutExerciseInProgress['sets']
 ): WorkoutExerciseInProgress {
-	const { id, sets, ...exercise } = exerciseTemplate;
+	const {
+		id,
+		sets,
+		mesocycleExerciseTemplateId,
+		adaptiveRepRangeStart: _adaptiveRepRangeStart,
+		adaptiveRepRangeEnd: _adaptiveRepRangeEnd,
+		adaptiveTopRepRangeStart: _adaptiveTopRepRangeStart,
+		adaptiveTopRepRangeEnd: _adaptiveTopRepRangeEnd,
+		adaptiveRepRangeSourceId: _adaptiveRepRangeSourceId,
+		adaptiveTopRepRangeSourceId: _adaptiveTopRepRangeSourceId,
+		adaptiveRepRangeResetAt: _adaptiveRepRangeResetAt,
+		...exercise
+	} = exerciseTemplate;
+	const sourceTemplateId = id ?? mesocycleExerciseTemplateId ?? null;
 	const defaultSet = {
 		reps: undefined,
 		load: undefined,
@@ -358,13 +378,36 @@ export function createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
 
 	return {
 		...exercise,
+		mesocycleExerciseTemplateId: sourceTemplateId,
 		isDeload: false,
 		manualDeloadMetadata: {
-			sourceTemplateId: id ?? null,
+			sourceTemplateId,
 			originalSetCount: sets
 		},
 		workStarted: false,
 		sets: newSets.slice(0, sets)
+	};
+}
+
+export function reconfigureWorkoutExerciseInProgress(
+	currentExercise: WorkoutExerciseInProgress,
+	exerciseTemplate: MesocycleExerciseTemplateWithoutIdsOrIndex
+): WorkoutExerciseInProgress {
+	const sourceTemplateId =
+		currentExercise.mesocycleExerciseTemplateId ?? currentExercise.manualDeloadMetadata?.sourceTemplateId ?? null;
+	const { id: _replacementTemplateId, ...exerciseConfiguration } = exerciseTemplate;
+	const updatedExercise = createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
+		{ ...exerciseConfiguration, mesocycleExerciseTemplateId: sourceTemplateId },
+		currentExercise.sets
+	);
+
+	return {
+		...updatedExercise,
+		isDeload: currentExercise.isDeload,
+		manualDeloadMetadata: currentExercise.isDeload
+			? currentExercise.manualDeloadMetadata
+			: { sourceTemplateId, originalSetCount: exerciseTemplate.sets },
+		workStarted: currentExercise.workStarted
 	};
 }
 
@@ -593,13 +636,22 @@ export function progressiveOverloadMagic(
 	const todaysSplitDay = mesocycleExerciseSplitDays[splitDayIndex];
 	const workoutExercises = todaysSplitDay.mesocycleSplitDayExercises.map((fullExercise) => {
 		const { mesocycleExerciseSplitDayId, ...exercise } = fullExercise;
-		return createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(exercise);
+		const mode = exercise.repRangeMode ?? mesocycle.repRangeMode ?? 'Fixed';
+		const standardRange = resolveRepRange(exercise, mode, false);
+		const topRange = resolveRepRange(exercise, mode, true);
+		return createWorkoutExerciseInProgressFromMesocycleExerciseTemplate({
+			...exercise,
+			repRangeStart: standardRange.start,
+			repRangeEnd: standardRange.end,
+			topRepRangeStart: exercise.setType === 'TopBackoff' ? topRange.start : exercise.topRepRangeStart,
+			topRepRangeEnd: exercise.setType === 'TopBackoff' ? topRange.end : exercise.topRepRangeEnd
+		});
 	});
 
 	if (workoutsOfMesocycle.length > 0) {
 		workoutExercises.forEach((ex) => {
 			// Progressive overload here
-			const allPreviousPerformances = getProgressionPerformances(ex.name, workoutsOfMesocycle);
+			const allPreviousPerformances = getProgressionPerformances(ex, workoutsOfMesocycle);
 
 			const lastPerformance = allPreviousPerformances.at(-1);
 			if (!lastPerformance?.exercise) return;
@@ -669,7 +721,7 @@ export function progressiveOverloadMagic(
 		}));
 
 		exercisesGroupedByMuscleGroups.forEach(({ muscleGroup, exercises }) => {
-			const performancesByExercise = exercises.map((ex) => getProgressionPerformances(ex.name, workoutsOfMesocycle));
+			const performancesByExercise = exercises.map((ex) => getProgressionPerformances(ex, workoutsOfMesocycle));
 			if (performancesByExercise.every((performances) => performances.length < 2)) return;
 
 			const averageMuscleGroupPerformanceChanges = performancesByExercise

@@ -20,6 +20,7 @@
 	let { workout }: PropsType = $props();
 	let deleteConfirmDrawerOpen = $state(false);
 	let callingDeleteEndpoint = $state(false);
+	const adaptiveOutlierMessage = 'Confirm adaptive working sets outside the 5–30 rep range before saving';
 
 	function getMinuteDifference(date1: Date, date2: Date): number {
 		const msInMinute = 60 * 1000;
@@ -39,7 +40,24 @@
 	async function deleteWorkout() {
 		callingDeleteEndpoint = true;
 		try {
-			const response = await trpc().workouts.deleteById.mutate(workout.id);
+			let response;
+			try {
+				response = await trpc().workouts.deleteById.mutate(workout.id);
+			} catch (error) {
+				if (
+					!(error instanceof TRPCClientError) ||
+					!error.message.includes(adaptiveOutlierMessage) ||
+					!window.confirm(
+						'Deleting this workout will establish an adaptive target outside the recommended 5–30 rep range. Continue?'
+					)
+				) {
+					throw error;
+				}
+				response = await trpc().workouts.deleteById.mutate({
+					id: workout.id,
+					confirmAdaptiveRepRangeOutliers: true
+				});
+			}
 			toast.success(response.message);
 			await invalidate('workouts:all');
 			await goto('/workouts');

@@ -10,6 +10,7 @@ model Mesocycle {
   endDate                      DateTime?
   startOverloadPercentage      Float
   preferredProgressionVariable ProgressionVariable         @default(Reps)
+  repRangeMode                 RepRangeMode                 @default(Fixed)
   lastSetToFailure             Boolean
   forceRIRMatching             Boolean
   mesocycleExerciseSplitDays   MesocycleExerciseSplitDay[]
@@ -59,6 +60,14 @@ model MesocycleExerciseTemplate {
   forceRIRMatching             Boolean?
   minimumWeightChange          Float?
   preferredProgressionVariable ProgressionVariable?
+  repRangeMode                 RepRangeMode?
+  adaptiveRepRangeStart        Int?
+  adaptiveRepRangeEnd          Int?
+  adaptiveTopRepRangeStart     Int?
+  adaptiveTopRepRangeEnd       Int?
+  adaptiveRepRangeSourceId     String?
+  adaptiveTopRepRangeSourceId  String?
+  adaptiveRepRangeResetAt      DateTime?
   topRepRangeStart             Int?
   topRepRangeEnd               Int?
 }

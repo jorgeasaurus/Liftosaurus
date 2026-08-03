@@ -12,7 +12,7 @@
 	import { Switch } from '$lib/components/ui/switch/index.js';
 	import H3 from '$lib/components/ui/typography/H3.svelte';
 	import { cn } from '$lib/utils.js';
-	import { ProgressionVariable } from '$lib/utils/prismaEnums';
+	import { ProgressionVariable, RepRangeMode } from '$lib/utils/prismaEnums';
 	import { type ExerciseSplit } from '@prisma/client';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -120,6 +120,26 @@
 				</Card.Title>
 			</Card.Header>
 			<Card.Content class="grid grid-cols-1 gap-5 md:grid-cols-2">
+				<div class="flex flex-col gap-1.5">
+					<Select.Root
+						name="mesocycle-rep-range-mode"
+						onSelectedChange={(value) => {
+							if (value) mesocycleRunes.mesocycle.repRangeMode = value.value;
+						}}
+						selected={{
+							value: mesocycleRunes.mesocycle.repRangeMode,
+							label: `${mesocycleRunes.mesocycle.repRangeMode} rep ranges`
+						}}
+					>
+						<Select.Label class="p-0 text-sm font-medium leading-none">Rep range strategy</Select.Label>
+						<Select.Trigger><Select.Value /></Select.Trigger>
+						<Select.Content>
+							{#each Object.values(RepRangeMode) as mode}
+								<Select.Item label={`${mode} rep ranges`} value={mode} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 				<div class="flex flex-col gap-1.5">
 					<Select.Root
 						name="mesocycle-preferred-progression-variable"

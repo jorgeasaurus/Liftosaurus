@@ -13,6 +13,7 @@ import {
 	markWorkoutExerciseStarted,
 	normalizePersistedWorkoutExercises,
 	progressiveOverloadMagic,
+	reconfigureWorkoutExerciseInProgress,
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithPreviousBodyweight
 } from '../../src/lib/utils/workoutUtils.js';
@@ -36,6 +37,44 @@ test('editing a normal exercise preserves its stable source template identity', 
 		getEditedManualDeloadMetadata(true, { sourceTemplateId: 'template-bench', originalSetCount: 3 }, 4),
 		{ sourceTemplateId: 'template-bench', originalSetCount: 3 }
 	);
+});
+
+test('reconfiguring or replacing an exercise preserves its stable template and manual-deload source identity', () => {
+	const current = manualDeloadExercise('Bench press', 'Chest');
+	current.mesocycleExerciseTemplateId = 'template-bench';
+	current.manualDeloadMetadata = { sourceTemplateId: 'template-bench', originalSetCount: 1 };
+	current.workStarted = true;
+
+	const replacement = reconfigureWorkoutExerciseInProgress(current, {
+		id: 'unrelated-library-template',
+		name: 'Incline dumbbell press',
+		targetMuscleGroup: 'Chest',
+		customMuscleGroup: null,
+		bodyweightFraction: null,
+		sets: 2,
+		setType: 'Straight',
+		repRangeStart: 8,
+		repRangeEnd: 12,
+		changeType: null,
+		changeAmount: null,
+		note: null,
+		overloadPercentage: null,
+		lastSetToFailure: null,
+		forceRIRMatching: null,
+		minimumWeightChange: 5,
+		preferredProgressionVariable: null,
+		repRangeMode: 'Adaptive',
+		topRepRangeStart: null,
+		topRepRangeEnd: null
+	});
+
+	assert.equal(replacement.name, 'Incline dumbbell press');
+	assert.equal(replacement.mesocycleExerciseTemplateId, 'template-bench');
+	assert.deepEqual(replacement.manualDeloadMetadata, {
+		sourceTemplateId: 'template-bench',
+		originalSetCount: 2
+	});
+	assert.equal(replacement.workStarted, true);
 });
 
 test('requires final exercise templates to have unique contiguous indices in workout order', () => {
@@ -69,6 +108,7 @@ function progressionFixture(includeDeload: boolean): ActiveMesocycleWithProgress
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
 		preferredProgressionVariable: null,
+		repRangeMode: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null
 	};
@@ -76,6 +116,7 @@ function progressionFixture(includeDeload: boolean): ActiveMesocycleWithProgress
 		...exerciseTemplate,
 		id: 'normal-bench',
 		workoutId: 'normal-workout',
+		mesocycleExerciseTemplateId: 'template-bench',
 		sets: [
 			{
 				id: 'normal-set-1',
@@ -232,6 +273,8 @@ function manualDeloadExercise(
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
 		preferredProgressionVariable: null,
+		repRangeMode: null,
+		mesocycleExerciseTemplateId: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		sets: [
@@ -268,6 +311,8 @@ function previousWorkoutExercise(name: string): WorkoutExerciseWithPreviousBodyw
 		forceRIRMatching: null,
 		minimumWeightChange: 5,
 		preferredProgressionVariable: null,
+		repRangeMode: null,
+		mesocycleExerciseTemplateId: null,
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		isDeload: false,
