@@ -9,6 +9,7 @@ import {
 } from '$lib/utils/dashboardMetrics';
 import {
 	getPreviousWorkoutExercisePerformances,
+	hasAlignedManualDeloadMetadata,
 	hasContiguousExerciseTemplateOrder,
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
@@ -569,6 +570,13 @@ export const workouts = t.router({
 		if (input.draftOwnerUserId !== ctx.userId) {
 			throw new TRPCError({ code: 'FORBIDDEN', message: 'Workout draft belongs to another user' });
 		}
+		if (!hasAlignedManualDeloadMetadata(input.workoutExercises, input.manualDeloadMetadata)) {
+			throw new TRPCError({
+				code: 'BAD_REQUEST',
+				message: 'Manual deload metadata must align with workout exercises'
+			});
+		}
+
 		const workout: Prisma.WorkoutUncheckedCreateInput = {
 			id: createId(),
 			userId: ctx.userId,

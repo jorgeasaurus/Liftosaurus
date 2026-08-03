@@ -4,6 +4,7 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import transformer from 'trpc-transformer';
 import { prisma } from '../src/lib/prisma';
 import type { Router } from '../src/lib/trpc/router';
+import { workoutDraftStorageKeys } from '../src/routes/workouts/manage/workoutDraftStorage';
 import { expect, test } from './fixtures';
 
 function workoutExercise() {
@@ -163,40 +164,42 @@ test('reopening a completed set does not re-enable deload', async ({ page, userD
 	await expect(page.getByRole('menuitem', { name: 'Deload exercise' })).toBeDisabled();
 });
 
-test('legacy local storage keeps deload disabled after reopening a completed set', async ({ page }) => {
+test('legacy local storage keeps deload disabled after reopening a completed set', async ({ page, userData }) => {
 	await page.goto('/');
-	await page.evaluate((exercise) => {
-		localStorage.setItem(
-			'workoutRunes',
-			JSON.stringify({
-				workoutData: {
-					startedAt: '2026-07-08T12:00:00.000Z',
-					endedAt: null,
-					userBodyweight: 190,
-					workoutExercises: [],
-					note: null,
-					isLastWorkout: false
-				},
-				workoutExercises: [
-					{
-						...exercise,
-						sets: [
-							{
-								reps: 10,
-								load: 100,
-								RIR: 2,
-								completed: true,
-								skipped: false,
-								miniSets: []
-							}
-						]
-					}
-				],
-				editingWorkoutId: null,
-				previousWorkoutData: null
-			})
-		);
-	}, workoutExercise());
+	await page.evaluate(
+		({ exercise, storageKey }) => {
+			localStorage.setItem(
+				storageKey,
+				JSON.stringify({
+					workoutData: {
+						startedAt: '2026-07-08T12:00:00.000Z',
+						endedAt: null,
+						userBodyweight: 190,
+						workoutExercises: [],
+						note: null,
+						isLastWorkout: false
+					},
+					workoutExercises: [
+						{
+							...exercise,
+							sets: [
+								{
+									reps: 10,
+									load: 100,
+									RIR: 2,
+									completed: true,
+									skipped: false,
+									miniSets: []
+								}
+							]
+						}
+					],
+					editingWorkoutId: null
+				})
+			);
+		},
+		{ exercise: workoutExercise(), storageKey: workoutDraftStorageKeys(userData.userId).legacy }
+	);
 
 	await page.goto('/workouts/manage/exercises?keepCurrent');
 	await page.getByTestId('Bench press-set-1-action').click();
@@ -461,6 +464,27 @@ test('template name collisions reject the workout and preserve the current mesoc
 		orderBy: { exerciseIndex: 'asc' }
 	});
 	const client = await createAuthenticatedClient(page);
+
+	await expect(
+		client.workouts.create.mutate({
+			draftOwnerUserId: userData.userId,
+			workoutData: {
+				startedAt: '2026-07-08T12:00:00.000Z',
+				userBodyweight: 190,
+				workoutOfMesocycle: { mesocycle: { id: mesocycle.id }, splitDayIndex: 0, workoutStatus: null }
+			},
+			workoutExercises: [
+				{ ...workoutExercise(), name: 'Incline press', exerciseIndex: 0, isDeload: true },
+				{ ...workoutExercise(), name: 'Bench press', exerciseIndex: 1, isDeload: false }
+			],
+			manualDeloadMetadata: [{ sourceTemplateId: sourceTemplate.id, originalSetCount: 3 }],
+			workoutExercisesSets: [
+				[{ setIndex: 0, reps: 5, load: 50, RIR: 2, skipped: false }],
+				[{ setIndex: 0, reps: 10, load: 100, RIR: 2, skipped: false }]
+			],
+			workoutExercisesMiniSets: [[[]], [[]]]
+		})
+	).rejects.toThrow('Manual deload metadata must align with workout exercises');
 
 	await expect(
 		client.workouts.create.mutate({

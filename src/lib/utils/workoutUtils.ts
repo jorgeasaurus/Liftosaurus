@@ -250,6 +250,13 @@ export function markWorkoutExerciseStarted(exercise: WorkoutExerciseInProgress) 
 	exercise.workStarted = true;
 }
 
+export function hasAlignedManualDeloadMetadata(
+	exercises: readonly unknown[],
+	manualDeloadMetadata: readonly unknown[] | undefined
+): boolean {
+	return manualDeloadMetadata === undefined || manualDeloadMetadata.length === exercises.length;
+}
+
 export function normalizePersistedWorkoutExercises(
 	exercises: WorkoutExerciseInProgress[]
 ): WorkoutExerciseInProgress[] {

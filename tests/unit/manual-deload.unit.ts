@@ -7,6 +7,7 @@ import {
 	canApplyManualDeloadToWorkout,
 	getComparableWorkoutExercisePairs,
 	getPreviousWorkoutExercisePerformances,
+	hasAlignedManualDeloadMetadata,
 	hasContiguousExerciseTemplateOrder,
 	markWorkoutExerciseStarted,
 	normalizePersistedWorkoutExercises,
@@ -14,6 +15,12 @@ import {
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithPreviousBodyweight
 } from '../../src/lib/utils/workoutUtils.js';
+
+test('manual deload metadata must align with the submitted exercises when provided', () => {
+	assert.equal(hasAlignedManualDeloadMetadata([{}, {}], undefined), true);
+	assert.equal(hasAlignedManualDeloadMetadata([{}, {}], [null, null]), true);
+	assert.equal(hasAlignedManualDeloadMetadata([{}, {}], [null]), false);
+});
 
 test('requires final exercise templates to have unique contiguous indices in workout order', () => {
 	assert.equal(
