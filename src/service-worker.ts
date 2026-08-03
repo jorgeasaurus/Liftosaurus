@@ -11,6 +11,8 @@ const fallbackPlugin = new PrecacheFallbackPlugin({ fallbackURL: '/offline' });
 function routingStrategyFunction(mode: 'networkOnly' | 'cacheFirst', request: Request, url: URL) {
 	// Ignore /auth requests
 	if (url.pathname.startsWith('/auth')) return false;
+	// SvelteKit build artifacts are content-hashed and served by Vercel's immutable asset route.
+	if (url.pathname.startsWith('/_app/immutable/')) return false;
 
 	// Decide whether or not asset should be cached (cacheFirstDestinations, and unplugin-icons)
 	const toCache =

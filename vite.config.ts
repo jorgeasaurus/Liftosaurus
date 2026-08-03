@@ -483,7 +483,8 @@ export default defineConfig({
 				]
 			},
 			injectManifest: {
-				globPatterns: ['client/**/*.{js,css,ico,png,svg,ttf,webp,webmanifest,woff}', 'prerendered/**/*.html']
+				globPatterns: ['client/**/*.{js,css,ico,png,svg,ttf,webp,webmanifest,woff}', 'prerendered/**/*.html'],
+				globIgnores: ['client/_app/immutable/**/*']
 			},
 			devOptions: {
 				enabled: true,

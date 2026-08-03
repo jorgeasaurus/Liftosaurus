@@ -1,5 +1,6 @@
 - Preserve source lifecycle explicitly; never infer completion from the last imported workout timestamp.
 - Verify both record counts and the next-workout position before declaring migration parity.
 - After a Vercel alias switch, verify every immutable asset referenced by production HTML across repeated fresh requests before declaring production reachable.
-- Before rapid Vercel promotions, enable skew protection and prove a prior deployment's hashed asset still resolves through the stable hostname with its deployment cookie.
+- Avoid rapid or overlapping Vercel promotions; stage and validate one deployment, and do not enable cookie-based skew protection without a same-origin multi-tab test.
 - Do not call skew protection fixed from isolated asset checks; reproduce a real browser holding service-worker state across promotion and verify the newly promoted assets in that same session.
+- Treat successful page loads and service-worker installation as separate release checks; validate every Workbox precache URL against the promoted deployment before declaring the PWA healthy.
