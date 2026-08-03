@@ -347,6 +347,7 @@ export const users = t.router({
 							lastSetToFailure: null,
 							forceRIRMatching: null,
 							minimumWeightChange: 5,
+							preferredProgressionVariable: null,
 							overloadPercentage: 0, // Assumption (concept didn't exist in V2)
 							topRepRangeStart: null,
 							topRepRangeEnd: null,

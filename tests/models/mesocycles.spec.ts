@@ -229,7 +229,10 @@ test('extract exercise split from mesocycle', async ({ page }) => {
 	await expect(page.getByRole('status').filter({ hasText: 'Exercise split created successfully' })).toBeVisible();
 	await page.getByRole('link', { name: 'Exercise splits' }).click();
 	await page.getByRole('link', { name: 'MyMeso exercise split 7 days' }).click();
-	await page.getByRole('tab', { name: 'Exercises' }).click();
+	await expect(page.getByRole('tabpanel')).toContainText('MyMeso exercise split');
+	const exercisesTab = page.getByRole('tab', { name: 'Exercises' });
+	await exercisesTab.click();
+	await expect(exercisesTab).toHaveAttribute('data-state', 'active');
 	await expect(page.getByRole('tabpanel')).toContainText(
 		'Pull A Day 1 Lat pulldowns Straight sets of 5 to 15 reps Lats Barbell rows Straight sets of 10 to 15 reps Traps Dumbbell bicep curls Straight sets of 10 to 20 reps Biceps Face pulls Straight sets of 15 to 30 reps Rear delts'
 	);
@@ -248,7 +251,9 @@ test('complete a mesocycle', async ({ page }) => {
 	await page.getByText('Pick one').click();
 	await page.getByRole('option', { name: 'Pull Push Legs' }).click();
 	await page.getByRole('button', { name: 'Next' }).click();
+	await page.waitForURL(/\/mesocycles\/manage\/volume/);
 	await page.getByRole('button', { name: 'Next' }).click();
+	await page.waitForURL('/mesocycles/manage/overview');
 	await page.getByLabel('Start immediately').click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.waitForURL('/mesocycles');

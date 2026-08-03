@@ -12,7 +12,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { trpc } from '$lib/trpc/client';
 	import { convertCamelCaseToNormal } from '$lib/utils';
-	import { ChangeType, MuscleGroup, SetType } from '$lib/utils/prismaEnums';
+	import { ChangeType, MuscleGroup, ProgressionVariable, SetType } from '$lib/utils/prismaEnums';
 	import type { Mesocycle } from '@prisma/client';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -85,7 +85,8 @@
 		overloadPercentage: null,
 		forceRIRMatching: null,
 		lastSetToFailure: null,
-		minimumWeightChange: null
+		minimumWeightChange: null,
+		preferredProgressionVariable: null
 	};
 
 	const defaultExercise: Partial<FullExerciseTemplate> = {
@@ -502,6 +503,35 @@
 				</Sheet.Description>
 			</Sheet.Header>
 			<form class="mt-8 grid h-fit gap-x-2 gap-y-4" onsubmit={submitOverrides}>
+				<div class="flex flex-col gap-1.5">
+					<Select.Root
+						name="exercise-preferred-progression-variable"
+						onSelectedChange={(value) => {
+							if (!('sets' in currentExercise)) return;
+							currentExercise.preferredProgressionVariable =
+								value?.value === 'Reps' || value?.value === 'Load' ? value.value : null;
+						}}
+						selected={{
+							value: currentExercise.preferredProgressionVariable ?? 'Inherit',
+							label:
+								currentExercise.preferredProgressionVariable === null ||
+								currentExercise.preferredProgressionVariable === undefined
+									? 'Mesocycle default'
+									: `${currentExercise.preferredProgressionVariable} first`
+						}}
+					>
+						<Select.Label class="p-0 text-sm font-medium leading-none">Progression priority</Select.Label>
+						<Select.Trigger>
+							<Select.Value />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item label="Mesocycle default" value="Inherit" />
+							{#each Object.values(ProgressionVariable) as progressionVariable}
+								<Select.Item label={`${progressionVariable} first`} value={progressionVariable} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
 						<Label for="exercise-minimum-weight-change-value">Minimum weight change</Label>
