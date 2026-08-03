@@ -7,6 +7,7 @@
 	import {
 		cleanupInProgressMiniSets,
 		getPreviousBodyweightFraction,
+		markWorkoutExerciseStarted,
 		solveBergerFormula,
 		type WorkoutExerciseInProgress
 	} from '$lib/utils/workoutUtils';
@@ -31,6 +32,10 @@
 			exercise.bodyweightFraction ?? null
 		)
 	);
+	let previousUserBodyweight = $derived(
+		workoutRunes.previousWorkoutData?.exercises.find((previousExercise) => previousExercise.name === exercise.name)
+			?.userBodyweight
+	);
 
 	function shouldSetBeDisabled(set: WorkoutExerciseSet, idx: number): boolean {
 		if (set.completed) return false;
@@ -47,6 +52,7 @@
 			await workoutRunes.saveStoresToLocalStorage();
 			return;
 		}
+		if (!set.completed) markWorkoutExerciseStarted(exercise);
 		set.completed = !set.completed;
 		if (['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType) && idx === 0)
 			exercise.sets.forEach((_set) => (_set.load = set.load));
@@ -75,6 +81,7 @@
 	async function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
 		e.preventDefault();
 		if (exercise.setType === 'MyorepMatchDown') set.miniSets[miniSetIndex].load = set.load;
+		if (!set.miniSets[miniSetIndex].completed) markWorkoutExerciseStarted(exercise);
 		set.miniSets[miniSetIndex].completed = !set.miniSets[miniSetIndex].completed;
 		await workoutRunes.saveStoresToLocalStorage();
 	}
@@ -137,7 +144,7 @@
 							miniSets: cleanupInProgressMiniSets(exerciseSet.miniSets)
 						},
 						newSet: { load: newLoad, RIR: exerciseSet.RIR, miniSets: cleanupInProgressMiniSets(exerciseSet.miniSets) },
-						oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
+						oldUserBodyweight: previousUserBodyweight,
 						newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
 						oldBodyweightFraction,
 						newBodyweightFraction: exercise.bodyweightFraction ?? null,
@@ -159,7 +166,7 @@
 					knownValues: {
 						oldSet: { reps: set.reps, load: oldLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
 						newSet: { load: newLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
-						oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
+						oldUserBodyweight: previousUserBodyweight,
 						newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
 						oldBodyweightFraction,
 						newBodyweightFraction: exercise.bodyweightFraction ?? null,
@@ -173,7 +180,7 @@
 				knownValues: {
 					oldSet: { reps: set.reps, load: oldLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
 					newSet: { reps: newReps, load: newLoad, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
-					oldUserBodyweight: workoutRunes.previousWorkoutData?.userBodyweight,
+					oldUserBodyweight: previousUserBodyweight,
 					newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
 					oldBodyweightFraction,
 					newBodyweightFraction: exercise.bodyweightFraction ?? null

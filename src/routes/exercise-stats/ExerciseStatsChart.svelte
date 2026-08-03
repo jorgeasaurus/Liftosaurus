@@ -166,7 +166,7 @@
 				<LoaderCircle class="animate-spin" /> Fetching performances
 			</div>
 		{:else if exercises.length === 0}
-			<p class="px-2 text-sm text-muted-foreground">No performances found</p>
+			<div class="px-2 text-sm text-muted-foreground">No progression performances</div>
 		{:else}
 			<div role="img" aria-label={chartAccessibleName}>
 				<canvas bind:this={chartCanvas} data-testid="exercise-stats-chart" aria-hidden="true" height="240"></canvas>

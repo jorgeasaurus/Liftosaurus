@@ -8,9 +8,12 @@ import {
 	buildWorkVolumeSeries
 } from '$lib/utils/dashboardMetrics';
 import {
+	getPreviousWorkoutExercisePerformances,
+	hasAlignedManualDeloadMetadata,
+	hasContiguousExerciseTemplateOrder,
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
-	type WorkoutExerciseWithSets
+	type WorkoutExerciseWithPreviousBodyweight
 } from '$lib/utils/workoutUtils';
 import {
 	WorkoutExerciseCreateWithoutWorkoutInputSchema,
@@ -48,8 +51,7 @@ type TodaysWorkoutData = {
 type WorkoutExercisesWithPreviousData = {
 	todaysWorkoutExercises: WorkoutExerciseInProgress[];
 	previousWorkoutData: null | {
-		exercises: WorkoutExerciseWithSets[];
-		userBodyweight: number;
+		exercises: WorkoutExerciseWithPreviousBodyweight[];
 	};
 };
 
@@ -103,7 +105,17 @@ const createWorkoutSchema = z.strictObject({
 	workoutData: workoutInputDataSchema,
 	workoutExercises: z.array(WorkoutExerciseCreateWithoutWorkoutInputSchema),
 	workoutExercisesSets: z.array(z.array(WorkoutExerciseSetCreateWithoutWorkoutExerciseInputSchema)),
-	workoutExercisesMiniSets: z.array(z.array(z.array(WorkoutExerciseMiniSetCreateWithoutParentSetInputSchema)))
+	workoutExercisesMiniSets: z.array(z.array(z.array(WorkoutExerciseMiniSetCreateWithoutParentSetInputSchema))),
+	manualDeloadMetadata: z
+		.array(
+			z
+				.strictObject({
+					sourceTemplateId: z.string().cuid2().nullable(),
+					originalSetCount: z.number().int().nonnegative()
+				})
+				.nullable()
+		)
+		.optional()
 });
 
 const loadWorkoutsSchema = z.strictObject({
@@ -543,12 +555,12 @@ export const workouts = t.router({
 				splitDayIndex
 			);
 
-			const previousWorkout = data.workoutsOfMesocycle.filter((wm) => wm.workoutStatus === null).at(-1)?.workout;
-			if (previousWorkout) {
-				workoutExercisesWithPreviousData.previousWorkoutData = {
-					exercises: previousWorkout.workoutExercises,
-					userBodyweight: previousWorkout.userBodyweight
-				};
+			const previousExercises = getPreviousWorkoutExercisePerformances(
+				workoutExercisesWithPreviousData.todaysWorkoutExercises,
+				data.workoutsOfMesocycle
+			);
+			if (previousExercises.length > 0) {
+				workoutExercisesWithPreviousData.previousWorkoutData = { exercises: previousExercises };
 			}
 
 			return workoutExercisesWithPreviousData;
@@ -558,6 +570,13 @@ export const workouts = t.router({
 		if (input.draftOwnerUserId !== ctx.userId) {
 			throw new TRPCError({ code: 'FORBIDDEN', message: 'Workout draft belongs to another user' });
 		}
+		if (!hasAlignedManualDeloadMetadata(input.workoutExercises, input.manualDeloadMetadata)) {
+			throw new TRPCError({
+				code: 'BAD_REQUEST',
+				message: 'Manual deload metadata must align with workout exercises'
+			});
+		}
+
 		const workout: Prisma.WorkoutUncheckedCreateInput = {
 			id: createId(),
 			userId: ctx.userId,
@@ -623,7 +642,13 @@ export const workouts = t.router({
 			where: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId },
 			select: {
 				RIRProgression: true,
-				mesocycleExerciseSplitDays: { select: { id: true }, orderBy: { dayIndex: 'asc' } },
+				mesocycleExerciseSplitDays: {
+					select: {
+						id: true,
+						mesocycleSplitDayExercises: { select: { id: true, name: true } }
+					},
+					orderBy: { dayIndex: 'asc' }
+				},
 				workoutsOfMesocycle: {
 					select: { workoutId: true, splitDayIndex: true },
 					orderBy: { workout: { startedAt: 'desc' } }
@@ -641,10 +666,97 @@ export const workouts = t.router({
 			if (!todaysSplitDay) {
 				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Related mesocycle exercise split day not found' });
 			}
+			const preservedTemplates: { id: string; name: string; exerciseIndex: number }[] = [];
+			const finalTemplateIdentities: { name: string; exerciseIndex: number }[] = [];
+			const updatedTemplateData = workoutExercises.flatMap((exercise, exerciseIdx) => {
+				if (exercise.isDeload) {
+					const metadata = input.manualDeloadMetadata?.[exerciseIdx];
+					const sourceTemplate = metadata?.sourceTemplateId
+						? todaysSplitDay.mesocycleSplitDayExercises.find(({ id }) => id === metadata.sourceTemplateId)
+						: undefined;
+					const legacyTemplate = !metadata
+						? todaysSplitDay.mesocycleSplitDayExercises.find(({ name }) => name === exercise.name)
+						: undefined;
+					const templateToPreserve = sourceTemplate ?? legacyTemplate;
+
+					if (templateToPreserve) {
+						const preservedTemplate = {
+							...templateToPreserve,
+							exerciseIndex: exercise.exerciseIndex
+						};
+						preservedTemplates.push(preservedTemplate);
+						finalTemplateIdentities.push(preservedTemplate);
+						return [];
+					}
+
+					if (!metadata) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: `Unable to restore the pre-deload template for ${exercise.name}`
+						});
+					}
+
+					if (metadata.sourceTemplateId) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid deload source template' });
+					}
+
+					const { workoutId, isDeload, ...template } = exercise;
+					const templateData = {
+						...template,
+						mesocycleExerciseSplitDayId: todaysSplitDay.id,
+						sets: metadata.originalSetCount
+					};
+					finalTemplateIdentities.push(templateData);
+					return [templateData];
+				}
+
+				const { workoutId, isDeload, ...template } = exercise;
+				const templateData = {
+					...template,
+					mesocycleExerciseSplitDayId: todaysSplitDay.id,
+					sets: input.workoutExercisesSets[exerciseIdx].length
+				};
+				finalTemplateIdentities.push(templateData);
+				return [templateData];
+			});
+			const preservedTemplateIds = preservedTemplates.map(({ id }) => id);
+			const preservedTemplateIdSet = new Set(preservedTemplateIds);
+			if (preservedTemplateIdSet.size !== preservedTemplateIds.length) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'A deload source template can only be restored once'
+				});
+			}
+			const finalTemplateNames = finalTemplateIdentities.map(({ name }) => name);
+			if (new Set(finalTemplateNames).size !== finalTemplateNames.length) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'Duplicate exercise names are not allowed in the next mesocycle workout'
+				});
+			}
+			if (!hasContiguousExerciseTemplateOrder(finalTemplateIdentities)) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'Exercise template order must use contiguous indices matching the workout order'
+				});
+			}
 
 			transactionQueries.push(
+				...preservedTemplates.map(({ id, exerciseIndex }) =>
+					prisma.mesocycleExerciseTemplate.updateMany({
+						where: {
+							id,
+							mesocycleExerciseSplitDay: {
+								dayIndex: workoutOfMesocycle.splitDayIndex,
+								mesocycle: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId }
+							}
+						},
+						data: { exerciseIndex }
+					})
+				),
 				prisma.mesocycleExerciseTemplate.deleteMany({
 					where: {
+						id: { notIn: preservedTemplateIds },
 						mesocycleExerciseSplitDay: {
 							dayIndex: workoutOfMesocycle.splitDayIndex,
 							mesocycle: {
@@ -654,16 +766,7 @@ export const workouts = t.router({
 						}
 					}
 				}),
-				prisma.mesocycleExerciseTemplate.createMany({
-					data: workoutExercises.map((ex, exerciseIdx) => {
-						const { workoutId, ...exercise } = ex;
-						return {
-							...exercise,
-							mesocycleExerciseSplitDayId: todaysSplitDay.id,
-							sets: input.workoutExercisesSets[exerciseIdx].length
-						};
-					})
-				})
+				prisma.mesocycleExerciseTemplate.createMany({ data: updatedTemplateData })
 			);
 		}
 
@@ -826,6 +929,7 @@ export const workouts = t.router({
 			const exercises = await prisma.workoutExercise.findMany({
 				where: {
 					name: input.exerciseName,
+					isDeload: false,
 					AND: [
 						{ workout: { userId: ctx.userId } },
 						...(input.cursor

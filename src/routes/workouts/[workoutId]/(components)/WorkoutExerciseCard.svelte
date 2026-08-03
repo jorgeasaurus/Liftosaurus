@@ -32,6 +32,9 @@
 		{#if exercise.bodyweightFraction}
 			<Badge variant="outline">BW</Badge>
 		{/if}
+		{#if exercise.isDeload}
+			<Badge variant="outline">Deload</Badge>
+		{/if}
 		<Badge class="whitespace-nowrap" variant="secondary">
 			{exercise.targetMuscleGroup === 'Custom'
 				? exercise.customMuscleGroup

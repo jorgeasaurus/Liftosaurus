@@ -1,6 +1,6 @@
 import type { MesocycleExerciseTemplateWithoutIdsOrIndex } from '$lib/components/mesocycleAndExerciseSplit/commonTypes';
 import type { ActiveMesocycleWithProgressionData } from '$lib/trpc/routes/workouts';
-import { arrayAverage, arraySum, groupBy } from '../utils';
+import { arrayAverage, arraySum, floorToNearestMultiple, groupBy } from '../utils';
 import type { Workout, WorkoutExercise } from './types';
 import { type Prisma } from '@prisma/client';
 
@@ -150,10 +150,35 @@ type PreviousPerformance = {
 	oldUserBodyweight: number;
 };
 
+export function isProgressionPerformance(exercise: { isDeload?: boolean }) {
+	return !exercise.isDeload;
+}
+
+export function hasContiguousExerciseTemplateOrder(templates: { exerciseIndex: number }[]) {
+	return templates.every(({ exerciseIndex }, expectedIndex) => exerciseIndex === expectedIndex);
+}
+
+function getProgressionPerformances(
+	exerciseName: string,
+	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle']
+): PreviousPerformance[] {
+	return workoutsOfMesocycle.flatMap(({ workout }) => {
+		const exercise = workout.workoutExercises.find(
+			(exercise) => exercise.name === exerciseName && isProgressionPerformance(exercise)
+		);
+		return exercise ? [{ exercise, oldUserBodyweight: workout.userBodyweight }] : [];
+	});
+}
+
 export type WorkoutExerciseInProgress = Omit<
 	Prisma.WorkoutExerciseCreateWithoutWorkoutInput,
 	'sets' | 'exerciseIndex'
 > & {
+	manualDeloadMetadata?: {
+		sourceTemplateId: string | null;
+		originalSetCount: number;
+	};
+	workStarted?: boolean;
 	sets: (Omit<
 		Prisma.WorkoutExerciseSetCreateWithoutWorkoutExerciseInput,
 		'reps' | 'load' | 'RIR' | 'miniSets' | 'setIndex'
@@ -167,9 +192,138 @@ export type WorkoutExerciseInProgress = Omit<
 		})[];
 };
 
+function halveDeloadReps(reps: number | undefined) {
+	return reps === undefined ? undefined : Math.max(1, Math.ceil(reps / 2));
+}
+
+function halveDeloadLoad(load: number | undefined) {
+	if (load === undefined) return undefined;
+	const halvedLoad = floorToNearestMultiple(load / 2, 0.25);
+	return load > 0 ? Math.max(0.25, halvedLoad) : halvedLoad;
+}
+
+export function applyManualDeload(exercise: WorkoutExerciseInProgress): WorkoutExerciseInProgress {
+	if (exercise.isDeload) return exercise;
+
+	return {
+		...exercise,
+		isDeload: true,
+		manualDeloadMetadata: exercise.manualDeloadMetadata ?? {
+			sourceTemplateId: null,
+			originalSetCount: exercise.sets.length
+		},
+		sets: exercise.sets.slice(0, Math.max(1, Math.ceil(exercise.sets.length / 2))).map((set) => ({
+			...set,
+			reps: halveDeloadReps(set.reps),
+			load: halveDeloadLoad(set.load),
+			miniSets: set.miniSets.slice(0, Math.ceil(set.miniSets.length / 2)).map((miniSet) => ({
+				...miniSet,
+				reps: halveDeloadReps(miniSet.reps),
+				load: halveDeloadLoad(miniSet.load)
+			}))
+		}))
+	};
+}
+
+export type ManualDeloadTarget = { exerciseName: string } | { muscleGroup: string };
+
+function matchesManualDeloadTarget(exercise: WorkoutExerciseInProgress, target: ManualDeloadTarget) {
+	return 'exerciseName' in target
+		? exercise.name === target.exerciseName
+		: (exercise.customMuscleGroup ?? exercise.targetMuscleGroup) === target.muscleGroup;
+}
+
+export function canApplyManualDeloadToWorkout(exercises: WorkoutExerciseInProgress[], target: ManualDeloadTarget) {
+	const targetedExercises = exercises.filter((exercise) => matchesManualDeloadTarget(exercise, target));
+	return (
+		targetedExercises.length > 0 &&
+		targetedExercises.every(
+			(exercise) =>
+				!exercise.isDeload &&
+				!exercise.workStarted &&
+				exercise.sets.every((set) => !set.completed && set.miniSets.every((miniSet) => !miniSet.completed))
+		)
+	);
+}
+
+export function markWorkoutExerciseStarted(exercise: WorkoutExerciseInProgress) {
+	exercise.workStarted = true;
+}
+
+export function hasAlignedManualDeloadMetadata(
+	exercises: readonly unknown[],
+	manualDeloadMetadata: readonly unknown[] | undefined
+): boolean {
+	return manualDeloadMetadata === undefined || manualDeloadMetadata.length === exercises.length;
+}
+
+export function getEditedManualDeloadMetadata(
+	isDeload: boolean,
+	currentMetadata: WorkoutExerciseInProgress['manualDeloadMetadata'],
+	editedSetCount: number
+): WorkoutExerciseInProgress['manualDeloadMetadata'] {
+	if (isDeload) return currentMetadata;
+	return {
+		sourceTemplateId: currentMetadata?.sourceTemplateId ?? null,
+		originalSetCount: editedSetCount
+	};
+}
+
+export function normalizePersistedWorkoutExercises(
+	exercises: WorkoutExerciseInProgress[]
+): WorkoutExerciseInProgress[] {
+	return exercises.map((exercise) => ({
+		...exercise,
+		workStarted:
+			Boolean(exercise.workStarted) ||
+			exercise.sets.some((set) => Boolean(set.completed) || set.miniSets.some((miniSet) => Boolean(miniSet.completed)))
+	}));
+}
+
+export function applyManualDeloadToWorkout(
+	exercises: WorkoutExerciseInProgress[],
+	target: ManualDeloadTarget
+): WorkoutExerciseInProgress[] {
+	if (!canApplyManualDeloadToWorkout(exercises, target)) return exercises;
+	return exercises.map((exercise) => {
+		return matchesManualDeloadTarget(exercise, target) ? applyManualDeload(exercise) : exercise;
+	});
+}
+
 export type WorkoutExerciseWithSets = Prisma.WorkoutExerciseGetPayload<{
 	include: { sets: { include: { miniSets: true } } };
 }>;
+
+export type WorkoutExerciseWithPreviousBodyweight = WorkoutExerciseWithSets & { userBodyweight: number };
+
+export function getComparableWorkoutExercisePairs(
+	currentExercises: WorkoutExerciseInProgress[],
+	previousExercises: WorkoutExerciseWithPreviousBodyweight[]
+) {
+	return currentExercises.flatMap((currentExercise) => {
+		if (!isProgressionPerformance(currentExercise)) return [];
+		const previousExercise = previousExercises.find(
+			(previousExercise) => previousExercise.name === currentExercise.name && isProgressionPerformance(previousExercise)
+		);
+		return previousExercise ? [{ currentExercise, previousExercise }] : [];
+	});
+}
+
+export function getPreviousWorkoutExercisePerformances(
+	currentExercises: Pick<WorkoutExercise, 'name'>[],
+	workoutsOfMesocycle: ActiveMesocycleWithProgressionData['workoutsOfMesocycle']
+): WorkoutExerciseWithPreviousBodyweight[] {
+	const completedWorkouts = workoutsOfMesocycle.toReversed().filter(({ workoutStatus }) => workoutStatus === null);
+	return currentExercises.flatMap(({ name }) => {
+		for (const { workout } of completedWorkouts) {
+			const exercise = workout.workoutExercises.find(
+				(previousExercise) => previousExercise.name === name && isProgressionPerformance(previousExercise)
+			);
+			if (exercise) return [{ ...exercise, userBodyweight: workout.userBodyweight }];
+		}
+		return [];
+	});
+}
 
 export function createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
 	exerciseTemplate: MesocycleExerciseTemplateWithoutIdsOrIndex,
@@ -202,7 +356,16 @@ export function createWorkoutExerciseInProgressFromMesocycleExerciseTemplate(
 		});
 	}
 
-	return { ...exercise, sets: newSets.slice(0, sets) };
+	return {
+		...exercise,
+		isDeload: false,
+		manualDeloadMetadata: {
+			sourceTemplateId: id ?? null,
+			originalSetCount: sets
+		},
+		workStarted: false,
+		sets: newSets.slice(0, sets)
+	};
 }
 
 export function getRIRForWeek(rirArray: number[], cycle: number): number {
@@ -403,13 +566,7 @@ export function progressiveOverloadMagic(
 	if (workoutsOfMesocycle.length > 0) {
 		workoutExercises.forEach((ex) => {
 			// Progressive overload here
-			const mappedPerformances = workoutsOfMesocycle.map((wm) => ({
-				exercise: wm.workout.workoutExercises.find((exercise) => ex.name === exercise.name),
-				oldUserBodyweight: wm.workout.userBodyweight
-			}));
-			const allPreviousPerformances = mappedPerformances.filter(
-				(item): item is PreviousPerformance => item.exercise !== undefined
-			);
+			const allPreviousPerformances = getProgressionPerformances(ex.name, workoutsOfMesocycle);
 
 			const lastPerformance = allPreviousPerformances.at(-1);
 			if (!lastPerformance?.exercise) return;
@@ -475,17 +632,11 @@ export function progressiveOverloadMagic(
 		}));
 
 		exercisesGroupedByMuscleGroups.forEach(({ muscleGroup, exercises }) => {
-			const averageMuscleGroupPerformanceChanges = exercises
-				.map((ex) => {
-					const mappedPerformances = workoutsOfMesocycle.map((wm) => ({
-						exercise: wm.workout.workoutExercises.find((exercise) => ex.name === exercise.name),
-						oldUserBodyweight: wm.workout.userBodyweight
-					}));
-					const allPreviousPerformances = mappedPerformances.filter(
-						(item): item is PreviousPerformance => item.exercise !== undefined
-					);
-					return arrayAverage(getPerformanceChanges(allPreviousPerformances));
-				})
+			const performancesByExercise = exercises.map((ex) => getProgressionPerformances(ex.name, workoutsOfMesocycle));
+			if (performancesByExercise.every((performances) => performances.length < 2)) return;
+
+			const averageMuscleGroupPerformanceChanges = performancesByExercise
+				.map((performances) => arrayAverage(getPerformanceChanges(performances)))
 				.filter((n) => !isNaN(n));
 
 			const cyclicSetsPerMuscleGroup = getTotalCyclicSetsPerMuscleGroup(mesocycleExerciseSplitDays);

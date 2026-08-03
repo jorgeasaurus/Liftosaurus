@@ -9,7 +9,15 @@ test('progress first cycle, no changes', () => {
 		const output = progressiveOverloadMagic(testMesocycle, 1, 100, i);
 
 		// Check correct RIR
-		output.forEach((exercise) => {
+		output.forEach((exercise, exerciseIndex) => {
+			const sourceTemplate = testMesocycle.mesocycleExerciseSplitDays[i].mesocycleSplitDayExercises[exerciseIndex];
+			expect(exercise.isDeload).toBe(false);
+			expect(exercise.manualDeloadMetadata).toStrictEqual({
+				sourceTemplateId: sourceTemplate.id,
+				originalSetCount: sourceTemplate.sets
+			});
+			expect(exercise.workStarted).toBe(false);
+
 			const lastSetToFailure = exercise.lastSetToFailure ?? testMesocycle.lastSetToFailure;
 			exercise.sets.forEach((set, idx) => {
 				if (idx === exercise.sets.length - 1 && lastSetToFailure) {
@@ -23,11 +31,11 @@ test('progress first cycle, no changes', () => {
 		const exercisesWithoutSets = testMesocycle.mesocycleExerciseSplitDays[i].mesocycleSplitDayExercises.map(
 			(exercise) => {
 				const { id, mesocycleExerciseSplitDayId, sets, ...rest } = exercise;
-				return rest;
+				return { ...rest, isDeload: false };
 			}
 		);
 		const outputWithoutSets = output.map((exercise) => {
-			const { sets, ...rest } = exercise;
+			const { sets, manualDeloadMetadata, workStarted, ...rest } = exercise;
 			return rest;
 		});
 

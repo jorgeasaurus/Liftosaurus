@@ -47,6 +47,7 @@ model WorkoutExercise {
   topRepRangeStart    Int?
   topRepRangeEnd      Int?
 
+  isDeload            Boolean              @default(false)
   @@index([name, workoutId, id])
   @@index([workoutId, exerciseIndex])
 }

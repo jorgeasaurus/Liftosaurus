@@ -1,5 +1,5 @@
 import type { RouterOutputs } from '$lib/trpc/router';
-import type { WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
+import { normalizePersistedWorkoutExercises, type WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
 import type { Prisma } from '@prisma/client';
 import {
 	MesocycleSchema,
@@ -111,6 +111,7 @@ export function createWorkoutEditDraft(workout: WorkoutForEditDraft): WorkoutEdi
 			const { id, workoutId, exerciseIndex, ...exerciseData } = exercise;
 			return {
 				...exerciseData,
+				workStarted: true,
 				sets: exercise.sets.map((set) => {
 					const { id, workoutExerciseId, setIndex, ...setData } = set;
 					return {
@@ -237,9 +238,19 @@ const inProgressExerciseSchema: z.ZodType<WorkoutExerciseInProgress, z.ZodTypeDe
 			topRepRangeEnd: true
 		})
 		.extend({
+			isDeload: z.boolean().default(false),
+			manualDeloadMetadata: z
+				.object({
+					sourceTemplateId: z.string().nullable(),
+					originalSetCount: z.number().int().nonnegative()
+				})
+				.strict()
+				.optional(),
+			workStarted: z.boolean().default(false),
 			sets: z.array(inProgressSetSchema)
 		})
-		.strict();
+		.strict()
+		.transform((exercise) => normalizePersistedWorkoutExercises([exercise])[0]);
 
 const workoutDataSchema: z.ZodType<WorkoutData> = z
 	.object({
@@ -272,13 +283,32 @@ const workoutDataSchema: z.ZodType<WorkoutData> = z
 
 const completedMiniSetSchema = WorkoutExerciseMiniSetSchema.strict();
 const completedSetSchema = WorkoutExerciseSetSchema.extend({ miniSets: z.array(completedMiniSetSchema) }).strict();
-const completedExerciseSchema = WorkoutExerciseSchema.extend({ sets: z.array(completedSetSchema) }).strict();
-const previousWorkoutDataSchema: z.ZodType<PreviousWorkoutData> = z
+const completedExerciseSchema = WorkoutExerciseSchema.extend({
+	isDeload: z.boolean().default(false),
+	sets: z.array(completedSetSchema)
+}).strict();
+const completedExerciseWithBodyweightSchema = completedExerciseSchema.extend({ userBodyweight: z.number() }).strict();
+const currentPreviousWorkoutDataSchema = z
+	.object({ exercises: z.array(completedExerciseWithBodyweightSchema) })
+	.strict();
+const legacyPreviousWorkoutDataSchema = z
 	.object({
 		exercises: z.array(completedExerciseSchema),
 		userBodyweight: z.number()
 	})
 	.strict();
+const previousWorkoutDataSchema: z.ZodType<PreviousWorkoutData, z.ZodTypeDef, unknown> = z
+	.union([currentPreviousWorkoutDataSchema, legacyPreviousWorkoutDataSchema])
+	.transform((data) =>
+		'userBodyweight' in data
+			? {
+					exercises: data.exercises.map((exercise) => ({
+						...exercise,
+						userBodyweight: data.userBodyweight
+					}))
+				}
+			: data
+	);
 
 const activeDraftSchema: z.ZodType<WorkoutDraft, z.ZodTypeDef, unknown> = z
 	.object({
@@ -378,7 +408,7 @@ const legacyStorageSchema = z
 		workoutData: workoutDataSchema.nullable(),
 		workoutExercises: z.preprocess(stripDatabaseFields, z.array(inProgressExerciseSchema).nullable()),
 		editingWorkoutId: z.string().min(1).nullable().optional(),
-		previousWorkoutData: previousWorkoutDataSchema.nullable()
+		previousWorkoutData: previousWorkoutDataSchema.nullable().optional()
 	})
 	.strict();
 
@@ -495,7 +525,8 @@ export function parseWorkoutDraftStorage(rawStorage: string | null): WorkoutDraf
 
 	const legacyResult = legacyStorageSchema.safeParse(parsed);
 	if (!legacyResult.success) return { status: 'corrupt', storage: emptyStorage };
-	const { workoutData, workoutExercises, editingWorkoutId, previousWorkoutData } = legacyResult.data;
+	const { workoutData, workoutExercises, editingWorkoutId } = legacyResult.data;
+	const previousWorkoutData = legacyResult.data.previousWorkoutData ?? null;
 	if (workoutData === null) {
 		const cleared = workoutExercises === null && previousWorkoutData === null && !editingWorkoutId;
 		return { status: cleared ? 'migrated' : 'corrupt', storage: emptyStorage };
