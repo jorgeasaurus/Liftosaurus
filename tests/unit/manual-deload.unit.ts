@@ -264,7 +264,7 @@ test('manual deload performance does not change the next workout targets', () =>
 	assert.deepEqual(afterDeload, withoutDeload);
 });
 
-test('mixed deload workouts use each exercises latest normal performance and bodyweight', () => {
+test("mixed deload workouts use each exercise's latest normal performance and bodyweight", () => {
 	const fixture = progressionFixture(true);
 	const [normalWorkout, mixedDeloadWorkout] = fixture.workoutsOfMesocycle;
 	normalWorkout.workout.userBodyweight = 180;
