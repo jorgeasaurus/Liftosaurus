@@ -46,4 +46,18 @@ describe('workout start data reconciliation', () => {
 			{ workoutData: { bodyweight: 180 }, appliedRevision: 0, restoredDraft: false }
 		);
 	});
+
+	it('does not label defaults as restored when a revision has no stored draft', () => {
+		assert.deepEqual(
+			selectWorkoutStartData({
+				defaultWorkoutData: { bodyweight: 180 },
+				restoredWorkoutData: null,
+				editing: false,
+				requestRevision: 0,
+				currentRevision: 1,
+				appliedRevision: 0
+			}),
+			{ workoutData: { bodyweight: 180 }, appliedRevision: 1, restoredDraft: false }
+		);
+	});
 });

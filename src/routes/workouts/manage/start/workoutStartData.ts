@@ -20,9 +20,10 @@ export function selectWorkoutStartData<T>({
 	appliedRevision: number;
 }): WorkoutStartDataSelection<T> {
 	const shouldRestoreDraft = editing || currentRevision !== requestRevision || currentRevision !== appliedRevision;
+	const restoredDraft = shouldRestoreDraft && restoredWorkoutData !== null;
 	return {
-		workoutData: shouldRestoreDraft ? (restoredWorkoutData ?? defaultWorkoutData) : defaultWorkoutData,
+		workoutData: restoredDraft ? restoredWorkoutData : defaultWorkoutData,
 		appliedRevision: shouldRestoreDraft ? currentRevision : appliedRevision,
-		restoredDraft: shouldRestoreDraft
+		restoredDraft
 	};
 }
