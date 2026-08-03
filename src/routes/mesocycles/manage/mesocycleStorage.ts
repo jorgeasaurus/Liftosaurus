@@ -1,7 +1,13 @@
 type ProgressionVariable = 'Reps' | 'Load';
 
-function getProgressionVariable(value: object): ProgressionVariable | undefined {
-	if (!('preferredProgressionVariable' in value)) return;
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
+}
+
+function getProgressionVariable(value: unknown): ProgressionVariable | undefined {
+	if (!isPlainObject(value)) return;
 	const preference = value.preferredProgressionVariable;
 	return preference === 'Reps' || preference === 'Load' ? preference : undefined;
 }

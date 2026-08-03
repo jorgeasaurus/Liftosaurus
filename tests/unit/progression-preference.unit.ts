@@ -236,3 +236,14 @@ test('legacy saved mesocycles default to reps-first without replacing explicit o
 	assert.equal(explicit.mesocycle.preferredProgressionVariable, 'Load');
 	assert.equal(explicit.mesocycleExerciseTemplates?.[0][0].preferredProgressionVariable, 'Reps');
 });
+
+test('legacy preference normalization reads only plain saved objects', () => {
+	const inheritedPreference = Object.create({ preferredProgressionVariable: 'Load' }) as object;
+	const normalized = normalizeSavedMesocycleState({
+		mesocycle: inheritedPreference,
+		mesocycleExerciseTemplates: [[inheritedPreference]]
+	});
+
+	assert.equal(normalized.mesocycle.preferredProgressionVariable, 'Reps');
+	assert.equal(normalized.mesocycleExerciseTemplates[0][0].preferredProgressionVariable, null);
+});
