@@ -254,7 +254,11 @@ const inProgressExerciseSchema: z.ZodType<WorkoutExerciseInProgress, z.ZodTypeDe
 		.strict()
 		.transform((exercise) => normalizePersistedWorkoutExercises([exercise])[0]);
 
-const workoutDataSchema: z.ZodType<WorkoutData> = z
+const persistedMesocycleSchema = MesocycleSchema.extend({
+	preferredProgressionVariable: ProgressionVariableSchema.default('Reps')
+}).strict();
+
+const workoutDataSchema: z.ZodType<WorkoutData, z.ZodTypeDef, unknown> = z
 	.object({
 		startedAt: z.date(),
 		endedAt: z.date().nullable(),
@@ -272,7 +276,7 @@ const workoutDataSchema: z.ZodType<WorkoutData> = z
 			.object({
 				workoutStatus: WorkoutStatusSchema.nullable(),
 				splitDayIndex: z.number().int(),
-				mesocycle: MesocycleSchema.strict(),
+				mesocycle: persistedMesocycleSchema,
 				cycleNumber: z.number().int(),
 				splitDayName: z.string()
 			})

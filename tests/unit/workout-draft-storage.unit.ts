@@ -222,6 +222,47 @@ describe('workout draft storage', () => {
 		assert.ok(restored.storage.editDraft?.workoutData.startedAt instanceof Date);
 	});
 
+	it('defaults a missing progression preference in a legacy nested mesocycle', () => {
+		const draft = activeDraft();
+		const restored = parseWorkoutDraftStorage(
+			JSON.stringify({
+				version: WORKOUT_DRAFT_STORAGE_VERSION,
+				mode: 'active',
+				activeDraft: {
+					...draft,
+					workoutData: {
+						...draft.workoutData,
+						workoutOfMesocycle: {
+							workoutStatus: null,
+							splitDayIndex: 0,
+							mesocycle: {
+								id: createId(),
+								name: 'Legacy progression',
+								userId: createId(),
+								exerciseSplitId: null,
+								RIRProgression: [3, 2, 1],
+								startDate: null,
+								endDate: null,
+								startOverloadPercentage: 1,
+								lastSetToFailure: false,
+								forceRIRMatching: false
+							},
+							cycleNumber: 1,
+							splitDayName: 'Day 1'
+						}
+					}
+				},
+				editDraft: null
+			})
+		);
+
+		assert.equal(restored.status, 'valid');
+		assert.equal(
+			restored.storage.activeDraft?.workoutData.workoutOfMesocycle?.mesocycle.preferredProgressionVariable,
+			'Reps'
+		);
+	});
+
 	it('round-trips a canonical historical edit draft while rejecting persisted database indexes', async () => {
 		const historicalExercise = exercise('Historical squat');
 		const editDraft = createWorkoutEditDraft({
