@@ -19,6 +19,15 @@ export function getExerciseVolume(workoutExercise: WorkoutExercise, userBodyweig
 	);
 }
 
+export function getPreviousBodyweightFraction(
+	previousExercises: readonly Pick<WorkoutExercise, 'name' | 'bodyweightFraction'>[] | undefined,
+	exerciseName: string,
+	currentBodyweightFraction: number | null
+) {
+	const previousExercise = previousExercises?.find((exercise) => exercise.name === exerciseName);
+	return previousExercise ? previousExercise.bodyweightFraction : currentBodyweightFraction;
+}
+
 export function cleanupInProgressMiniSets(miniSets: WorkoutExerciseInProgress['sets'][number]['miniSets']) {
 	return miniSets.map((miniSet) => {
 		return {

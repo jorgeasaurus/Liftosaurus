@@ -2,6 +2,12 @@ import { prisma } from '$lib/prisma';
 import { t } from '$lib/trpc/t';
 import { arraySum } from '$lib/utils';
 import {
+	buildBodyweightSeries,
+	buildRelativePerformanceSeries,
+	buildSevenDayAverageSeries,
+	buildWorkVolumeSeries
+} from '$lib/utils/dashboardMetrics';
+import {
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithSets
@@ -113,6 +119,75 @@ const loadWorkoutsSchema = z.strictObject({
 });
 
 export const workouts = t.router({
+	getDashboardChartData: t.procedure.query(async ({ ctx }) => {
+		const [activeMesocycle, bodyweightWorkouts] = await Promise.all([
+			prisma.mesocycle.findFirst({
+				where: { userId: ctx.userId, startDate: { not: null }, endDate: null },
+				orderBy: { id: 'asc' },
+				select: {
+					id: true,
+					_count: { select: { mesocycleExerciseSplitDays: true, workoutsOfMesocycle: true } }
+				}
+			}),
+			prisma.workout.findMany({
+				where: { userId: ctx.userId },
+				select: { startedAt: true, userBodyweight: true },
+				orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+				take: 365
+			})
+		]);
+
+		const splitDayIndex =
+			activeMesocycle && activeMesocycle._count.mesocycleExerciseSplitDays > 0
+				? activeMesocycle._count.workoutsOfMesocycle % activeMesocycle._count.mesocycleExerciseSplitDays
+				: null;
+		const splitWorkouts =
+			splitDayIndex === null
+				? []
+				: await prisma.workout.findMany({
+						where: {
+							userId: ctx.userId,
+							workoutOfMesocycle: { mesocycleId: activeMesocycle!.id, splitDayIndex }
+						},
+						select: {
+							startedAt: true,
+							userBodyweight: true,
+							workoutExercises: {
+								select: {
+									exerciseIndex: true,
+									name: true,
+									bodyweightFraction: true,
+									sets: {
+										select: {
+											setIndex: true,
+											reps: true,
+											load: true,
+											RIR: true,
+											skipped: true,
+											miniSets: {
+												select: { reps: true, load: true, RIR: true },
+												orderBy: { miniSetIndex: 'asc' }
+											}
+										},
+										orderBy: { setIndex: 'asc' }
+									}
+								},
+								orderBy: { exerciseIndex: 'asc' }
+							}
+						},
+						orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+						take: 24
+					});
+
+		const bodyweight = buildBodyweightSeries(bodyweightWorkouts);
+		return {
+			relativePerformance: buildRelativePerformanceSeries(splitWorkouts),
+			bodyweight,
+			sevenDayBodyweight: buildSevenDayAverageSeries(bodyweight),
+			workVolume: buildWorkVolumeSeries(splitWorkouts)
+		};
+	}),
+
 	load: t.procedure.input(loadWorkoutsSchema).query(async ({ input, ctx }) => {
 		let whereClause: Prisma.WorkoutWhereInput = { userId: ctx.userId };
 		const andConditions: Prisma.WorkoutWhereInput['AND'] = [];

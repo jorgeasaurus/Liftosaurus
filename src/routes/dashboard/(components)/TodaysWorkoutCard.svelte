@@ -7,14 +7,12 @@
 	import type { RouterOutputs } from '$lib/trpc/router';
 	import { getRIRForWeek } from '$lib/utils/workoutUtils';
 	import { workoutRunes } from '../../workouts/manage/workoutRunes.svelte';
-	import WorkoutProgressionChart from './WorkoutProgressionChart.svelte';
 	import ChevronRight from 'virtual:icons/lucide/chevron-right';
 
 	type PropsType = {
 		todaysWorkoutData: Promise<RouterOutputs['workouts']['getTodaysWorkoutData']>;
-		pastWorkouts: Promise<RouterOutputs['mesocycles']['getWorkouts']>;
 	};
-	let { todaysWorkoutData, pastWorkouts }: PropsType = $props();
+	let { todaysWorkoutData }: PropsType = $props();
 
 	async function createNewWorkout() {
 		if (await workoutRunes.beginNewWorkout()) await goto('/workouts/manage/start');
@@ -47,15 +45,6 @@
 				</Card.Title>
 				<Card.Description>{wm?.mesocycle.name}</Card.Description>
 			</Card.Header>
-			{#if wm.workoutStatus !== 'RestDay'}
-				<Card.Content>
-					{#await pastWorkouts}
-						<Skeleton class="h-40 w-full" />
-					{:then pastWorkouts}
-						<WorkoutProgressionChart {pastWorkouts} />
-					{/await}
-				</Card.Content>
-			{/if}
 			<Card.Footer>
 				<Button class="ml-auto gap-2" onclick={createNewWorkout}>
 					Start
