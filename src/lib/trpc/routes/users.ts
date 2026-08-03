@@ -19,6 +19,7 @@ import clientPromise from '$lib/mongo/mongodb';
 import { createId } from '@paralleldrive/cuid2';
 import { getShortDateFromTimestamp } from '$lib/utils';
 import { QuotesDisplayModeSchema } from '$lib/zodSchemas';
+import { historicalExerciseMuscleGroupUpdateSchema } from '$lib/utils/exerciseMuscleGroup';
 
 function toPascalCase(text: V2MuscleGroup) {
 	const output = text
@@ -503,6 +504,29 @@ export const users = t.router({
 				data: { name: input.newName }
 			});
 			return { count };
+		}),
+
+	updateHistoricalExerciseMuscleGroup: t.procedure
+		.input(historicalExerciseMuscleGroupUpdateSchema)
+		.mutation(async ({ ctx, input }) => {
+			const { count } = await prisma.workoutExercise.updateMany({
+				where: { workout: { userId: ctx.userId }, name: input.exerciseName },
+				data: {
+					targetMuscleGroup: input.targetMuscleGroup,
+					customMuscleGroup: input.customMuscleGroup
+				}
+			});
+			if (count === 0) {
+				throw new TRPCError({ code: 'NOT_FOUND', message: 'Historical exercise performances not found' });
+			}
+			return {
+				count,
+				exercise: {
+					name: input.exerciseName,
+					targetMuscleGroup: input.targetMuscleGroup,
+					customMuscleGroup: input.customMuscleGroup
+				}
+			};
 		}),
 
 	getUserSettings: t.procedure.query(async ({ ctx }) => {

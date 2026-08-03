@@ -10,7 +10,7 @@
 	import { RangeCalendar } from '$lib/components/ui/range-calendar/index.js';
 	import * as Select from '$lib/components/ui/select';
 	import { trpc } from '$lib/trpc/client.js';
-	import type { RouterOutputs } from '$lib/trpc/router';
+	import type { RouterInputs, RouterOutputs } from '$lib/trpc/router';
 	import { cn, dateToLocalCalendarDate } from '$lib/utils.js';
 	import {
 		createExerciseChartHistoryResource,
@@ -28,9 +28,11 @@
 	import LoaderCircle from 'virtual:icons/lucide/loader-circle';
 	import WorkoutExerciseCard from '../workouts/[workoutId]/(components)/WorkoutExerciseCard.svelte';
 	import ExerciseStatsChart from './ExerciseStatsChart.svelte';
+	import HistoricalMuscleGroupPopover from './HistoricalMuscleGroupPopover.svelte';
 
 	type WorkoutExercise = RouterOutputs['workouts']['getExerciseHistory'][number];
 	type ChartWorkoutExercise = RouterOutputs['workouts']['getExerciseChartHistory']['items'][number];
+	type HistoricalMuscleGroupUpdateInput = RouterInputs['users']['updateHistoricalExerciseMuscleGroup'];
 	type BasicExerciseData = Pick<WorkoutExercise, 'name' | 'targetMuscleGroup' | 'customMuscleGroup'>;
 	type CardHistoryStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
@@ -54,6 +56,9 @@
 	let chartAccordionValue = $state<string>();
 	let cardHistoryStatus: CardHistoryStatus = $state('idle');
 	let chartHistoryState = $state<ExerciseChartHistoryResourceState<ChartWorkoutExercise>>({ status: 'idle' });
+	const historicalMuscleGroupOverrides = new Map<string, BasicExerciseData>();
+	const appliedHistoricalMuscleGroupVersions = new Map<string, number>();
+	let historicalMuscleGroupMutationVersion = 0;
 
 	let filteredExercisesByMuscleGroup = $derived(
 		exercisesByMuscleGroup
@@ -62,6 +67,9 @@
 				group,
 				exercises: exercises.filter((ex) => ex.name.toLowerCase().includes(searchText.toLowerCase()))
 			})) ?? []
+	);
+	let selectedExerciseData = $derived(
+		exercisesByMuscleGroup?.flatMap(({ exercises }) => exercises).find((exercise) => exercise.name === selectedExercise)
 	);
 
 	let dateRange: DateRange = $state({
@@ -149,12 +157,49 @@
 
 	async function loadExercises() {
 		const exerciseList = await data.exerciseList;
-		exercisesByMuscleGroup = Object.entries(
-			Object.groupBy(exerciseList, (ex) => ex.customMuscleGroup ?? ex.targetMuscleGroup)
-		).map(([group, exercises]) => ({
-			group,
-			exercises: exercises!.filter((ex) => ex !== undefined)
-		}));
+		exercisesByMuscleGroup = groupExercises(applyHistoricalMuscleGroupOverrides(exerciseList));
+	}
+
+	function groupExercises(exercises: BasicExerciseData[]) {
+		return Object.entries(Object.groupBy(exercises, (ex) => ex.customMuscleGroup ?? ex.targetMuscleGroup)).map(
+			([group, groupedExercises]) => ({
+				group,
+				exercises: groupedExercises!.filter((ex) => ex !== undefined)
+			})
+		);
+	}
+
+	function applyHistoricalMuscleGroupOverride<T extends BasicExerciseData>(exercise: T): T {
+		const updatedExercise = historicalMuscleGroupOverrides.get(exercise.name);
+		if (!updatedExercise) return exercise;
+		return {
+			...exercise,
+			targetMuscleGroup: updatedExercise.targetMuscleGroup,
+			customMuscleGroup: updatedExercise.customMuscleGroup
+		};
+	}
+
+	function applyHistoricalMuscleGroupOverrides<T extends BasicExerciseData>(exercises: T[]) {
+		return exercises.map(applyHistoricalMuscleGroupOverride);
+	}
+
+	function applyHistoricalMuscleGroupUpdate(updatedExercise: BasicExerciseData) {
+		historicalMuscleGroupOverrides.set(updatedExercise.name, updatedExercise);
+		if (exercisesByMuscleGroup) {
+			exercisesByMuscleGroup = groupExercises(
+				applyHistoricalMuscleGroupOverrides(exercisesByMuscleGroup.flatMap(({ exercises }) => exercises))
+			);
+		}
+		exerciseInstances = exerciseInstances && applyHistoricalMuscleGroupOverrides(exerciseInstances);
+	}
+
+	async function updateHistoricalMuscleGroup(input: HistoricalMuscleGroupUpdateInput) {
+		const mutationVersion = ++historicalMuscleGroupMutationVersion;
+		const result = await trpc().users.updateHistoricalExerciseMuscleGroup.mutate(input);
+		if (mutationVersion < (appliedHistoricalMuscleGroupVersions.get(input.exerciseName) ?? 0)) return;
+		appliedHistoricalMuscleGroupVersions.set(input.exerciseName, mutationVersion);
+		applyHistoricalMuscleGroupUpdate(result.exercise);
+		return result;
 	}
 
 	async function selectExercise(name: string) {
@@ -176,7 +221,9 @@
 		const requestId = ++cardHistoryRequestId;
 		cardHistoryStatus = 'loading';
 		try {
-			const cardHistory = await trpc().workouts.getExerciseHistory.query({ exerciseName: name });
+			const cardHistory = applyHistoricalMuscleGroupOverrides(
+				await trpc().workouts.getExerciseHistory.query({ exerciseName: name })
+			);
 			if (requestId !== cardHistoryRequestId || name !== selectedExercise) return;
 			exerciseInstances = cardHistory;
 			cardHistoryStatus = 'loaded';
@@ -199,10 +246,12 @@
 		const lastExerciseFound = exerciseInstances?.at(-1);
 		if (exerciseName === undefined) return;
 
-		const newExercisesFound = await trpc().workouts.getExerciseHistory.query({
-			cursorId: lastExerciseFound?.id,
-			exerciseName
-		});
+		const newExercisesFound = applyHistoricalMuscleGroupOverrides(
+			await trpc().workouts.getExerciseHistory.query({
+				cursorId: lastExerciseFound?.id,
+				exerciseName
+			})
+		);
 		if (requestId !== historyLoaderIdentifier || exerciseName !== selectedExercise) return;
 		if (newExercisesFound.length === 0) {
 			infiniteEvent.detail.complete();
@@ -295,6 +344,9 @@
 			</form>
 		</Popover.Content>
 	</Popover.Root>
+	{#key historyLoaderIdentifier}
+		<HistoricalMuscleGroupPopover exercise={selectedExerciseData} updateHistory={updateHistoricalMuscleGroup} />
+	{/key}
 	<Popover.Root>
 		<Popover.Trigger asChild let:builder>
 			<Button
