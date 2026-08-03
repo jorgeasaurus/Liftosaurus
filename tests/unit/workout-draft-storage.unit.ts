@@ -217,6 +217,7 @@ describe('workout draft storage', () => {
 		assert.equal(restored.storage.mode, 'edit');
 		assert.equal(restored.storage.editDraft?.workoutId, HISTORICAL_WORKOUT_ID);
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].name, 'Historical squat');
+		assert.equal(restored.storage.editDraft?.workoutExercises[0].preferredProgressionVariable, null);
 		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].name, 'Active bench press');
 		assert.ok(restored.storage.editDraft?.workoutData.startedAt instanceof Date);
 	});
@@ -245,6 +246,7 @@ describe('workout draft storage', () => {
 					lastSetToFailure: historicalExercise.lastSetToFailure ?? null,
 					forceRIRMatching: historicalExercise.forceRIRMatching ?? null,
 					minimumWeightChange: historicalExercise.minimumWeightChange ?? null,
+					preferredProgressionVariable: historicalExercise.preferredProgressionVariable ?? null,
 					topRepRangeStart: historicalExercise.topRepRangeStart ?? null,
 					topRepRangeEnd: historicalExercise.topRepRangeEnd ?? null,
 					sets: [
