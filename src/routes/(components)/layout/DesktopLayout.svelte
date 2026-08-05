@@ -25,7 +25,7 @@
 </script>
 
 <header
-	class="flex h-screen w-[220px] shrink-0 flex-col border-r border-[#232830] bg-[#101419] px-4 py-5 text-[#e8edf2]"
+	class="flex h-screen w-[240px] shrink-0 flex-col border-r border-[#273034] bg-[#111719] px-4 py-5 text-[#f3f6f2]"
 >
 	<a class="mb-6 flex items-center gap-2 rounded-lg px-2 py-2" href="/dashboard">
 		<BrandIcon class="h-5 w-5 text-[#c7f73a]" />
@@ -35,29 +35,37 @@
 	<nav aria-label="Primary navigation" class="space-y-1">
 		{#each navLinks as item}
 			<a
-				class={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${
+				class={`relative flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${
 					isActive(item.href)
-						? 'border-[#c7f73a66] bg-[#171d20] text-[#eff2f7]'
-						: 'border-transparent text-[#a8b2be] hover:border-[#2a3039] hover:bg-[#151a20] hover:text-[#dce3ea]'
+						? 'border-[#2a3438] bg-[#171e20] text-[#f3f6f2]'
+						: 'border-transparent text-[#a6afb1] hover:border-[#2a3438] hover:bg-[#151d1f] hover:text-[#e5ebea]'
 				}`}
 				href={item.href}
 			>
-				<item.icon class="h-4 w-4" />
+				{#if isActive(item.href)}
+					<span aria-hidden="true" class="absolute -left-4 h-6 w-1 rounded-r-full bg-[#c7f43a]"></span>
+				{/if}
+				<item.icon class={`h-4 w-4 ${isActive(item.href) ? 'text-[#f3f6f2]' : 'text-[#8f999d]'}`} />
 				<span>{item.label}</span>
 			</a>
 		{/each}
 	</nav>
 
-	<div class="mt-auto space-y-1 border-t border-[#222831] pt-4">
+	<div class="mt-auto space-y-2 border-t border-[#273034] pt-4">
 		<a
-			class="flex items-center gap-3 rounded-md border border-transparent px-3 py-2 text-sm text-[#a8b2be] transition-colors hover:border-[#2a3039] hover:bg-[#151a20] hover:text-[#dce3ea]"
+			class="flex items-center gap-3 rounded-xl border border-[#2a3438] bg-[#171e20] px-3 py-2 text-sm text-[#f3f6f2]"
 			href="/profile"
 		>
-			<ProfileIcon class="h-4 w-4" />
-			<span>{$page.data.session?.user?.name ?? 'Profile'}</span>
+			<div class="flex h-8 w-8 items-center justify-center rounded-full bg-[#c7f43a] text-[#1a2310]">
+				<ProfileIcon class="h-4 w-4" />
+			</div>
+			<div class="min-w-0">
+				<p class="truncate text-sm font-semibold">{$page.data.session?.user?.name ?? 'Alex'}</p>
+				<p class="text-xs text-[#a6afb1]">Athlete</p>
+			</div>
 		</a>
 		<a
-			class="flex items-center gap-3 rounded-md border border-transparent px-3 py-2 text-sm text-[#a8b2be] transition-colors hover:border-[#2a3039] hover:bg-[#151a20] hover:text-[#dce3ea]"
+			class="flex items-center gap-3 rounded-md border border-transparent px-3 py-2 text-sm text-[#a6afb1] transition-colors hover:border-[#2a3438] hover:bg-[#151d1f] hover:text-[#e5ebea]"
 			href="/settings"
 		>
 			<SettingsIcon class="h-4 w-4" />
@@ -65,6 +73,6 @@
 		</a>
 	</div>
 </header>
-<main class="flex h-screen w-full flex-col overflow-y-auto bg-[#0b0f14] p-6 text-[#e8edf2]">
+<main class="flex h-screen w-full flex-col overflow-y-auto bg-[#090d0e] p-6 text-[#f3f6f2]">
 	{@render children()}
 </main>

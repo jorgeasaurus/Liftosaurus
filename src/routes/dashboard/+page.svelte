@@ -4,8 +4,11 @@
 	import PauseIcon from 'virtual:icons/lucide/pause';
 	import FlameIcon from 'virtual:icons/lucide/flame';
 	import CalendarIcon from 'virtual:icons/lucide/calendar-days';
-	import TrophyIcon from 'virtual:icons/lucide/trophy';
+	import TrophyIcon from 'virtual:icons/lucide/award';
 	import ChevronDownIcon from 'virtual:icons/lucide/chevron-down';
+	import PlayIcon from 'virtual:icons/lucide/play';
+	import SunriseIcon from 'virtual:icons/lucide/sunrise';
+	import TrendUpIcon from 'virtual:icons/lucide/trending-up';
 
 	const workoutSets = [
 		{ set: 1, load: '185', reps: '8', rir: '2', status: 'Completed' },
@@ -43,42 +46,43 @@
 		.join(' ');
 </script>
 
-<section class="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
+<section class="mx-auto flex w-full max-w-[1480px] flex-col gap-4">
 	<header class="flex items-center justify-between">
-		<h1 class="text-[42px] font-semibold leading-none tracking-[-0.03em] text-[#e9edf3]">Good morning, Alex</h1>
+		<h1 class="inline-flex items-center gap-3 text-[44px] font-semibold leading-none tracking-[-0.03em] text-[#f3f6f2]"><SunriseIcon class="h-7 w-7 text-[#c7f43a]" />Good morning, Alex</h1>
 		<div class="flex items-center gap-3">
 			<button
 				aria-haspopup="listbox"
-				class="inline-flex items-center gap-2 rounded-lg border border-[#2b3038] bg-[#12171d] px-4 py-3 text-sm font-medium text-[#d7dde4]"
+				class="inline-flex items-center gap-2 rounded-xl border border-[#273034] bg-[#171e20] px-4 py-3 text-sm font-medium text-[#f3f6f2]"
 				type="button"
 			>
 				Upper Strength
 				<ChevronDownIcon class="h-4 w-4 text-[#98a3b2]" />
 			</button>
 			<button
-				class="rounded-lg bg-[#c7f73a] px-7 py-3 text-sm font-semibold text-[#1f2512] transition-colors hover:bg-[#d2f95a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c7f73a]"
+				class="inline-flex items-center gap-2 rounded-xl bg-[#c7f43a] px-7 py-3 text-sm font-semibold text-[#1b260f] transition-colors hover:bg-[#d2f95a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c7f43a]"
 				type="button"
 			>
+				<PlayIcon class="h-4 w-4" />
 				Start workout
 			</button>
 		</div>
 	</header>
 
-	<div class="grid grid-cols-[minmax(0,1fr)_300px] gap-4">
-		<div class="rounded-2xl border border-[#242a32] bg-[#11161d] p-5">
-			<div class="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
-				<div class="space-y-4 border-r border-[#222832] pr-5">
+	<div class="grid grid-cols-12 gap-4">
+		<div class="col-span-9 rounded-2xl border border-[#273034] bg-[#111719] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.22)]">
+			<div class="grid grid-cols-[minmax(0,1fr)_320px] gap-6">
+				<div class="space-y-4 border-r border-[#273034] pr-6">
 					<div class="space-y-1">
-						<p class="text-lg text-[#cfd6df]">Next set: <span class="font-semibold text-[#eef2f7]">Bench Press</span></p>
+						<p class="text-lg text-[#cfd6df]">Next set: <span class="font-semibold text-[#c7f43a]">Bench Press</span></p>
 						<div class="flex items-center gap-3">
-							<p class="text-[52px] font-semibold leading-none tracking-[-0.03em] text-[#eef2f7]">185 lb × 6–8</p>
-							<span class="rounded-md border border-[#8cae2f66] bg-[#1a2311] px-2.5 py-1 text-sm font-semibold text-[#c7f73a]">RIR 2</span>
+							<p class="text-[56px] font-semibold leading-none tracking-[-0.03em] text-[#f3f6f2]">185 lb × 6–8</p>
+							<span class="rounded-md border border-[#8cae2f66] bg-[#1a2311] px-2.5 py-1 text-sm font-semibold text-[#c7f43a]">RIR 2</span>
 						</div>
 					</div>
 
-					<div class="overflow-hidden rounded-xl border border-[#262d36]">
+					<div class="overflow-hidden rounded-xl border border-[#273034]">
 						<table class="w-full border-collapse text-sm">
-							<thead class="bg-[#141a21] text-[#94a0af]">
+							<thead class="bg-[#171e20] text-[#a6afb1]">
 								<tr>
 									<th class="px-3 py-2 text-left font-medium">Set</th>
 									<th class="px-3 py-2 text-left font-medium">Load (lb)</th>
@@ -89,17 +93,17 @@
 							</thead>
 							<tbody>
 								{#each workoutSets as set}
-									<tr class="border-t border-[#222a33] text-[#d3dbe5]">
+									<tr class={`border-t text-[#d3dbe5] ${set.status === 'Current' ? 'border-[#374730] bg-[#1a2318]' : 'border-[#273034]'}`}>
 										<td class="px-3 py-2">{set.set}</td>
-										<td class="px-3 py-2"><input aria-label={`Set ${set.set} load`} class="h-9 w-20 rounded-md border border-[#303843] bg-[#111720] px-2 text-[#eaf0f7]" value={set.load} /></td>
-										<td class="px-3 py-2"><input aria-label={`Set ${set.set} reps`} class="h-9 w-16 rounded-md border border-[#303843] bg-[#111720] px-2 text-[#eaf0f7]" value={set.reps} /></td>
-										<td class="px-3 py-2"><input aria-label={`Set ${set.set} RIR`} class="h-9 w-14 rounded-md border border-[#303843] bg-[#111720] px-2 text-[#eaf0f7]" value={set.rir} /></td>
+										<td class="px-3 py-2"><input aria-label={`Set ${set.set} load`} class="h-9 w-20 rounded-md border border-[#334049] bg-[#121a1c] px-2 text-[#f3f6f2] outline-none transition-colors focus:border-[#c7f43a]" value={set.load} /></td>
+										<td class="px-3 py-2"><input aria-label={`Set ${set.set} reps`} class="h-9 w-16 rounded-md border border-[#334049] bg-[#121a1c] px-2 text-[#f3f6f2] outline-none transition-colors focus:border-[#c7f43a]" value={set.reps} /></td>
+										<td class="px-3 py-2"><input aria-label={`Set ${set.set} RIR`} class="h-9 w-14 rounded-md border border-[#334049] bg-[#121a1c] px-2 text-[#f3f6f2] outline-none transition-colors focus:border-[#c7f43a]" value={set.rir} /></td>
 										<td class="px-3 py-2">
 											<span class="inline-flex items-center gap-1.5 text-xs">
 												{#if set.status === 'Completed'}
-													<CheckIcon class="h-3.5 w-3.5 text-[#9ec43a]" />
+													<CheckIcon class="h-3.5 w-3.5 text-[#c7f43a]" />
 												{:else if set.status === 'Current'}
-													<DotIcon class="h-3.5 w-3.5 text-[#c7f73a]" />
+													<DotIcon class="h-3.5 w-3.5 text-[#c7f43a]" />
 												{:else}
 													<DotIcon class="h-3.5 w-3.5 text-[#596576]" />
 												{/if}
@@ -112,9 +116,15 @@
 						</table>
 					</div>
 
-					<div class="rounded-xl border border-[#2a323b] bg-[#151b23] px-4 py-3">
-						<p class="text-xs font-semibold uppercase tracking-[0.1em] text-[#90a0b0]">Progression suggestion</p>
-						<p class="mt-1 text-[#dce4ec]">Hit <span class="font-semibold text-[#ecf2fa]">8 reps with RIR 2</span> to increase to <span class="font-semibold text-[#c7f73a]">190 lb</span> next time.</p>
+					<div class="flex items-center justify-between rounded-xl border border-[#2a323b] bg-[#151d1f] px-4 py-3">
+						<div class="flex items-start gap-3">
+							<div class="mt-0.5 rounded-full bg-[#1f2a15] p-2 text-[#c7f43a]"><TrendUpIcon class="h-4 w-4" /></div>
+							<div>
+								<p class="text-xs font-semibold uppercase tracking-[0.1em] text-[#90a0b0]">Progression suggestion</p>
+								<p class="mt-1 text-[#dce4ec]">Hit <span class="font-semibold text-[#ecf2fa]">8 reps with RIR 2</span> to increase to <span class="font-semibold text-[#c7f43a]">190 lb</span> next time.</p>
+							</div>
+						</div>
+						<button class="rounded-md border border-[#303943] bg-[#151c24] px-3 py-1.5 text-xs font-medium text-[#d5dce5]" type="button">Why this?</button>
 					</div>
 				</div>
 
@@ -136,7 +146,7 @@
 							/>
 						</svg>
 						<div class="absolute inset-0 flex flex-col items-center justify-center">
-							<p class="text-xs uppercase tracking-[0.12em] text-[#8f9cad]">Rest timer</p>
+							<p class="text-xs uppercase tracking-[0.12em] text-[#8f9cad]">REST TIMER</p>
 							<p class="text-5xl font-semibold tracking-[-0.03em] text-[#c7f73a]">1:24</p>
 							<p class="text-lg text-[#9aa6b5]">/ 2:00</p>
 						</div>
@@ -149,10 +159,10 @@
 			</div>
 		</div>
 
-		<aside class="space-y-4">
-			<div class="rounded-2xl border border-[#252c35] bg-[#11161d] p-4">
+		<aside class="col-span-3 space-y-4">
+			<div class="rounded-2xl border border-[#273034] bg-[#111719] p-4">
 				<div class="flex items-center justify-between">
-					<p class="text-[34px] font-semibold leading-none text-[#c7f73a]">12</p>
+					<p class="text-[34px] font-semibold leading-none text-[#c7f43a]">12</p>
 					<FlameIcon class="h-5 w-5 text-[#c7f73a]" />
 				</div>
 				<p class="text-sm text-[#cfd6df]">day streak</p>
@@ -166,7 +176,7 @@
 				</div>
 			</div>
 
-			<div class="rounded-2xl border border-[#252c35] bg-[#11161d] p-4">
+			<div class="rounded-2xl border border-[#273034] bg-[#111719] p-4">
 				<div class="mb-2 flex items-center justify-between text-[#9eabbb]">
 					<p class="text-sm">Next workout</p>
 					<CalendarIcon class="h-4 w-4" />
@@ -176,7 +186,7 @@
 				<button class="mt-3 w-full rounded-lg border border-[#313945] bg-[#141b23] py-2 text-sm text-[#dbe3ec]" type="button">View plan</button>
 			</div>
 
-			<div class="rounded-2xl border border-[#252c35] bg-[#11161d] p-4">
+			<div class="rounded-2xl border border-[#273034] bg-[#111719] p-4">
 				<div class="mb-2 flex items-center justify-between">
 					<p class="text-sm font-semibold text-[#b8a8ff]">New PR</p>
 					<TrophyIcon class="h-4 w-4 text-[#b8a8ff]" />
@@ -188,14 +198,14 @@
 		</aside>
 	</div>
 
-	<div class="grid grid-cols-2 gap-4">
-		<section class="rounded-2xl border border-[#252c34] bg-[#11161d] p-4">
+	<div class="grid grid-cols-12 gap-4">
+		<section class="col-span-6 rounded-2xl border border-[#273034] bg-[#111719] p-4">
 			<div class="mb-4 flex items-center justify-between">
 				<div>
-					<h2 class="text-xl font-semibold text-[#eaf0f7]">Weekly volume</h2>
+					<h2 class="text-xl font-semibold text-[#f3f6f2]">Weekly volume</h2>
 					<p class="text-sm text-[#98a6b6]">Total <span class="font-semibold text-[#dff1a2]">14,250 lb</span></p>
 				</div>
-				<button class="rounded-lg border border-[#2c333d] bg-[#131a22] px-3 py-1.5 text-sm text-[#cfd7e1]" type="button">This week</button>
+				<button class="inline-flex items-center gap-1 rounded-lg border border-[#2c333d] bg-[#131a22] px-3 py-1.5 text-sm text-[#cfd7e1]" type="button">This week <ChevronDownIcon class="h-3.5 w-3.5" /></button>
 			</div>
 			<div class="flex h-52 items-end justify-between gap-3">
 				{#each weeklyVolume as item}
@@ -215,13 +225,13 @@
 			</div>
 		</section>
 
-		<section class="rounded-2xl border border-[#252c34] bg-[#11161d] p-4">
+		<section class="col-span-6 rounded-2xl border border-[#273034] bg-[#111719] p-4">
 			<div class="mb-3 flex items-center justify-between">
 				<div>
-					<h2 class="text-xl font-semibold text-[#eaf0f7]">Progression</h2>
+					<h2 class="text-xl font-semibold text-[#f3f6f2]">Progression</h2>
 					<p class="text-sm text-[#98a6b6]">Estimated 1RM <span class="font-semibold text-[#dff1a2]">205 lb</span></p>
 				</div>
-				<button class="rounded-lg border border-[#2c333d] bg-[#131a22] px-3 py-1.5 text-sm text-[#cfd7e1]" type="button">Bench Press</button>
+				<button class="inline-flex items-center gap-1 rounded-lg border border-[#2c333d] bg-[#131a22] px-3 py-1.5 text-sm text-[#cfd7e1]" type="button">Bench Press <ChevronDownIcon class="h-3.5 w-3.5" /></button>
 			</div>
 			<div class="relative h-52 rounded-lg border border-[#2a323b] bg-[#151b23] p-3">
 				<div class="absolute inset-x-3 inset-y-3 grid grid-rows-5 border-l border-b border-[#2d3642]">
