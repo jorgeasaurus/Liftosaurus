@@ -194,13 +194,13 @@
 </script>
 
 <div class="grid grid-cols-4 gap-1">
-	<span class="text-center text-sm font-medium">Reps</span>
-	<span class="text-center text-sm font-medium">
-		Load (lbs)
+	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Reps</span>
+	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">
+		Load
 		{#if typeof exercise.bodyweightFraction === 'number'}
 			<Popover.Root>
 				<Popover.Trigger>
-					<span class="text-xs font-semibold text-muted-foreground underline">(+BW)</span>
+					<span class="text-[10px] font-semibold text-muted-foreground underline">(+BW)</span>
 				</Popover.Trigger>
 				<Popover.Content>
 					<p class="text-sm text-muted-foreground">
@@ -214,21 +214,22 @@
 			</Popover.Root>
 		{/if}
 	</span>
-	<span class="text-center text-sm font-medium">RIR</span>
-	<span></span>
+	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
+	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
 				<div class="col-span-full flex items-center gap-2 text-muted-foreground">
 					<Separator class="w-px grow" />
 					<ArrowDownIcon />
-					<span class="text-center text-sm"> Backoff sets</span>
+					<span class="text-center text-xs"> Backoff sets</span>
 					<ArrowDownIcon />
 					<Separator class="w-px grow" />
 				</div>
 			{/if}
 			{#if !set.skipped}
 				<Input
+					class="h-9 px-2 text-center"
 					id="{exercise.name}-set-{idx + 1}-reps"
 					disabled={set.completed || set.skipped}
 					min={1}
@@ -238,6 +239,7 @@
 				/>
 				{#if idx === 0 || !isSameLoadExercise}
 					<Input
+						class="h-9 px-2 text-center"
 						id="{exercise.name}-set-{idx + 1}-load"
 						disabled={set.completed || set.skipped}
 						min={exercise.bodyweightFraction ? undefined : 0.25}
@@ -251,6 +253,7 @@
 					<span></span>
 				{/if}
 				<Input
+					class="h-9 px-2 text-center"
 					id="{exercise.name}-set-{idx + 1}-RIR"
 					disabled={set.completed || set.skipped}
 					required
@@ -260,7 +263,7 @@
 			{:else}
 				<div class="col-span-3 flex items-center gap-2">
 					<Separator class="w-px grow" />
-					<span class="text-sm text-muted-foreground">skipped</span>
+					<span class="text-xs text-muted-foreground">skipped</span>
 					<Separator class="w-px grow" />
 				</div>
 			{/if}
@@ -279,7 +282,7 @@
 					{/if}
 				{/if}
 				<Button
-					class="ml-auto"
+					class="ml-auto h-9 w-9"
 					data-testid="{exercise.name}-set-{idx + 1}-action"
 					disabled={shouldSetBeDisabled(set, idx)}
 					size="icon"
@@ -302,15 +305,16 @@
 				{#if set.skipped}
 					<div class="col-span-3 flex items-center gap-2">
 						<Separator class="w-px grow" />
-						<span class="text-sm text-muted-foreground">skipped</span>
+						<span class="text-xs text-muted-foreground">skipped</span>
 						<Separator class="w-px grow" />
 					</div>
-					<Button class="place-self-end" disabled size="icon" variant="secondary">
+					<Button class="place-self-end h-9 w-9" disabled size="icon" variant="secondary">
 						<CheckIcon />
 					</Button>
 				{:else}
 					<form class="contents" onsubmit={(e) => completeMiniSet(e, set, miniIdx)}>
 						<Input
+							class="h-9 px-2 text-center"
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-reps"
 							disabled={miniSet.completed}
 							min={1}
@@ -323,6 +327,7 @@
 						{:else}
 							{@const expectedLoad = getMiniSetLoad(idx, miniIdx)}
 							<Input
+								class="h-9 px-2 text-center"
 								id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-load"
 								disabled={miniSet.completed}
 								min={exercise.bodyweightFraction ? undefined : 0}
@@ -334,6 +339,7 @@
 							/>
 						{/if}
 						<Input
+							class="h-9 px-2 text-center"
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-RIR"
 							disabled={miniSet.completed}
 							required
@@ -341,7 +347,7 @@
 							bind:value={miniSet.RIR}
 						/>
 						<Button
-							class="place-self-end"
+							class="place-self-end h-9 w-9"
 							data-testid="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-action"
 							disabled={miniSetButtonDisabled}
 							size="icon"
@@ -359,6 +365,7 @@
 			{/each}
 			<Button
 				aria-label="add-mini-set-to-set-{idx + 1}-of-{exercise.name}"
+				class="h-8"
 				onclick={() => addMiniSet(idx)}
 				variant="secondary"
 			>
@@ -366,6 +373,7 @@
 			</Button>
 			<Button
 				aria-label="remove-mini-set-from-set-{idx + 1}-of-{exercise.name}"
+				class="h-8"
 				disabled={set.miniSets.length === 0}
 				onclick={() => set.miniSets.pop()}
 				variant="secondary"
@@ -374,7 +382,7 @@
 			</Button>
 			{#if exercise.setType === 'MyorepMatch' || exercise.setType === 'MyorepMatchDown'}
 				{@const repsLeft = getRemainingMyorepMatchReps(idx)}
-				<span class="grid place-items-center text-sm font-medium text-primary">
+				<span class="grid place-items-center text-xs font-medium text-primary">
 					{#if repsLeft && repsLeft > 0}
 						{repsLeft} {repsLeft === 1 ? 'rep' : 'reps'} left
 					{:else if typeof repsLeft === 'number'}
