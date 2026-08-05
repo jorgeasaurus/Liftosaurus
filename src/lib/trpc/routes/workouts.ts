@@ -456,7 +456,7 @@ export const workouts = t.router({
 		return todaysWorkoutData;
 	}),
 
-	getSkippedWorkoutData: t.procedure.input(z.number().int()).query(async ({ ctx, input }) => {
+	getSkippedWorkoutData: t.procedure.input(z.number().int().nonnegative()).query(async ({ ctx, input }) => {
 		const splitDayIndex = input;
 
 		const data = await prisma.mesocycle.findFirst({
@@ -492,6 +492,9 @@ export const workouts = t.router({
 
 		if (data === null) {
 			return todaysWorkoutData;
+		}
+		if (splitDayIndex >= data.mesocycleExerciseSplitDays.length) {
+			throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid skipped workout day' });
 		}
 
 		const { isRestDay, cycleNumber, todaysSplitDay } = getBasicDayInfoForSkippedWorkout(
@@ -671,7 +674,12 @@ export const workouts = t.router({
 			}
 
 			const mesocycleData = await tx.mesocycle.findFirst({
-				where: { id: workoutOfMesocycle.mesocycle.id, userId: ctx.userId },
+				where: {
+					id: workoutOfMesocycle.mesocycle.id,
+					userId: ctx.userId,
+					startDate: { not: null },
+					endDate: null
+				},
 				select: {
 					RIRProgression: true,
 					mesocycleExerciseSplitDays: {
@@ -685,7 +693,7 @@ export const workouts = t.router({
 				}
 			});
 			if (!mesocycleData) {
-				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle not found' });
+				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle is not active' });
 			}
 
 			if (workoutOfMesocycle.workoutStatus === null) {

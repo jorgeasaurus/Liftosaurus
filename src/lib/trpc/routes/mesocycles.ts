@@ -35,6 +35,10 @@ const zodMesocycleCreateInput = z.strictObject({
 		exerciseSplitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema)
 	}),
 	startImmediately: z.boolean()
+}).superRefine((input, ctx) => {
+	if (input.exerciseSplit.exerciseSplitDays.length !== input.mesocycleExerciseTemplates.length) {
+		ctx.addIssue({ code: 'custom', message: 'Every split day must have an exercise template list' });
+	}
 });
 
 const zodMesocycleEditInput = z.strictObject({
@@ -112,11 +116,7 @@ export const mesocycles = t.router({
 			...input.mesocycle
 		};
 
-		if (input.startImmediately) {
-			const activeMesocycle = await getActiveMesocycle(ctx.userId);
-			if (activeMesocycle) throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
-			mesocycle.startDate = new Date();
-		}
+		if (input.startImmediately) mesocycle.startDate = new Date();
 
 		const mesocycleCyclicSetChanges: Prisma.MesocycleCyclicSetChangeUncheckedCreateInput[] =
 			input.mesocycleCyclicSetChanges.map((setChange) => ({
@@ -140,14 +140,28 @@ export const mesocycles = t.router({
 				}))
 			);
 
-		const transactionQueries = [
-			prisma.mesocycle.create({ data: mesocycle }),
-			prisma.mesocycleCyclicSetChange.createMany({ data: mesocycleCyclicSetChanges }),
-			prisma.mesocycleExerciseSplitDay.createMany({ data: mesocycleExerciseSplitDays }),
-			prisma.mesocycleExerciseTemplate.createMany({ data: mesocycleExerciseTemplates })
-		];
-
-		await prisma.$transaction(transactionQueries);
+		try {
+			await runSerializableTransaction(async (tx) => {
+				if (input.startImmediately) {
+					const activeMesocycle = await tx.mesocycle.findFirst({
+						where: { userId: ctx.userId, startDate: { not: null }, endDate: null },
+						select: { id: true }
+					});
+					if (activeMesocycle) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
+					}
+				}
+				await tx.mesocycle.create({ data: mesocycle });
+				await tx.mesocycleCyclicSetChange.createMany({ data: mesocycleCyclicSetChanges });
+				await tx.mesocycleExerciseSplitDay.createMany({ data: mesocycleExerciseSplitDays });
+				await tx.mesocycleExerciseTemplate.createMany({ data: mesocycleExerciseTemplates });
+			});
+		} catch (error) {
+			if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+				throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
+			}
+			throw error;
+		}
 		return { message: 'Mesocycle created successfully' };
 	}),
 
@@ -202,36 +216,46 @@ export const mesocycles = t.router({
 	}),
 
 	progressToNextStage: t.procedure
-		.input(
-			z.strictObject({
-				id: z.string().cuid2(),
-				startDate: z.date().nullable(),
-				endDate: z.date().nullable()
-			})
-		)
+		.input(z.strictObject({ id: z.string().cuid2() }))
 		.mutation(async ({ input, ctx }) => {
-			const now = new Date();
-			let updateClause: Prisma.MesocycleUpdateInput;
-			if (!input.startDate) updateClause = { startDate: now };
-			else if (!input.endDate) updateClause = { endDate: now };
-			else throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle already completed' });
+			try {
+				return await runSerializableTransaction(async (tx) => {
+					const mesocycle = await tx.mesocycle.findUnique({
+						where: { id: input.id, userId: ctx.userId },
+						select: { startDate: true, endDate: true }
+					});
+					if (!mesocycle) throw new TRPCError({ code: 'NOT_FOUND', message: 'Mesocycle not found' });
+					if (mesocycle.endDate) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle already completed' });
+					}
 
-			if (!input.startDate) {
-				const activeMesocycle = await getActiveMesocycle(ctx.userId);
-				if (activeMesocycle) {
+					const isStarting = !mesocycle.startDate;
+					if (isStarting) {
+						const activeMesocycle = await tx.mesocycle.findFirst({
+							where: { userId: ctx.userId, startDate: { not: null }, endDate: null },
+							select: { id: true }
+						});
+						if (activeMesocycle) {
+							throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
+						}
+					}
+
+					const updatedMesocycle = await tx.mesocycle.update({
+						where: { id: input.id, userId: ctx.userId },
+						data: isStarting ? { startDate: new Date() } : { endDate: new Date() }
+					});
+					return {
+						message: `Mesocycle ${isStarting ? 'started' : 'stopped'} successfully`,
+						startDate: updatedMesocycle.startDate,
+						endDate: updatedMesocycle.endDate
+					};
+				});
+			} catch (error) {
+				if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
 					throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
 				}
+				throw error;
 			}
-
-			const updatedMesocycle = await prisma.mesocycle.update({
-				where: { id: input.id, userId: ctx.userId },
-				data: updateClause
-			});
-			return {
-				message: `Mesocycle ${!input.startDate ? 'started' : 'stopped'} successfully`,
-				startDate: updatedMesocycle.startDate,
-				endDate: updatedMesocycle.endDate
-			};
 		}),
 
 	updateExerciseSplit: t.procedure.input(zodUpdateExerciseSplitInput).mutation(async ({ input, ctx }) => {

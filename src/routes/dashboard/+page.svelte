@@ -18,6 +18,7 @@
 	{#await data.todaysWorkoutData then todaysWorkout}
 		{@const workout = todaysWorkout.workoutOfMesocycle}
 		{@const firstExercise = todaysWorkout.workoutExercises[0]}
+		{@const isRestDay = workout?.workoutStatus === 'RestDay'}
 		{@const rir = workout ? getRIRForWeek(workout.mesocycle.RIRProgression, workout.cycleNumber) : null}
 		<div class="mobile-dashboard-intro">
 			<div>
@@ -27,7 +28,7 @@
 				<h1><SunriseIcon />Good morning, {userName}</h1>
 			</div>
 			<button class="mobile-plan-pill" type="button"
-				>{workout?.splitDayName ?? 'Upper Strength'} <ChevronDownIcon /></button
+				>{isRestDay ? 'Rest day' : (workout?.splitDayName ?? 'Upper Strength')} <ChevronDownIcon /></button
 			>
 		</div>
 
@@ -35,32 +36,36 @@
 			<div class="mobile-session-heading">
 				<div>
 					<p class="mobile-eyebrow lime">NEXT SESSION</p>
-					<h2>{workout?.splitDayName ?? 'Upper Strength'}</h2>
+					<h2>{isRestDay ? 'Rest day' : (workout?.splitDayName ?? 'Upper Strength')}</h2>
 					<p class="mobile-session-meta">
-						{workout
+						{isRestDay
+							? 'Recovery day · Your next session is ready tomorrow'
+							: workout
 							? `${rir} RIR target · ${todaysWorkout.workoutExercises.length} exercises`
 							: 'Build a plan to unlock progressive overload'}
 					</p>
 				</div>
-				<div class="mobile-session-mark">{workout ? String(workout.splitDayIndex + 1).padStart(2, '0') : '—'}</div>
+				<div class="mobile-session-mark">{workout && !isRestDay ? String(workout.splitDayIndex + 1).padStart(2, '0') : '—'}</div>
 			</div>
 
-			<div class="mobile-session-divider"></div>
-			<div class="mobile-next-set">
-				<div>
-					<p class="mobile-eyebrow">FIRST MOVEMENT</p>
-					<p class="mobile-exercise">{firstExercise?.name ?? '—'}</p>
+			{#if !isRestDay}
+				<div class="mobile-session-divider"></div>
+				<div class="mobile-next-set">
+					<div>
+						<p class="mobile-eyebrow">FIRST MOVEMENT</p>
+						<p class="mobile-exercise">{firstExercise?.name ?? '—'}</p>
+					</div>
 				</div>
-			</div>
 
-			<div class="mobile-rir-row">
-				<span>Target effort</span>
-				<span class="mobile-rir-chip">{rir !== null ? `RIR ${rir}` : '—'}</span>
-			</div>
-			<a class="mobile-primary-action" href="/workouts/manage/start">
-				<PlayIcon />
-				{workout ? 'Start workout' : 'Start a workout'}
-			</a>
+				<div class="mobile-rir-row">
+					<span>Target effort</span>
+					<span class="mobile-rir-chip">{rir !== null ? `RIR ${rir}` : '—'}</span>
+				</div>
+				<a class="mobile-primary-action" href="/workouts/manage/start">
+					<PlayIcon />
+					{workout ? 'Start workout' : 'Start a workout'}
+				</a>
+			{/if}
 		</div>
 
 		<div class="mobile-rest-card">

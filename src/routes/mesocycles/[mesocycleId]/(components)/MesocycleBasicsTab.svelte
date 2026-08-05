@@ -80,9 +80,7 @@
 		callingPatchEndpoint = true;
 		try {
 			const response = await trpc().mesocycles.progressToNextStage.mutate({
-				id: mesocycle.id,
-				startDate: mesocycle.startDate,
-				endDate: mesocycle.endDate
+				id: mesocycle.id
 			});
 			mesocycle.startDate = response.startDate;
 			mesocycle.endDate = response.endDate;

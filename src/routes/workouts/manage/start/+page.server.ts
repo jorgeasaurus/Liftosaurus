@@ -1,5 +1,6 @@
 import { createContext } from '$lib/trpc/context.js';
 import { createCaller } from '$lib/trpc/router.js';
+import { error } from '@sveltejs/kit';
 
 export const load = async (event) => {
 	event.depends('workouts:start');
@@ -7,7 +8,11 @@ export const load = async (event) => {
 
 	const repeatSkipped = event.url.searchParams.get('repeatSkipped');
 	if (repeatSkipped) {
-		const workoutData = trpc.workouts.getSkippedWorkoutData(Number(repeatSkipped));
+		const splitDayIndex = Number(repeatSkipped);
+		if (!Number.isFinite(splitDayIndex) || !Number.isInteger(splitDayIndex) || splitDayIndex < 0) {
+			throw error(400, 'Invalid skipped workout day');
+		}
+		const workoutData = trpc.workouts.getSkippedWorkoutData(splitDayIndex);
 		return { workoutData };
 	}
 
