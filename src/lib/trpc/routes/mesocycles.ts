@@ -342,7 +342,13 @@ export const mesocycles = t.router({
 		});
 
 		if (input === 'allSplitDays') {
-			return await prisma.workout.findMany({ where: { userId: ctx.userId }, include: includeClause });
+			// Bound the result set — full history can grow without limit and includes nested sets/miniSets.
+			return await prisma.workout.findMany({
+				where: { userId: ctx.userId },
+				include: includeClause,
+				orderBy: { startedAt: 'desc' },
+				take: 200
+			});
 		}
 
 		const activeMesocycle = await prisma.mesocycle.findFirst({
