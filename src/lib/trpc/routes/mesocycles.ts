@@ -25,21 +25,23 @@ const clearedAdaptiveRepRangeState = {
 	adaptiveRepRangeResetAt: null
 } as const;
 
-const zodMesocycleCreateInput = z.strictObject({
-	mesocycle: MesocycleUncheckedCreateWithoutUserInputSchema,
-	mesocycleCyclicSetChanges: z.array(MesocycleCyclicSetChangeCreateWithoutMesocycleInputSchema),
-	mesocycleExerciseTemplates: z.array(
-		z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema)
-	),
-	exerciseSplit: ExerciseSplitSchema.extend({
-		exerciseSplitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema)
-	}),
-	startImmediately: z.boolean()
-}).superRefine((input, ctx) => {
-	if (input.exerciseSplit.exerciseSplitDays.length !== input.mesocycleExerciseTemplates.length) {
-		ctx.addIssue({ code: 'custom', message: 'Every split day must have an exercise template list' });
-	}
-});
+const zodMesocycleCreateInput = z
+	.strictObject({
+		mesocycle: MesocycleUncheckedCreateWithoutUserInputSchema,
+		mesocycleCyclicSetChanges: z.array(MesocycleCyclicSetChangeCreateWithoutMesocycleInputSchema),
+		mesocycleExerciseTemplates: z.array(
+			z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema)
+		),
+		exerciseSplit: ExerciseSplitSchema.extend({
+			exerciseSplitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema)
+		}),
+		startImmediately: z.boolean()
+	})
+	.superRefine((input, ctx) => {
+		if (input.exerciseSplit.exerciseSplitDays.length !== input.mesocycleExerciseTemplates.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every split day must have an exercise template list' });
+		}
+	});
 
 const zodMesocycleEditInput = z.strictObject({
 	mesocycle: MesocycleUpdateInputSchema,

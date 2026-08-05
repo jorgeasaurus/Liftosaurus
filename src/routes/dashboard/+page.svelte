@@ -41,11 +41,13 @@
 						{isRestDay
 							? 'Recovery day · Your next session is ready tomorrow'
 							: workout
-							? `${rir} RIR target · ${todaysWorkout.workoutExercises.length} exercises`
-							: 'Build a plan to unlock progressive overload'}
+								? `${rir} RIR target · ${todaysWorkout.workoutExercises.length} exercises`
+								: 'Build a plan to unlock progressive overload'}
 					</p>
 				</div>
-				<div class="mobile-session-mark">{workout && !isRestDay ? String(workout.splitDayIndex + 1).padStart(2, '0') : '—'}</div>
+				<div class="mobile-session-mark">
+					{workout && !isRestDay ? String(workout.splitDayIndex + 1).padStart(2, '0') : '—'}
+				</div>
 			</div>
 
 			{#if !isRestDay}

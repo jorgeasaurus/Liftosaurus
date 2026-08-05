@@ -108,3 +108,28 @@ test('dashboard offers relative performance by default and optional work volume'
 	await expect(page.getByRole('img', { name: 'Work volume chart in lb × reps' })).toBeVisible();
 	await expect(page.getByRole('table', { name: 'Work volume historical data' })).toContainText('1100 lb × reps');
 });
+
+test('mobile dashboard renders rest days without workout controls', async ({ page, userData }) => {
+	await prisma.mesocycle.create({
+		data: {
+			name: 'Rest day dashboard',
+			userId: userData.userId,
+			RIRProgression: [3],
+			startDate: new Date(),
+			startOverloadPercentage: 2,
+			lastSetToFailure: false,
+			forceRIRMatching: false,
+			mesocycleExerciseSplitDays: {
+				create: { name: 'Recovery', dayIndex: 0, isRestDay: true }
+			}
+		}
+	});
+
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/dashboard');
+	const sessionCard = page.locator('.mobile-session-card');
+	await expect(sessionCard).toContainText('Rest day');
+	await expect(sessionCard).toContainText('Recovery day');
+	await expect(sessionCard).not.toContainText('RIR target');
+	await expect(sessionCard.getByRole('link', { name: /Start workout/i })).toHaveCount(0);
+});
