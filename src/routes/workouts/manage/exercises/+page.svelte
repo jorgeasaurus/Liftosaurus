@@ -50,8 +50,9 @@
 			: null
 	);
 
+	// totalSets === 0 (all skipped / no sets) is treated as complete so nav still appears
 	let allSetsComplete = $derived(
-		totalSets !== null && completedSets !== null && totalSets > 0 && completedSets >= totalSets
+		totalSets !== null && completedSets !== null && completedSets >= totalSets
 	);
 
 	onMount(async () => {
