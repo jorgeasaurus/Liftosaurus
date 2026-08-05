@@ -16,8 +16,13 @@ const { handle: authHandle } = SvelteKitAuth({
 	trustHost: true,
 	callbacks: {
 		session({ session, user }) {
-			session.userId = user.id;
-			return session;
+			return {
+				...session,
+				user: {
+					...session.user,
+					id: user.id
+				}
+			};
 		}
 	}
 });
