@@ -56,8 +56,8 @@ const zodUpdateExerciseSplitInput = z
 		}
 	});
 
-const getActiveMesocycle = async (userId: string) => {
-	return await prisma.mesocycle.findFirst({
+const getActiveMesocycle = async (userId: string, tx: Prisma.TransactionClient | typeof prisma = prisma) => {
+	return await tx.mesocycle.findFirst({
 		where: { userId, startDate: { not: null }, endDate: null },
 		select: { name: true, id: true }
 	});
@@ -106,28 +106,23 @@ export const mesocycles = t.router({
 		}),
 
 	create: t.procedure.input(zodMesocycleCreateInput).mutation(async ({ input, ctx }) => {
+		const mesocycleId = createId();
 		const mesocycle: Prisma.MesocycleUncheckedCreateInput = {
-			id: createId(),
+			id: mesocycleId,
 			userId: ctx.userId,
 			...input.mesocycle
 		};
 
-		if (input.startImmediately) {
-			const activeMesocycle = await getActiveMesocycle(ctx.userId);
-			if (activeMesocycle) throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
-			mesocycle.startDate = new Date();
-		}
-
 		const mesocycleCyclicSetChanges: Prisma.MesocycleCyclicSetChangeUncheckedCreateInput[] =
 			input.mesocycleCyclicSetChanges.map((setChange) => ({
 				...setChange,
-				mesocycleId: mesocycle.id as string
+				mesocycleId
 			}));
 
 		const mesocycleExerciseSplitDays: Prisma.MesocycleExerciseSplitDayUncheckedCreateInput[] =
 			input.exerciseSplit.exerciseSplitDays.map((splitDay) => ({
 				...splitDay,
-				mesocycleId: mesocycle.id as string,
+				mesocycleId,
 				id: createId()
 			}));
 
@@ -140,14 +135,26 @@ export const mesocycles = t.router({
 				}))
 			);
 
-		const transactionQueries = [
-			prisma.mesocycle.create({ data: mesocycle }),
-			prisma.mesocycleCyclicSetChange.createMany({ data: mesocycleCyclicSetChanges }),
-			prisma.mesocycleExerciseSplitDay.createMany({ data: mesocycleExerciseSplitDays }),
-			prisma.mesocycleExerciseTemplate.createMany({ data: mesocycleExerciseTemplates })
-		];
-
-		await prisma.$transaction(transactionQueries);
+		if (input.startImmediately) {
+			await runSerializableTransaction(async (tx) => {
+				const activeMesocycle = await getActiveMesocycle(ctx.userId, tx);
+				if (activeMesocycle) {
+					throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
+				}
+				mesocycle.startDate = new Date();
+				await tx.mesocycle.create({ data: mesocycle });
+				await tx.mesocycleCyclicSetChange.createMany({ data: mesocycleCyclicSetChanges });
+				await tx.mesocycleExerciseSplitDay.createMany({ data: mesocycleExerciseSplitDays });
+				await tx.mesocycleExerciseTemplate.createMany({ data: mesocycleExerciseTemplates });
+			});
+		} else {
+			await prisma.$transaction([
+				prisma.mesocycle.create({ data: mesocycle }),
+				prisma.mesocycleCyclicSetChange.createMany({ data: mesocycleCyclicSetChanges }),
+				prisma.mesocycleExerciseSplitDay.createMany({ data: mesocycleExerciseSplitDays }),
+				prisma.mesocycleExerciseTemplate.createMany({ data: mesocycleExerciseTemplates })
+			]);
+		}
 		return { message: 'Mesocycle created successfully' };
 	}),
 
@@ -217,10 +224,21 @@ export const mesocycles = t.router({
 			else throw new TRPCError({ code: 'BAD_REQUEST', message: 'Mesocycle already completed' });
 
 			if (!input.startDate) {
-				const activeMesocycle = await getActiveMesocycle(ctx.userId);
-				if (activeMesocycle) {
-					throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
-				}
+				const updated = await runSerializableTransaction(async (tx) => {
+					const activeMesocycle = await getActiveMesocycle(ctx.userId, tx);
+					if (activeMesocycle) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'A mesocycle is already active' });
+					}
+					return tx.mesocycle.update({
+						where: { id: input.id, userId: ctx.userId },
+						data: updateClause
+					});
+				});
+				return {
+					message: 'Mesocycle started successfully',
+					startDate: updated.startDate,
+					endDate: updated.endDate
+				};
 			}
 
 			const updatedMesocycle = await prisma.mesocycle.update({
@@ -228,7 +246,7 @@ export const mesocycles = t.router({
 				data: updateClause
 			});
 			return {
-				message: `Mesocycle ${!input.startDate ? 'started' : 'stopped'} successfully`,
+				message: 'Mesocycle stopped successfully',
 				startDate: updatedMesocycle.startDate,
 				endDate: updatedMesocycle.endDate
 			};
