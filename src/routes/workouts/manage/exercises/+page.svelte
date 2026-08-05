@@ -50,6 +50,11 @@
 			: null
 	);
 
+	// totalSets === 0 (all skipped / no sets) is treated as complete so nav still appears
+	let allSetsComplete = $derived(
+		totalSets !== null && completedSets !== null && completedSets >= totalSets
+	);
+
 	onMount(async () => {
 		if (workoutRunes.workoutData === null) {
 			await goto('./start');
@@ -183,21 +188,23 @@
 		</div>
 	{/if}
 
-	<div class="grid shrink-0 grid-cols-2 gap-2 pt-1">
-		<Button
-			class="h-11 border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
-			href="./start"
-			variant="secondary"
-		>
-			Previous
-		</Button>
-		<Button
-			class="h-11 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
-			onclick={submitWorkoutExercises}
-		>
-			Next
-		</Button>
-	</div>
+	{#if allSetsComplete}
+		<div class="grid shrink-0 grid-cols-2 gap-2 pt-1">
+			<Button
+				class="h-11 border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
+				href="./start"
+				variant="secondary"
+			>
+				Previous
+			</Button>
+			<Button
+				class="h-11 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
+				onclick={submitWorkoutExercises}
+			>
+				Next
+			</Button>
+		</div>
+	{/if}
 
 	<ExerciseHistorySheet />
 	<WarmUpDialog />
