@@ -35,6 +35,6 @@
 	</Button>
 {/each}
 
-<Button variant="secondary" class="gap-2" href="https://github.com/WhyAsh5114/MyFit/discussions/173" target="_blank">
+<Button variant="secondary" class="gap-2" href="https://github.com/jorgeasaurus/Liftosaurus/discussions/173" target="_blank">
 	Community-made splits <ExternalLink />
 </Button>

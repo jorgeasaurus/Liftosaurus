@@ -20,7 +20,7 @@
 </script>
 
 <div class="mx-auto flex gap-1">
-	<Button class="gap-2" variant="secondary" href="https://github.com/WhyAsh5114/MyFit">
+	<Button class="gap-2" variant="secondary" href="https://github.com/jorgeasaurus/Liftosaurus">
 		<GitHub />
 		GitHub
 		{#if stars === undefined}

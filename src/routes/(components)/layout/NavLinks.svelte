@@ -13,7 +13,7 @@
 		{ text: 'Mesocycles', href: '/mesocycles' },
 		{ text: 'Workouts', href: '/workouts' },
 		null,
-		{ text: 'GitHub', href: 'https://github.com/WhyAsh5114/MyFit' },
+		{ text: 'GitHub', href: 'https://github.com/jorgeasaurus/Liftosaurus' },
 		{ text: 'Discord', href: 'https://discord.com/invite/2g9YPD6PQu' },
 		null,
 		{ text: 'Docs', href: '/docs' },

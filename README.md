@@ -14,7 +14,7 @@ For web app access, use the [direct link](https://liftosaurus-jorgeasaurus-proje
 - Automatic progressive overload calculations based on past performance
 - User-friendly interface built with SvelteKit
 - Backend API using tRPC for seamless communication between frontend and backend
-- CockroachDB database managed by Prisma for scalable and reliable data storage
+- Supabase PostgreSQL database managed by Prisma for scalable and reliable data storage
 - Comprehensive testing suite using Playwright for end-to-end testing
 
 ## Getting Started
@@ -44,12 +44,12 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 3. Set up environment variables:
 
-   - Copy `sample.env` to `.env` and configure the required values, including your CockroachDB connection details.
+   - Copy `sample.env` to `.env` and configure the required values, including your Supabase PostgreSQL connection details.
 
-4. Set up the database (CockroachDB):
+4. Set up the database (Supabase PostgreSQL):
 
-   - [Local setup](https://www.cockroachlabs.com/docs/stable/deploy-cockroachdb-on-premises)
-   - [Cloud setup (much faster)](https://cockroachlabs.cloud/signup)
+   - [Create a Supabase project](https://supabase.com/dashboard)
+   - Configure pooled and direct PostgreSQL URLs in your environment file
    - Run Prisma migrations to set up the database schema:
      ```bash
      npx prisma migrate dev

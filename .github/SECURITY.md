@@ -10,7 +10,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in our Node.js web application or CockroachDB backend, please follow the guidelines below:
+If you discover a security vulnerability in our Node.js web application or PostgreSQL backend, please follow the guidelines below:
 
 ### How to Report
 

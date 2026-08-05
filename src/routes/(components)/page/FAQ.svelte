@@ -16,7 +16,7 @@
 		<Accordion.Item value="item-1">
 			<Accordion.Trigger>Is it really free?</Accordion.Trigger>
 			<Accordion.Content class="text-justify">
-				The app is open-source and always will be. It's hosted on Vercel and CockroachDB's free tiers, but if we exceed
+				The app is open-source and always will be. It's hosted on Vercel and Supabase's free tiers, but if we exceed
 				limits, it can be run locally by anyone.
 			</Accordion.Content>
 		</Accordion.Item>
@@ -29,7 +29,7 @@
 		<Accordion.Item value="item-3">
 			<Accordion.Trigger>What if I need XYZ?</Accordion.Trigger>
 			<Accordion.Content class="text-justify">
-				Feel free to <a class="text-primary underline" href="https://github.com/WhyAsh5114/MyFit/issues"
+				Feel free to <a class="text-primary underline" href="https://github.com/jorgeasaurus/Liftosaurus/issues"
 					>open an issue</a
 				>
 				on the GitHub repository!

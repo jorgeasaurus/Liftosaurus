@@ -42,7 +42,7 @@
 
 	<h2>How donations will be used</h2>
 	<p>
-		The primary way donations to Liftosaurus will be used is for hosting the project (Vercel) and its database (CockroachDB).
+		The primary way donations to Liftosaurus will be used is for hosting the project (Vercel) and its database (Supabase).
 		If any are left over, it'll simply motivate me to work on this project further and improve it in every way possible.
 	</p>
 </div>
