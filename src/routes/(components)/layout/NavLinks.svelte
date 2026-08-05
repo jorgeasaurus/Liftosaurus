@@ -6,8 +6,8 @@
 	export let sheetOpen: boolean | undefined = undefined;
 
 	const linkItems: ({ text: string; href: string } | null)[] = [
-		{ text: 'Dashboard', href: '/dashboard' },
-		{ text: 'Exercise stats', href: '/exercise-stats' },
+		{ text: 'Today', href: '/dashboard' },
+		{ text: 'Progress', href: '/exercise-stats' },
 		null,
 		{ text: 'Exercise splits', href: '/exercise-splits' },
 		{ text: 'Mesocycles', href: '/mesocycles' },

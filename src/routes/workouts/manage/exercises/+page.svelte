@@ -50,7 +50,7 @@
 			: null
 	);
 
-	// totalSets === 0 (all skipped / no sets) is treated as complete so nav still appears
+	// totalSets === 0 (all skipped / no sets) is treated as complete so Next is available
 	let allSetsComplete = $derived(
 		totalSets !== null && completedSets !== null && completedSets >= totalSets
 	);
@@ -125,7 +125,8 @@
 			</div>
 			<div class="flex shrink-0 items-center gap-1">
 				<Button
-					aria-label="reorder-toggle"
+					aria-label="Reorder exercises"
+					title="Reorder exercises"
 					disabled={comparing}
 					onclick={() => (reordering = !reordering)}
 					class="h-8 w-8 border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
@@ -139,7 +140,8 @@
 					{/if}
 				</Button>
 				<Button
-					aria-label="compare-exercises"
+					aria-label="Compare to previous workout"
+					title="Compare to previous workout"
 					disabled={reordering || workoutRunes.editingWorkoutId !== null}
 					onclick={() => (comparing = !comparing)}
 					class="h-8 w-8 border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
@@ -164,9 +166,19 @@
 			</div>
 		</div>
 		{#if totalSets !== null && completedSets !== null}
-			<Progress class="h-1 bg-[#232b35] [&>div]:bg-[#c7f73a]" max={totalSets} value={completedSets} />
+			<div class="flex items-center gap-2">
+				<Progress class="h-1.5 flex-1 bg-[#232b35] [&>div]:bg-[#c7f73a]" max={totalSets} value={completedSets} />
+				<span class="shrink-0 text-[11px] font-medium tabular-nums text-[#9dadbe]">
+					{completedSets}/{totalSets}
+				</span>
+			</div>
+			{#if !allSetsComplete && totalSets > 0}
+				<p class="text-[11px] leading-tight text-[#8fa0b3]">
+					{totalSets - completedSets} set{totalSets - completedSets === 1 ? '' : 's'} left · finish to continue
+				</p>
+			{/if}
 		{:else}
-			<Skeleton class="h-1 w-full bg-[#252f3a]" />
+			<Skeleton class="h-1.5 w-full bg-[#252f3a]" />
 		{/if}
 	{/if}
 
@@ -188,23 +200,23 @@
 		</div>
 	{/if}
 
-	{#if allSetsComplete}
-		<div class="grid shrink-0 grid-cols-2 gap-2 pt-1">
-			<Button
-				class="h-11 border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
-				href="./start"
-				variant="secondary"
-			>
-				Previous
-			</Button>
-			<Button
-				class="h-11 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
-				onclick={submitWorkoutExercises}
-			>
-				Next
-			</Button>
-		</div>
-	{/if}
+	<div class="grid shrink-0 grid-cols-2 gap-2 pt-1">
+		<Button
+			class="h-11 border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
+			href="./start"
+			variant="secondary"
+		>
+			Previous
+		</Button>
+		<Button
+			class="h-11 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a] disabled:opacity-40"
+			disabled={!allSetsComplete}
+			onclick={submitWorkoutExercises}
+			title={allSetsComplete ? 'Continue to overview' : 'Complete all sets to proceed'}
+		>
+			Next
+		</Button>
+	</div>
 
 	<ExerciseHistorySheet />
 	<WarmUpDialog />

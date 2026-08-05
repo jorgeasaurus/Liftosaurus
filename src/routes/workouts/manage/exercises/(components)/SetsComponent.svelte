@@ -37,14 +37,6 @@
 			?.userBodyweight
 	);
 
-	function shouldSetBeDisabled(set: WorkoutExerciseSet, idx: number): boolean {
-		if (set.completed) return false;
-		if (idx === 0) return false;
-		const previousSet = exercise.sets[idx - 1];
-		if (previousSet.miniSets.length === 0) return !previousSet.completed;
-		return !previousSet.miniSets[previousSet.miniSets.length - 1].completed;
-	}
-
 	async function completeSet(e: SubmitEvent, set: WorkoutExerciseSet, idx: number) {
 		e.preventDefault();
 		if (set.skipped) {
@@ -235,6 +227,7 @@
 					min={1}
 					required
 					type="number"
+					inputmode="numeric"
 					bind:value={set.reps}
 				/>
 				{#if idx === 0 || !isSameLoadExercise}
@@ -247,10 +240,16 @@
 						required
 						step={0.25}
 						type="number"
+						inputmode="decimal"
 						bind:value={set.load}
 					/>
 				{:else}
-					<span></span>
+					<span
+						class="flex h-9 items-center justify-center rounded-md border border-transparent text-sm tabular-nums text-[#8fa0b3]"
+						title="Same load as set 1"
+					>
+						{exercise.sets[0].load ?? '—'}
+					</span>
 				{/if}
 				<Input
 					class="h-9 px-2 text-center"
@@ -258,6 +257,7 @@
 					disabled={set.completed || set.skipped}
 					required
 					type="number"
+					inputmode="numeric"
 					bind:value={set.RIR}
 				/>
 			{:else}
@@ -284,7 +284,6 @@
 				<Button
 					class="ml-auto h-9 w-9"
 					data-testid="{exercise.name}-set-{idx + 1}-action"
-					disabled={shouldSetBeDisabled(set, idx)}
 					size="icon"
 					type="submit"
 					variant={set.completed ? 'outline' : 'default'}
@@ -320,6 +319,7 @@
 							min={1}
 							required
 							type="number"
+							inputmode="numeric"
 							bind:value={miniSet.reps}
 						/>
 						{#if exercise.setType === 'MyorepMatch' || exercise.setType === 'MyorepMatchDown'}
@@ -335,6 +335,7 @@
 								required
 								step={0.25}
 								type="number"
+								inputmode="decimal"
 								bind:value={miniSet.load}
 							/>
 						{/if}
@@ -344,6 +345,7 @@
 							disabled={miniSet.completed}
 							required
 							type="number"
+							inputmode="numeric"
 							bind:value={miniSet.RIR}
 						/>
 						<Button
