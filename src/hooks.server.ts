@@ -1,13 +1,11 @@
 import { SvelteKitAuth } from '@auth/sveltekit';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { PrismaClient } from '@prisma/client';
 import github from '@auth/sveltekit/providers/github';
+import { prisma } from '$lib/prisma';
 import { createContext } from '$lib/trpc/context';
 import { router } from '$lib/trpc/router';
 import { createTRPCHandle } from 'trpc-sveltekit';
 import { sequence } from '@sveltejs/kit/hooks';
-
-const prisma = new PrismaClient();
 
 const { handle: authHandle } = SvelteKitAuth({
 	adapter: PrismaAdapter(prisma),
