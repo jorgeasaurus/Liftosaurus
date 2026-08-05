@@ -20,22 +20,29 @@
 		{ label: 'Today', href: '/dashboard', icon: HomeIcon },
 		{ label: 'Workouts', href: '/workouts', icon: WorkoutsIcon },
 		{ label: 'Progress', href: '/exercise-stats', icon: ProgressIcon },
-		{ label: 'Plans', href: '/mesocycles', icon: PlansIcon },
+		{ label: 'Mesocycles', href: '/mesocycles', icon: PlansIcon },
 		{ label: 'Profile', href: '/profile', icon: ProfileIcon }
 	] as const;
 
 	const isActive = (href: string) =>
 		href === '/dashboard' ? $page.url.pathname.startsWith('/dashboard') : $page.url.pathname.startsWith(href);
+
+	// Hide global chrome during live workout logging to free vertical space
+	let isFocusedWorkout = $derived($page.url.pathname.includes('/workouts/manage'));
 </script>
 
-<header class="mobile-topbar">
+<header class="mobile-topbar" class:compact={isFocusedWorkout}>
 	<a class="mobile-brand" href="/dashboard" aria-label="Liftosaurus home">
 		<img alt="" class="brand-logo" height="30" src="/favicon.webp" width="30" />
-		<span>Liftosaurus</span>
+		{#if !isFocusedWorkout}
+			<span>Liftosaurus</span>
+		{/if}
 	</a>
 	<div class="mobile-topbar-actions">
-		<PWAButtons isMobile={true} />
-		<ModeToggle />
+		{#if !isFocusedWorkout}
+			<PWAButtons isMobile={true} />
+			<ModeToggle />
+		{/if}
 		{#if $page.data.session}
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger>
@@ -55,18 +62,20 @@
 		{/if}
 	</div>
 </header>
-<main class="mobile-main">
+<main class="mobile-main" class:focused={isFocusedWorkout}>
 	{@render children()}
 </main>
 
-<nav class="mobile-bottom-nav" aria-label="Primary navigation">
-	{#each navLinks as item}
-		<a class:active={isActive(item.href)} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
-			<item.icon aria-hidden="true" />
-			<span>{item.label}</span>
-		</a>
-	{/each}
-</nav>
+{#if !isFocusedWorkout}
+	<nav class="mobile-bottom-nav" aria-label="Primary navigation">
+		{#each navLinks as item}
+			<a class:active={isActive(item.href)} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+				<item.icon aria-hidden="true" />
+				<span>{item.label}</span>
+			</a>
+		{/each}
+	</nav>
+{/if}
 
 <style>
 	.mobile-topbar {
@@ -81,6 +90,10 @@
 		border-bottom: 1px solid #273034;
 		background: rgba(9, 13, 14, 0.92);
 		backdrop-filter: blur(16px);
+	}
+
+	.mobile-topbar.compact {
+		height: 48px;
 	}
 
 	.mobile-brand {
@@ -120,6 +133,10 @@
 		padding: 20px 16px 104px;
 	}
 
+	.mobile-main.focused {
+		padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+	}
+
 	.mobile-bottom-nav {
 		position: fixed;
 		bottom: 0;
@@ -144,7 +161,7 @@
 		gap: 4px;
 		border-radius: 12px;
 		color: #8f999d;
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 600;
 		transition:
 			color 150ms ease,
