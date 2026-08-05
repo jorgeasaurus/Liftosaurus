@@ -207,13 +207,16 @@ export const workouts = t.router({
 		const andConditions: Prisma.WorkoutWhereInput['AND'] = [];
 		const { filters } = input;
 
+		const startedAtFilter: Prisma.DateTimeFilter = {};
 		if (filters?.startDate) {
-			whereClause = { ...whereClause, startedAt: { gte: filters.startDate } };
+			startedAtFilter.gte = filters.startDate;
 		}
-
 		if (filters?.endDate) {
 			const endDate = new Date(Number(filters.endDate) + 1000 * 60 * 60 * 24);
-			whereClause = { ...whereClause, startedAt: { lte: endDate } };
+			startedAtFilter.lte = endDate;
+		}
+		if (Object.keys(startedAtFilter).length > 0) {
+			whereClause = { ...whereClause, startedAt: startedAtFilter };
 		}
 
 		if (filters?.selectedWorkoutStatuses) {
