@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Button } from '$lib/components/ui/button';
 	import { page } from '$app/stores';
 	import type { Snippet } from 'svelte';
 	import BrandIcon from 'virtual:icons/lucide/dumbbell';
@@ -9,6 +11,7 @@
 	import LibraryIcon from 'virtual:icons/lucide/book-open';
 	import ProfileIcon from 'virtual:icons/lucide/circle-user-round';
 	import SettingsIcon from 'virtual:icons/lucide/settings';
+	import LoginProviderMenu from './LoginProviderMenu.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -52,25 +55,37 @@
 	</nav>
 
 	<div class="mt-auto space-y-2 border-t border-[#273034] pt-4">
-		<a
-			class="flex items-center gap-3 rounded-xl border border-[#2a3438] bg-[#171e20] px-3 py-2 text-sm text-[#f3f6f2]"
-			href="/profile"
-		>
-			<div class="flex h-8 w-8 items-center justify-center rounded-full bg-[#c7f43a] text-[#1a2310]">
-				<ProfileIcon class="h-4 w-4" />
-			</div>
-			<div class="min-w-0">
-				<p class="truncate text-sm font-semibold">{$page.data.session?.user?.name ?? 'Profile'}</p>
-				<p class="text-xs text-[#a6afb1]">Athlete</p>
-			</div>
-		</a>
-		<a
-			class="flex items-center gap-3 rounded-md border border-transparent px-3 py-2 text-sm text-[#a6afb1] transition-colors hover:border-[#2a3438] hover:bg-[#151d1f] hover:text-[#e5ebea]"
-			href="/settings"
-		>
-			<SettingsIcon class="h-4 w-4" />
-			<span>Settings</span>
-		</a>
+		{#if $page.data.session}
+			<a
+				class="flex items-center gap-3 rounded-xl border border-[#2a3438] bg-[#171e20] px-3 py-2 text-sm text-[#f3f6f2]"
+				href="/profile"
+			>
+				<div class="flex h-8 w-8 items-center justify-center rounded-full bg-[#c7f43a] text-[#1a2310]">
+					<ProfileIcon class="h-4 w-4" />
+				</div>
+				<div class="min-w-0">
+					<p class="truncate text-sm font-semibold">{$page.data.session.user?.name ?? 'Profile'}</p>
+					<p class="text-xs text-[#a6afb1]">Athlete</p>
+				</div>
+			</a>
+			<a
+				class="flex items-center gap-3 rounded-md border border-transparent px-3 py-2 text-sm text-[#a6afb1] transition-colors hover:border-[#2a3438] hover:bg-[#151d1f] hover:text-[#e5ebea]"
+				href="/settings"
+			>
+				<SettingsIcon class="h-4 w-4" />
+				<span>Settings</span>
+			</a>
+		{:else}
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild let:builder>
+					<Button builders={[builder]} class="w-full justify-start gap-3" size="sm" variant="ghost">
+						<ProfileIcon class="h-4 w-4" />
+						Sign in
+					</Button>
+				</DropdownMenu.Trigger>
+				<LoginProviderMenu />
+			</DropdownMenu.Root>
+		{/if}
 	</div>
 </header>
 <main class="flex h-screen w-full flex-col overflow-y-auto bg-[#090d0e] p-6 text-[#f3f6f2]">

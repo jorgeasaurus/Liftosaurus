@@ -190,8 +190,8 @@
 
 <section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-4">
 	<header>
-		<h1 class="text-4xl font-semibold tracking-[-0.03em] text-[#e9edf3]">Start workout</h1>
-		<p class="mt-1 text-sm text-[#95a4b6]">Set context, verify plan details, then launch your live session.</p>
+		<h1 class="text-4xl font-semibold tracking-[-0.03em] text-foreground">Start workout</h1>
+		<p class="mt-1 text-sm text-muted-foreground">Set context, verify plan details, then launch your live session.</p>
 	</header>
 
 	{#if shouldShowQuote}
