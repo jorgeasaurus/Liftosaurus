@@ -31,12 +31,18 @@
 	</div>
 {/if}
 {#if workoutRunes.persistenceConflict}
-	<p class="mb-2 border-amber-600 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="alert">
+	<p
+		class="mb-2 rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-sm text-amber-100"
+		role="alert"
+	>
 		This workout draft changed in another tab or uses a newer format. Your changes remain in this tab, and the saved
 		draft was left untouched.
 	</p>
 {:else if workoutRunes.persistenceUnavailable}
-	<p class="mb-2 border-amber-600 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="alert">
+	<p
+		class="mb-2 rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-sm text-amber-100"
+		role="alert"
+	>
 		Workout draft persistence is unavailable in this browser. Changes will work in this tab but will not be saved after
 		you leave.
 	</p>
