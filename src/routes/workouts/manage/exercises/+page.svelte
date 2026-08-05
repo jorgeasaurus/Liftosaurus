@@ -187,12 +187,16 @@
 		<Button
 			class="h-11 border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
 			href="./start"
-			variant="secondary">Previous</Button
+			variant="secondary"
 		>
+			Previous
+		</Button>
 		<Button
 			class="h-11 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
-			onclick={submitWorkoutExercises}>Next</Button
+			onclick={submitWorkoutExercises}
 		>
+			Next
+		</Button>
 	</div>
 
 	<ExerciseHistorySheet />
