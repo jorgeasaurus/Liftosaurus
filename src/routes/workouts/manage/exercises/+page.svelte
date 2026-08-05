@@ -5,7 +5,6 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Progress from '$lib/components/ui/progress/progress.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import H3 from '$lib/components/ui/typography/H3.svelte';
 	import { arraySum } from '$lib/utils.js';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -92,38 +91,44 @@
 	}
 </script>
 
-<H3>Exercises</H3>
+<section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-4">
+	<header>
+		<h1 class="text-4xl font-semibold tracking-[-0.03em] text-[#e9edf3]">Log exercises</h1>
+		<p class="mt-1 text-sm text-[#95a4b6]">Capture every set precisely before reviewing your session summary.</p>
+	</header>
 
-{#if workoutData !== null}
-	<div class="flex items-end">
-		<div class="mr-auto flex flex-col">
+	{#if workoutData !== null}
+	<div class="rounded-2xl border border-[#252c34] bg-[#11161d] p-4">
+		<div class="flex items-end">
+			<div class="mr-auto flex flex-col">
 			{#if workoutData.workoutOfMesocycle !== undefined}
-				<span class="text-lg font-semibold">
+				<span class="text-lg font-semibold text-[#e9eef5]">
 					{workoutData.workoutOfMesocycle.splitDayName}
 				</span>
-				<span class="flex items-center gap-2 text-sm text-muted-foreground">
+				<span class="flex items-center gap-2 text-sm text-[#9dadbe]">
 					Day {workoutData.workoutOfMesocycle?.splitDayIndex + 1}, Cycle {workoutData.workoutOfMesocycle?.cycleNumber}
 					<InfoPopover align="center" ariaLabel="mesocycle-info">
-						<span class="text-sm text-foreground">
+						<span class="text-sm text-[#dbe3ec]">
 							<p class="font-semibold">{workoutData.workoutOfMesocycle.mesocycle.name}</p>
 							{getFormattedDate(workoutData.startedAt)}
 						</span>
 					</InfoPopover>
 				</span>
 			{:else}
-				<span class="text-lg font-semibold">
+				<span class="text-lg font-semibold text-[#e9eef5]">
 					{getFormattedDate(workoutData.startedAt)}
 				</span>
-				<p class="text-sm text-muted-foreground">
+				<p class="text-sm text-[#9dadbe]">
 					{workoutRunes.editingWorkoutId === null ? 'Without mesocycle' : 'Edit mode'}
 				</p>
 			{/if}
-		</div>
-		<div class="grid grid-cols-4 gap-1">
+			</div>
+			<div class="grid grid-cols-4 gap-1.5">
 			<Button
 				aria-label="reorder-toggle"
 				disabled={comparing}
 				onclick={() => (reordering = !reordering)}
+				class="border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
 				size="icon"
 				variant="outline"
 			>
@@ -137,6 +142,7 @@
 				aria-label="compare-exercises"
 				disabled={reordering || workoutRunes.editingWorkoutId !== null}
 				onclick={() => (comparing = !comparing)}
+				class="border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
 				size="icon"
 				variant="outline"
 			>
@@ -156,21 +162,22 @@
 				setEditingExercise={workoutRunes.setEditingExercise}
 			/>
 			{#if totalSets !== null && completedSets !== null}
-				<Progress class="col-span-full h-1.5" max={totalSets} value={completedSets} />
+				<Progress class="col-span-full h-1.5 bg-[#232b35] [&>div]:bg-[#c7f73a]" max={totalSets} value={completedSets} />
 			{:else}
-				<Skeleton class="col-span-3 h-1.5 w-full" />
+				<Skeleton class="col-span-3 h-1.5 w-full bg-[#252f3a]" />
 			{/if}
+			</div>
 		</div>
 	</div>
-{/if}
+	{/if}
 
 {#if workoutRunes.workoutExercises === null}
-	<div class="flex h-full w-full items-center justify-center text-muted-foreground">
+	<div class="flex h-full w-full items-center justify-center rounded-2xl border border-[#252c34] bg-[#11161d] text-[#9dadbe]">
 		Fetching exercises
 		<LoaderCircle class="ml-2 animate-spin" />
 	</div>
 {:else}
-	<div class="mt-2 flex h-px grow flex-col overflow-y-auto">
+	<div class="mt-1 flex h-px grow flex-col overflow-y-auto rounded-2xl border border-[#252c34] bg-[#11161d] p-2">
 		<DndComponent
 			{comparing}
 			{reordering}
@@ -180,9 +187,9 @@
 	</div>
 {/if}
 
-<div class="mt-2 grid grid-cols-2 gap-1">
-	<Button href="./start" variant="secondary">Previous</Button>
-	<Button onclick={submitWorkoutExercises}>Next</Button>
+<div class="mt-2 grid grid-cols-2 gap-2">
+	<Button class="border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]" href="./start" variant="secondary">Previous</Button>
+	<Button class="border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]" onclick={submitWorkoutExercises}>Next</Button>
 </div>
 
 <ExerciseHistorySheet />
@@ -191,3 +198,4 @@
 {#if shouldShowQuote && completedSets}
 	<QuotesDialog {completedSets} />
 {/if}
+</section>

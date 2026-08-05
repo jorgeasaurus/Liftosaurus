@@ -17,17 +17,22 @@ Make sure you have the following tools installed:
 
 1. Fork the repository.
 2. Clone your forked repository:
+
    ```bash
    git clone https://github.com/WhyAsh5114/Liftosaurus.git
    cd Liftosaurus
    ```
+
 3. Install dependencies:
+
    ```bash
    npm ci
    ```
+
 4. Set up your environment variables. Copy `.env.example` to `.env` and configure the necessary values.
 
 5. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -72,19 +77,25 @@ If you find a bug or have a feature request, please check the [existing issues](
 ### Proposing Changes
 
 1. Create a new branch for your changes:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
+
 2. Make your changes, and ensure the code is properly formatted and linted
 3. Write tests if necessary
 4. Commit your changes with a meaningful commit message:
+
    ```bash
    git commit -m "Add feature: your-feature-name"
    ```
+
 5. Push your changes to your forked repository:
+
    ```bash
    git push origin feature/your-feature-name
    ```
+
 6. Open a pull request (PR) to the main repository. Make sure to describe your changes clearly in the PR description
 
 ### Code Guidelines

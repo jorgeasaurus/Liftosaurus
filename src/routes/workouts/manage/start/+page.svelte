@@ -10,7 +10,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
 	import { Switch } from '$lib/components/ui/switch';
-	import H3 from '$lib/components/ui/typography/H3.svelte';
 	import { trpc } from '$lib/trpc/client.js';
 	import type { RouterOutputs } from '$lib/trpc/router.js';
 	import { cn, convertCamelCaseToNormal } from '$lib/utils.js';
@@ -189,36 +188,40 @@
 	}
 </script>
 
-<H3>Start</H3>
+<section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-4">
+	<header>
+		<h1 class="text-4xl font-semibold tracking-[-0.03em] text-foreground">Start workout</h1>
+		<p class="mt-1 text-sm text-muted-foreground">Set context, verify plan details, then launch your live session.</p>
+	</header>
 
-{#if shouldShowQuote}
-	<Quotes mode="PRE_WORKOUT" class="mb-1" />
-{/if}
+	{#if shouldShowQuote}
+		<Quotes mode="PRE_WORKOUT" class="mb-1" />
+	{/if}
 
-{#if workoutData === 'loading'}
-	<Skeleton class="mb-1 h-14 w-full rounded-lg border border-opacity-0" />
-	<Skeleton class="mb-1 h-[96px] w-full" />
-	<Skeleton class="h-[166px] w-full" />
-	<Skeleton class="mt-auto h-10 w-full" />
-{:else}
+	{#if workoutData === 'loading'}
+		<Skeleton class="mb-1 h-16 w-full rounded-xl border border-[#2a323b] bg-[#151b22]" />
+		<Skeleton class="mb-1 h-[110px] w-full rounded-xl border border-[#2a323b] bg-[#151b22]" />
+		<Skeleton class="h-[176px] w-full rounded-xl border border-[#2a323b] bg-[#151b22]" />
+		<Skeleton class="mt-auto h-11 w-full rounded-lg" />
+	{:else}
 	{#if workoutData.isLastWorkout}
-		<Card.Root class="mb-1">
+		<Card.Root class="mb-1 border-[#2a323b] bg-[#11161d]">
 			<Card.Header>
-				<Card.Title>Last workout for the mesocycle &nbsp;🎉</Card.Title>
-				<Card.Description>
+				<Card.Title class="text-[#e9eef5]">Last workout for the mesocycle &nbsp;🎉</Card.Title>
+				<Card.Description class="text-[#a2afbf]">
 					If you complete this workout, this mesocycle will be marked as completed and you'll have to start a new one to
 					continue training. If you don't want to go through that hassle, you can edit the duration and extend it now.
 				</Card.Description>
 			</Card.Header>
 			<Card.Footer>
-				<Button class="ml-auto" href={`/mesocycles/${workoutData.workoutOfMesocycle?.mesocycle.id}`}>
+				<Button class="ml-auto border border-[#2f3844] bg-[#161d25] text-[#dbe3ec]" href={`/mesocycles/${workoutData.workoutOfMesocycle?.mesocycle.id}`}>
 					Edit mesocycle
 				</Button>
 			</Card.Footer>
 		</Card.Root>
 	{/if}
 	{#if workoutRunes.editingWorkoutId === null}
-		<div class="mb-1 flex items-center justify-between gap-2 rounded-lg border bg-card p-4">
+		<div class="mb-1 flex items-center justify-between gap-2 rounded-xl border border-[#2a323b] bg-[#11161d] p-4 text-[#dbe3ec]">
 			<Label for="use-active-mesocycle">
 				{workoutData.workoutOfMesocycle === undefined ? 'No' : 'Use'} active mesocycle
 			</Label>
@@ -231,7 +234,7 @@
 	{/if}
 	{#if !(useActiveMesocycle && workoutData.workoutOfMesocycle?.workoutStatus === 'RestDay')}
 		<form
-			class="mb-1 flex w-full flex-col gap-1.5 rounded-lg border bg-card p-4"
+			class="mb-1 flex w-full flex-col gap-1.5 rounded-xl border border-[#2a323b] bg-[#11161d] p-4"
 			name="user-bodyweight-form"
 			id="user-bodyweight-form"
 			onsubmit={(e) => {
@@ -239,8 +242,9 @@
 				startWorkout();
 			}}
 		>
-			<Label for="user-bodyweight">Bodyweight (lbs)</Label>
+			<Label class="text-[#dbe3ec]" for="user-bodyweight">Bodyweight (lbs)</Label>
 			<Input
+				class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
 				id="user-bodyweight"
 				placeholder="Type here"
 				type="number"
@@ -250,9 +254,10 @@
 			/>
 			{#if workoutRunes.editingWorkoutId !== null && workoutRunes.workoutData}
 				<div class="grid grid-cols-2 gap-x-2 gap-y-1.5">
-					<Label for="start-date">Start date</Label>
-					<Label for="end-date">End date</Label>
+					<Label class="text-[#dbe3ec]" for="start-date">Start date</Label>
+					<Label class="text-[#dbe3ec]" for="end-date">End date</Label>
 					<Input
+						class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
 						id="start-date"
 						type="datetime-local"
 						value={dateToLocalISOString(workoutRunes.workoutData.startedAt as Date)}
@@ -262,6 +267,7 @@
 						required
 					/>
 					<Input
+						class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
 						id="end-date"
 						type="datetime-local"
 						min={dateToLocalISOString(workoutRunes.workoutData.startedAt as Date)}
@@ -276,14 +282,14 @@
 		</form>
 	{/if}
 	{#if skippedWorkoutsOfCycle && skippedWorkoutsOfCycle.length > 0}
-		<Card.Root class="mb-1">
+		<Card.Root class="mb-1 border-[#2a323b] bg-[#11161d]">
 			<Card.Header>
-				<Card.Title>Skipped days</Card.Title>
-				<Card.Description>for this cycle</Card.Description>
+				<Card.Title class="text-[#e9eef5]">Skipped days</Card.Title>
+				<Card.Description class="text-[#a2afbf]">for this cycle</Card.Description>
 			</Card.Header>
 			<Card.Content class="flex flex-wrap gap-1">
 				{#each skippedWorkoutsOfCycle as skippedWorkout}
-					<Button variant="secondary" class="gap-2" onclick={() => repeatSkippedWorkout(skippedWorkout.splitDayIndex)}>
+					<Button variant="secondary" class="gap-2 border border-[#303844] bg-[#171e27] text-[#dfe6ef]" onclick={() => repeatSkippedWorkout(skippedWorkout.splitDayIndex)}>
 						{skippedWorkout.splitDayName}
 						<RedoIcon />
 					</Button>
@@ -294,12 +300,12 @@
 	{#if useActiveMesocycle && workoutData.workoutOfMesocycle}
 		{@const workoutStatus = workoutData.workoutOfMesocycle.workoutStatus}
 		{@const splitDayName = workoutData.workoutOfMesocycle.splitDayName}
-		<Card.Root>
+		<Card.Root class="border-[#2a323b] bg-[#11161d]">
 			<Card.Header>
 				<Card.Title class={cn({ 'text-primary': splitDayName === '' })}>
 					{splitDayName === '' ? 'Rest' : splitDayName}
 				</Card.Title>
-				<Card.Description class="pb-1">
+				<Card.Description class="pb-1 text-[#9fadbf]">
 					Day {workoutData.workoutOfMesocycle.splitDayIndex + 1}, Cycle {workoutData.workoutOfMesocycle.cycleNumber}
 					{#if $page.url.searchParams.get('repeatSkipped')}
 						(Repeating skipped)
@@ -334,7 +340,7 @@
 	{/if}
 	{#if workoutData.workoutOfMesocycle?.workoutStatus !== 'RestDay'}
 		<Button
-			class="mt-auto"
+			class="mt-auto border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
 			type="submit"
 			form="user-bodyweight-form"
 			disabled={userBodyweight === null || $navigating !== null}
@@ -346,7 +352,8 @@
 			{/if}
 		</Button>
 	{/if}
-{/if}
+	{/if}
+</section>
 
 <ResponsiveDialog title="Warning" bind:open={overwriteWorkoutDialogOpen}>
 	{#snippet description()}

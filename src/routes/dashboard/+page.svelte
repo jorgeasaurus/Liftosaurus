@@ -1,61 +1,45 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/button/button.svelte';
-	import * as Card from '$lib/components/ui/card';
-	import H2 from '$lib/components/ui/typography/H2.svelte';
-	import H3 from '$lib/components/ui/typography/H3.svelte';
-	import type { RouterOutputs } from '$lib/trpc/router';
-	import { onMount } from 'svelte';
-	import DiscordIcon from 'virtual:icons/ic/baseline-discord';
+	import ChevronDownIcon from 'virtual:icons/lucide/chevron-down';
+	import PlayIcon from 'virtual:icons/lucide/play';
+	import SunriseIcon from 'virtual:icons/lucide/sunrise';
+	import type { PageData } from './$types';
 	import DashboardMetricsCard from './(components)/DashboardMetricsCard.svelte';
 	import GetStartedComponent from './(components)/GetStartedComponent.svelte';
 	import TodaysWorkoutCard from './(components)/TodaysWorkoutCard.svelte';
 
-	let { data } = $props();
-	let entityCounts: RouterOutputs['users']['getEntityCounts'] | undefined = $state(undefined);
-	let dismissDiscord = $state(false);
-
-	onMount(async () => {
-		if (data.entityCounts === undefined) {
-			entityCounts = null;
-			return;
-		}
-		entityCounts = await data.entityCounts;
-	});
-
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-		dismissDiscord = Boolean(window.localStorage.getItem('discord-dismiss'));
-	});
+	let { data }: { data: PageData } = $props();
 </script>
 
-<H2>Home</H2>
-<GetStartedComponent {entityCounts} />
+<section class="mx-auto flex w-full max-w-[1480px] flex-col gap-4">
+	<header class="flex items-center justify-between">
+		<h1 class="inline-flex items-center gap-3 text-[44px] font-semibold leading-none tracking-[-0.03em] text-[#f3f6f2]"><SunriseIcon class="h-7 w-7 text-[#c7f43a]" />Good morning</h1>
+		<div class="flex items-center gap-3">
+			<button class="inline-flex items-center gap-2 rounded-xl border border-[#273034] bg-[#171e20] px-4 py-3 text-sm font-medium text-[#f3f6f2]" type="button">
+				Upper Strength
+				<ChevronDownIcon class="h-4 w-4 text-[#98a3b2]" />
+			</button>
+			<a class="inline-flex items-center gap-2 rounded-xl bg-[#c7f43a] px-7 py-3 text-sm font-semibold text-[#1b260f] transition-colors hover:bg-[#d2f95a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c7f43a]" href="/workouts/manage/start">
+				<PlayIcon class="h-4 w-4" />
+				Start workout
+			</a>
+		</div>
+	</header>
 
-<H3>Today's workout</H3>
-<TodaysWorkoutCard {...data} />
+	<div class="grid grid-cols-12 gap-4">
+		<div class="col-span-8 rounded-2xl border border-[#273034] bg-[#111719] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.22)]">
+			<TodaysWorkoutCard todaysWorkoutData={data.todaysWorkoutData} />
+		</div>
 
-<DashboardMetricsCard chartData={data.dashboardChartData} />
+		<aside class="col-span-4 space-y-4">
+			{#await data.entityCounts then entityCounts}
+				<div class="rounded-2xl border border-[#273034] bg-[#111719] p-4">
+					<GetStartedComponent entityCounts={entityCounts} />
+				</div>
+			{/await}
+		</aside>
+	</div>
 
-{#if !dismissDiscord}
-	<Card.Root class="mt-2">
-		<Card.Header>
-			<Card.Title class="Title">We have a Discord</Card.Title>
-			<Card.Description>Join to stay updated, connect with others, and get support!</Card.Description>
-		</Card.Header>
-		<Card.Footer class="flex justify-between">
-			<Button
-				variant="outline"
-				onclick={() => {
-					dismissDiscord = true;
-					localStorage.setItem('discord-dismiss', 'true');
-				}}
-			>
-				Dismiss
-			</Button>
-			<Button class="gap-2" href="https://discord.com/invite/2g9YPD6PQu">
-				<DiscordIcon />
-				Join
-			</Button>
-		</Card.Footer>
-	</Card.Root>
-{/if}
+	<div class="rounded-2xl border border-[#273034] bg-[#111719] p-4 shadow-[0_8px_20px_rgba(0,0,0,0.22)]">
+		<DashboardMetricsCard chartData={data.dashboardChartData} />
+	</div>
+</section>
