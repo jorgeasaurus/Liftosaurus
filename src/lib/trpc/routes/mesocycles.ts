@@ -106,11 +106,11 @@ export const mesocycles = t.router({
 		}),
 
 	create: t.procedure.input(zodMesocycleCreateInput).mutation(async ({ input, ctx }) => {
-		const mesocycleId = createId();
+		const mesocycleId = input.mesocycle.id ?? createId();
 		const mesocycle: Prisma.MesocycleUncheckedCreateInput = {
+			...input.mesocycle,
 			id: mesocycleId,
-			userId: ctx.userId,
-			...input.mesocycle
+			userId: ctx.userId
 		};
 
 		const mesocycleCyclicSetChanges: Prisma.MesocycleCyclicSetChangeUncheckedCreateInput[] =
