@@ -48,6 +48,13 @@
 		if (!(await workoutRunes.applyManualDeload(target))) return;
 		isContextMenuOpen = false;
 	}
+
+	async function confirmDelete() {
+		const ok = confirm(`Delete "${exercise.name}" from this workout?`);
+		if (!ok) return;
+		await workoutRunes.deleteExercise(idx);
+		isContextMenuOpen = false;
+	}
 </script>
 
 <div class="flex flex-col gap-1.5 rounded-xl border border-[#252c34] bg-[#11161d] p-2.5">
@@ -84,6 +91,7 @@
 								{...builder}
 								class="rounded-md p-1 text-[#9dadbe] hover:bg-[#1b2430] hover:text-[#e9eef5]"
 								data-testid="{exercise.name}-menu-button"
+								aria-label="Exercise options"
 							>
 								<MenuIcon class="h-4 w-4" />
 							</button>
@@ -116,13 +124,7 @@
 								<DropdownMenu.Item class="gap-2" onclick={() => workoutRunes.openExerciseHistorySheet(exercise.name)}>
 									<HistoryIcon /> History
 								</DropdownMenu.Item>
-								<DropdownMenu.Item
-									class="gap-2 text-red-500"
-									onclick={async () => {
-										await workoutRunes.deleteExercise(idx);
-										isContextMenuOpen = false;
-									}}
-								>
+								<DropdownMenu.Item class="gap-2 text-red-500" onclick={confirmDelete}>
 									<DeleteIcon /> Delete
 								</DropdownMenu.Item>
 							</DropdownMenu.Group>
