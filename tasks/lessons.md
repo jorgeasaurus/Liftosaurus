@@ -6,3 +6,23 @@
 - Treat successful page loads and service-worker installation as separate release checks; validate every Workbox precache URL against the promoted deployment before declaring the PWA healthy.
 - A clean-browser PWA check is insufficient during recovery; verify the replacement worker automatically takes control of a tab still controlled by the broken worker.
 - Detect browser resource failures from the recorded HTTP status as well as DOM attachment state; `link.sheet` can briefly look valid after a stylesheet 404.
+- When a mutation reconciles cached UI data, retain the canonical result as an override for later in-flight and paginated responses, and version concurrent successful mutations so an older response cannot win.
+- Authorize destructive replace-style edits before opening the transaction, and scope every lookup and delete by the authenticated tenant.
+- Keep upgrade parsers tolerant only for explicitly known legacy fields; current persisted schemas must remain strict.
+- Never persist unrelated cross-tab drafts in one stale read-modify-write envelope; isolate independently owned records and synchronize storage events.
+- When UI fields mirror a persisted store, explicitly reconcile valid external transitions and validate mode-specific invariants; a store update alone does not update copied form state.
+- Preserve unreadable versioned records through unrelated workflows; retaining raw storage only at initialization is insufficient if later actions rewrite parsed `null` state.
+- Storage schemas must enforce cross-field invariants and the same identifier contract as their consuming API.
+- Treat local-storage writes and deletes as compare-to-owned mutations: re-read and match the exact raw record before changing it.
+- Validate current serialized timestamps by canonical ISO round-trip before constructing dates; keep permissive parsing migration-only.
+- A localStorage compare-then-mutate sequence is not cross-tab atomic; serialize every cooperating writer with the same per-key Web Lock.
+- Deferred defaults must reconcile against an untracked request-time revision when they resolve, or a later promise can overwrite a restored external draft.
+- A fallback mutex must coordinate browser contexts, not just promises in one module realm; use expiring per-owner intents, ordered fencing, confirmation, and owner-checked release.
+- Async global setup must await every resource creation before publishing fixture identities; retries must not mask fixture readiness races.
+- A renewable localStorage lease is not a fence: once ownership expires, every protected write must fail closed at its final mutation boundary, and multi-key migration must not await while holding partial leases.
+- Before publishing a fallback-lock ticket, revalidate the exact choosing record and its expiry; a timed-out chooser must restart within the original deadline, never resurrect stale priority after takeover.
+- Do not emulate a cross-context transaction with renewable localStorage leases: require native Web Locks or fail closed without mutating persisted raw data.
+- Scope client-side drafts, modes, locks, and migrations to the authenticated user; never auto-claim an origin-global legacy draft after authentication.
+- Bind singleton client state reactively to the current session, including anonymous transitions, and fence every queued or locked continuation with a captured user-and-epoch token.
+- Never use origin-wide storage clearing for logout or app updates; remove only explicit application-owned disposable keys and preserve all user-scoped and quarantined records.
+- Multi-key local-storage migration must remain resumable after every individual write; retain the source record until all destination records and mode are durably complete.

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { retryTransactionConflicts } from '../../src/lib/trpc/transaction.js';
 
-test('Cockroach serialization conflicts retry while other failures surface immediately', async () => {
+test('Prisma serialization conflicts retry while other failures surface immediately', async () => {
 	let conflictAttempts = 0;
 	const result = await retryTransactionConflicts(async () => {
 		conflictAttempts += 1;
@@ -23,7 +23,7 @@ test('Cockroach serialization conflicts retry while other failures surface immed
 	assert.equal(otherAttempts, 1);
 });
 
-test('Cockroach serialization retries use capped exponential jittered backoff', async () => {
+test('Prisma serialization retries use capped exponential jittered backoff', async () => {
 	let attempts = 0;
 	const delays: number[] = [];
 	const result = await retryTransactionConflicts(
@@ -44,7 +44,7 @@ test('Cockroach serialization retries use capped exponential jittered backoff', 
 	assert.deepEqual(delays, [7.5, 15, 30, 37.5]);
 });
 
-test('Cockroach serialization retries are bounded', async () => {
+test('Prisma serialization retries are bounded', async () => {
 	let attempts = 0;
 	await assert.rejects(
 		retryTransactionConflicts(
