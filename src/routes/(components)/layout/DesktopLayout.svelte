@@ -60,7 +60,7 @@
 				<ProfileIcon class="h-4 w-4" />
 			</div>
 			<div class="min-w-0">
-				<p class="truncate text-sm font-semibold">{$page.data.session?.user?.name ?? 'Alex'}</p>
+				<p class="truncate text-sm font-semibold">{$page.data.session?.user?.name ?? 'Profile'}</p>
 				<p class="text-xs text-[#a6afb1]">Athlete</p>
 			</div>
 		</a>

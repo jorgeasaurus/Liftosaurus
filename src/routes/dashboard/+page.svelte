@@ -48,7 +48,7 @@
 
 <section class="mx-auto flex w-full max-w-[1480px] flex-col gap-4">
 	<header class="flex items-center justify-between">
-		<h1 class="inline-flex items-center gap-3 text-[44px] font-semibold leading-none tracking-[-0.03em] text-[#f3f6f2]"><SunriseIcon class="h-7 w-7 text-[#c7f43a]" />Good morning, Alex</h1>
+		<h1 class="inline-flex items-center gap-3 text-[44px] font-semibold leading-none tracking-[-0.03em] text-[#f3f6f2]"><SunriseIcon class="h-7 w-7 text-[#c7f43a]" />Good morning</h1>
 		<div class="flex items-center gap-3">
 			<button
 				aria-haspopup="listbox"
