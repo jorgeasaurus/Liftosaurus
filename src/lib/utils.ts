@@ -101,6 +101,7 @@ export function arraySum(arr: number[]) {
 }
 
 export function arrayAverage(arr: number[]): number {
+	if (arr.length === 0) return 0;
 	return arraySum(arr) / arr.length;
 }
 
