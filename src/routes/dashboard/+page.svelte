@@ -9,17 +9,22 @@
 	import { getRIRForWeek } from '$lib/utils/workoutUtils';
 
 	let { data }: { data: PageData } = $props();
+
+	const userName = data.session?.user?.name?.split(' ')[0] ?? 'there';
+	const userLocale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
 </script>
 
 <section class="mobile-dashboard">
 	{#await data.todaysWorkoutData then todaysWorkout}
 		{@const workout = todaysWorkout.workoutOfMesocycle}
+		{@const firstExercise = todaysWorkout.workoutExercises[0]}
+		{@const rir = workout ? getRIRForWeek(workout.mesocycle.RIRProgression, workout.cycleNumber) : null}
 		<div class="mobile-dashboard-intro">
 			<div>
 				<p class="mobile-eyebrow">
-					TODAY · {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+					TODAY · {new Date().toLocaleDateString(userLocale, { weekday: 'short', month: 'short', day: 'numeric' })}
 				</p>
-				<h1><SunriseIcon />Good morning, Alex</h1>
+				<h1><SunriseIcon />Good morning, {userName}</h1>
 			</div>
 			<button class="mobile-plan-pill" type="button"
 				>{workout?.splitDayName ?? 'Upper Strength'} <ChevronDownIcon /></button
@@ -33,25 +38,24 @@
 					<h2>{workout?.splitDayName ?? 'Upper Strength'}</h2>
 					<p class="mobile-session-meta">
 						{workout
-							? `${getRIRForWeek(workout.mesocycle.RIRProgression, workout.cycleNumber)} RIR target · 6 exercises`
+							? `${rir} RIR target · ${todaysWorkout.workoutExercises.length} exercises`
 							: 'Build a plan to unlock progressive overload'}
 					</p>
 				</div>
-				<div class="mobile-session-mark">{workout ? '03' : '—'}</div>
+				<div class="mobile-session-mark">{workout ? String(workout.splitDayIndex + 1).padStart(2, '0') : '—'}</div>
 			</div>
 
 			<div class="mobile-session-divider"></div>
 			<div class="mobile-next-set">
 				<div>
 					<p class="mobile-eyebrow">FIRST MOVEMENT</p>
-					<p class="mobile-exercise">Bench Press</p>
+					<p class="mobile-exercise">{firstExercise?.name ?? '—'}</p>
 				</div>
-				<div class="mobile-prescription">185 <span>lb</span> <b>×</b> 6–8</div>
 			</div>
 
 			<div class="mobile-rir-row">
 				<span>Target effort</span>
-				<span class="mobile-rir-chip">RIR 2</span>
+				<span class="mobile-rir-chip">{rir !== null ? `RIR ${rir}` : '—'}</span>
 			</div>
 			<a class="mobile-primary-action" href="/workouts/manage/start">
 				<PlayIcon />
@@ -260,23 +264,6 @@
 			color: #f3f6f2;
 			font-size: 18px;
 			font-weight: 600;
-		}
-		.mobile-prescription {
-			color: #f3f6f2;
-			font-size: 22px;
-			font-weight: 700;
-			letter-spacing: -0.04em;
-			white-space: nowrap;
-		}
-		.mobile-prescription span {
-			color: #a6afb1;
-			font-size: 12px;
-			letter-spacing: 0;
-		}
-		.mobile-prescription b {
-			margin: 0 3px;
-			color: #8f999d;
-			font-weight: 400;
 		}
 		.mobile-rir-row {
 			margin: 18px 0 14px;
