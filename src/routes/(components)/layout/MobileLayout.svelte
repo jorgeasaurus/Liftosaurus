@@ -28,7 +28,9 @@
 		href === '/dashboard' ? $page.url.pathname.startsWith('/dashboard') : $page.url.pathname.startsWith(href);
 
 	// Hide global chrome during live workout logging to free vertical space
-	let isFocusedWorkout = $derived($page.url.pathname.includes('/workouts/manage'));
+	let isFocusedWorkout = $derived(
+		$page.url.pathname === '/workouts/manage' || $page.url.pathname.startsWith('/workouts/manage/')
+	);
 </script>
 
 <header class="mobile-topbar" class:compact={isFocusedWorkout}>
