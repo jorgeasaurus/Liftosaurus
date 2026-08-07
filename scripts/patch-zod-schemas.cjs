@@ -14,7 +14,7 @@ if (content.startsWith('// @ts-nocheck')) {
 const SHIM_HEADER = `// @ts-nocheck — generated file; Proxy shim below polyfills cuid/cuid2 removed in zod v3.23+
 import { isCuid } from '@paralleldrive/cuid2';
 import type { Prisma } from '@prisma/client';
-import { z as baseZ, type ZodString } from 'zod';
+import { z as baseZ, type ZodEffects, type ZodString } from 'zod';
 
 export const z = new Proxy(baseZ, {
 \tget(target, prop, receiver) {
@@ -23,15 +23,17 @@ export const z = new Proxy(baseZ, {
 \t\treturn Reflect.get(target, prop, receiver);
 \t}
 }) as typeof baseZ & {
-\tcuid: () => ZodString;
-\tcuid2: () => ZodString;
+\tcuid: () => ZodEffects<ZodString, string, string>;
+\tcuid2: () => ZodEffects<ZodString, string, string>;
 };
 
 `;
 
 // Replace the generated z import line with the shim header
-const patched = content
-	.replace(/^import \{ z \} from 'zod';\nimport type \{ Prisma \} from '@prisma\/client';\n/m, SHIM_HEADER);
+const patched = content.replace(
+	/^import \{ z \} from 'zod';\nimport type \{ Prisma \} from '@prisma\/client';\n/m,
+	SHIM_HEADER
+);
 
 if (patched === content) {
 	console.error('zod-schemas: could not locate expected import header — shim not applied.');

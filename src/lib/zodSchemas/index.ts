@@ -1,7 +1,7 @@
 // @ts-nocheck — generated file; Proxy shim below polyfills cuid/cuid2 removed in zod v3.23+
 import { isCuid } from '@paralleldrive/cuid2';
 import type { Prisma } from '@prisma/client';
-import { z as baseZ, type ZodString } from 'zod';
+import { z as baseZ, type ZodEffects, type ZodString } from 'zod';
 
 export const z = new Proxy(baseZ, {
 	get(target, prop, receiver) {
@@ -10,8 +10,8 @@ export const z = new Proxy(baseZ, {
 		return Reflect.get(target, prop, receiver);
 	}
 }) as typeof baseZ & {
-	cuid: () => ZodString;
-	cuid2: () => ZodString;
+	cuid: () => ZodEffects<ZodString, string, string>;
+	cuid2: () => ZodEffects<ZodString, string, string>;
 };
 
 
