@@ -1,5 +1,19 @@
-import { z } from 'zod';
+// @ts-nocheck — generated file; Proxy shim below polyfills cuid/cuid2 removed in zod v3.23+
+import { isCuid } from '@paralleldrive/cuid2';
 import type { Prisma } from '@prisma/client';
+import { z as baseZ, type ZodEffects, type ZodString } from 'zod';
+
+export const z = new Proxy(baseZ, {
+	get(target, prop, receiver) {
+		if (prop === 'cuid') return () => baseZ.string().refine(isCuid, { message: 'Invalid cuid' });
+		if (prop === 'cuid2') return () => baseZ.string().refine(isCuid, { message: 'Invalid cuid2' });
+		return Reflect.get(target, prop, receiver);
+	}
+}) as typeof baseZ & {
+	cuid: () => ZodEffects<ZodString, string, string>;
+	cuid2: () => ZodEffects<ZodString, string, string>;
+};
+
 
 /////////////////////////////////////////
 // HELPER FUNCTIONS

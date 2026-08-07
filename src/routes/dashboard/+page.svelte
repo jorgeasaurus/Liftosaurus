@@ -26,9 +26,7 @@
 				</p>
 				<h1><SunriseIcon />Good morning, {userName}</h1>
 			</div>
-			<button class="mobile-plan-pill" type="button"
-				>{workout?.splitDayName ?? 'Upper Strength'} <ChevronDownIcon /></button
-			>
+			<div class="mobile-plan-pill">{workout?.splitDayName ?? 'Upper Strength'}</div>
 		</div>
 
 		<div class="mobile-session-card">
@@ -69,7 +67,6 @@
 				<p class="mobile-eyebrow">REST TIMER</p>
 				<strong>Ready when you are</strong><span>Keep your next set intentional.</span>
 			</div>
-			<button class="mobile-icon-button" aria-label="Start rest timer" type="button"><PlayIcon /></button>
 		</div>
 
 		<div class="mobile-section-heading">
@@ -195,20 +192,16 @@
 		.mobile-plan-pill {
 			display: inline-flex;
 			align-items: center;
-			gap: 4px;
-			border: 1px solid #273034;
+			border: 1px solid #1e2b2e;
 			border-radius: 10px;
-			background: #171e20;
+			background: transparent;
 			padding: 9px 10px;
-			color: #dfe7e2;
+			color: #6b797d;
 			font-size: 11px;
 			font-weight: 600;
 			white-space: nowrap;
-		}
-		.mobile-plan-pill :global(svg) {
-			width: 14px;
-			height: 14px;
-			color: #8f999d;
+			cursor: default;
+			user-select: none;
 		}
 		.mobile-session-card,
 		.mobile-rest-card,
@@ -345,21 +338,7 @@
 			color: #8f999d;
 			font-size: 11px;
 		}
-		.mobile-icon-button {
-			display: grid;
-			height: 38px;
-			width: 38px;
-			flex: 0 0 auto;
-			place-items: center;
-			border: 1px solid #34423b;
-			border-radius: 11px;
-			background: #171e20;
-			color: #c7f43a;
-		}
-		.mobile-icon-button :global(svg) {
-			width: 15px;
-			height: 15px;
-		}
+
 		.mobile-section-heading {
 			display: flex;
 			align-items: center;
