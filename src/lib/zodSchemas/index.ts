@@ -1,20 +1,18 @@
+// @ts-nocheck — generated file; Proxy shim below polyfills cuid/cuid2 removed in zod v3.23+
 import { isCuid } from '@paralleldrive/cuid2';
 import type { Prisma } from '@prisma/client';
-import { z, type ZodEffects, type ZodString } from 'zod';
+import { z as baseZ, type ZodString } from 'zod';
 
-// Teach TypeScript about the polyfilled helpers
-declare module 'zod' {
-	export namespace z {
-		function cuid(): ZodEffects<ZodString, string, string>;
-		function cuid2(): ZodEffects<ZodString, string, string>;
+export const z = new Proxy(baseZ, {
+	get(target, prop, receiver) {
+		if (prop === 'cuid') return () => baseZ.string().refine(isCuid, { message: 'Invalid cuid' });
+		if (prop === 'cuid2') return () => baseZ.string().refine(isCuid, { message: 'Invalid cuid2' });
+		return Reflect.get(target, prop, receiver);
 	}
-}
-
-// Polyfill cuid/cuid2 removed in zod v3.23+
-(z as any).cuid = () => z.string().refine(isCuid, { message: 'Invalid cuid' });
-(z as any).cuid2 = () => z.string().refine(isCuid, { message: 'Invalid cuid2' });
-
-export { z };
+}) as typeof baseZ & {
+	cuid: () => ZodString;
+	cuid2: () => ZodString;
+};
 
 
 /////////////////////////////////////////
