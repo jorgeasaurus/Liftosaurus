@@ -79,13 +79,6 @@
       "command": "pnpm ci:full",
       "problemMatcher": ["$eslint-stylish", "$tsc"],
       "presentation": { "reveal": "always", "panel": "new" }
-    },
-    {
-      "label": "commit-push-deploy",
-      "type": "shell",
-      "command": "git add -A && git commit && git push && vercel --prod",
-      "presentation": { "reveal": "always", "panel": "new", "focus": true },
-      "problemMatcher": []
     }
   ]
 }
