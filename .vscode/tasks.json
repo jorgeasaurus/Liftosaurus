@@ -1,0 +1,91 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "type": "shell",
+      "command": "pnpm dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "dev" },
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "pnpm build",
+      "problemMatcher": ["$tsc"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "group": { "kind": "build", "isDefault": false }
+    },
+    {
+      "label": "preview",
+      "type": "shell",
+      "command": "pnpm preview",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "check",
+      "type": "shell",
+      "command": "pnpm check",
+      "problemMatcher": ["$tsc"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "group": { "kind": "test", "isDefault": false }
+    },
+    {
+      "label": "check:watch",
+      "type": "shell",
+      "command": "pnpm check:watch",
+      "isBackground": true,
+      "problemMatcher": ["$tsc-watch"],
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "dev" }
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "pnpm lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "group": { "kind": "test", "isDefault": false }
+    },
+    {
+      "label": "format",
+      "type": "shell",
+      "command": "pnpm format",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "new" }
+    },
+    {
+      "label": "test",
+      "type": "shell",
+      "command": "pnpm test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "test:unit",
+      "type": "shell",
+      "command": "pnpm test:unit",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "new" },
+      "group": { "kind": "test", "isDefault": false }
+    },
+    {
+      "label": "ci:full",
+      "type": "shell",
+      "command": "pnpm ci:full",
+      "problemMatcher": ["$eslint-stylish", "$tsc"],
+      "presentation": { "reveal": "always", "panel": "new" }
+    },
+    {
+      "label": "commit-push-deploy",
+      "type": "shell",
+      "command": "git add -A && git commit && git push && vercel --prod",
+      "presentation": { "reveal": "always", "panel": "new", "focus": true },
+      "problemMatcher": []
+    }
+  ]
+}
