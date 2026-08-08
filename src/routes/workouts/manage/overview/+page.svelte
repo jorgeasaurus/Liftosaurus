@@ -212,8 +212,8 @@
 </Tabs.Root>
 
 <div class="mt-4 flex w-full flex-col gap-1.5">
-	<Label for="workout-note">Workout note</Label>
 	{#if workoutRunes.workoutData}
+		<Label for="workout-note">Workout note</Label>
 		<Textarea id="workout-note" placeholder="Type here (optional)" bind:value={workoutRunes.workoutData.note}
 		></Textarea>
 	{/if}
