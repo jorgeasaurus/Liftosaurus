@@ -256,10 +256,9 @@
 						<span
 							aria-label={repTargetLabel}
 							aria-live="polite"
-							class:text-emerald-500={repTargetDelta > 0}
-							class:text-rose-500={repTargetDelta < 0}
-							class:text-[#8fa0b3]={repTargetDelta === 0}
-							class="absolute inset-y-0 right-2 flex items-center"
+							class={`absolute inset-y-0 right-2 flex items-center ${
+								repTargetDelta > 0 ? 'text-emerald-500' : repTargetDelta < 0 ? 'text-rose-500' : 'text-[#8fa0b3]'
+							}`}
 							data-testid="{exercise.name}-set-{idx + 1}-rep-target-status"
 							role="img"
 							title={repTargetLabel}

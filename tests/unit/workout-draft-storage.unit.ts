@@ -546,6 +546,32 @@ describe('workout draft storage', () => {
 		}
 	});
 
+	it('loads version 1 records and upgrades them when next saved', async () => {
+		const draft = activeDraft();
+		const legacyDraft = {
+			...draft,
+			workoutExercises: draft.workoutExercises?.map((workoutExercise) => ({
+				...workoutExercise,
+				sets: workoutExercise.sets.map(({ plannedReps: _plannedReps, ...set }) => set)
+			}))
+		};
+		const storage = keyValueStorage({
+			[WORKOUT_ACTIVE_DRAFT_STORAGE_KEY]: JSON.stringify({ version: 1, draft: legacyDraft })
+		});
+
+		const loaded = loadWorkoutDraftStorage(storage, keyValueStorage());
+
+		assert.equal(loaded.status, 'valid');
+		assert.equal(loaded.storage.activeDraft?.workoutExercises?.[0].sets[0].plannedReps, 9);
+
+		const saved = await saveActiveWorkoutDraft(storage, loaded.records.active, loaded.records.active.draft);
+		const persisted = JSON.parse(storage.getItem(WORKOUT_ACTIVE_DRAFT_STORAGE_KEY) ?? '{}');
+
+		assert.equal(saved.written, true);
+		assert.equal(persisted.version, WORKOUT_DRAFT_RECORD_VERSION);
+		assert.equal(persisted.draft.workoutExercises[0].sets[0].plannedReps, 9);
+	});
+
 	it('preserves an unreadable separate active record when historical editing snapshots the active draft', async () => {
 		for (const raw of [JSON.stringify({ version: 999, draft: activeDraft() }), '{not json']) {
 			const storage = keyValueStorage({ [WORKOUT_ACTIVE_DRAFT_STORAGE_KEY]: raw });
