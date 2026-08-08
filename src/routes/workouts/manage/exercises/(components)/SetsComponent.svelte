@@ -13,6 +13,9 @@
 	} from '$lib/utils/workoutUtils';
 	import CheckIcon from 'virtual:icons/lucide/check';
 	import ArrowDownIcon from 'virtual:icons/lucide/chevron-down';
+	import BelowTargetIcon from 'virtual:icons/lucide/arrow-down';
+	import AtTargetIcon from 'virtual:icons/lucide/equal';
+	import AboveTargetIcon from 'virtual:icons/lucide/arrow-up';
 	import RemoveIcon from 'virtual:icons/lucide/minus';
 	import EditIcon from 'virtual:icons/lucide/pencil';
 	import AddIcon from 'virtual:icons/lucide/plus';
@@ -20,7 +23,10 @@
 	import UndoIcon from 'virtual:icons/lucide/undo';
 	import { workoutRunes } from '../../workoutRunes.svelte';
 
-	type PropsType = { exercise: WorkoutExerciseInProgress; originalSetLoads: (number | undefined)[] };
+	type PropsType = {
+		exercise: WorkoutExerciseInProgress;
+		originalSetLoads: (number | undefined)[];
+	};
 	type WorkoutExerciseSet = WorkoutExerciseInProgress['sets'][number];
 	let { exercise = $bindable(), originalSetLoads = $bindable() }: PropsType = $props();
 
@@ -116,6 +122,17 @@
 		}
 	}
 
+	function getRepTargetDelta(set: WorkoutExerciseSet) {
+		if (!set.completed || typeof set.reps !== 'number' || typeof set.plannedReps !== 'number') return;
+		return set.reps - set.plannedReps;
+	}
+
+	function getRepTargetLabel(delta: number) {
+		if (delta === 0) return 'Reps at target';
+		const difference = Math.abs(delta);
+		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} target`;
+	}
+
 	function adjustLoads(setIdx: number) {
 		let extraOverloadAchieved = 0;
 		const exerciseSet = exercise.sets[setIdx];
@@ -146,10 +163,11 @@
 			);
 			exercise.sets[setIdx] = { ...exerciseSet, reps: newReps, load: newLoad };
 			originalSetLoads[setIdx] = newLoad;
+			exercise.sets[setIdx].plannedReps = newReps;
 			return;
 		}
 
-		exercise.sets.forEach((set, setIdx) => {
+		exercise.sets.forEach((set, currentSetIdx) => {
 			if (set.reps === undefined || set.RIR === undefined) return;
 
 			const newReps = Math.round(
@@ -179,8 +197,9 @@
 				}
 			});
 
-			exercise.sets[setIdx] = { ...set, reps: newReps, load: newLoad };
-			originalSetLoads[setIdx] = newLoad;
+			exercise.sets[currentSetIdx] = { ...set, reps: newReps, load: newLoad };
+			originalSetLoads[currentSetIdx] = newLoad;
+			exercise.sets[currentSetIdx].plannedReps = newReps;
 		});
 	}
 </script>
@@ -209,6 +228,7 @@
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
+		{@const repTargetDelta = getRepTargetDelta(set)}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
 				<div class="col-span-full flex items-center gap-2 text-muted-foreground">
@@ -220,16 +240,40 @@
 				</div>
 			{/if}
 			{#if !set.skipped}
-				<Input
-					class="h-9 px-2 text-center"
-					id="{exercise.name}-set-{idx + 1}-reps"
-					disabled={set.completed || set.skipped}
-					min={1}
-					required
-					type="number"
-					inputmode="numeric"
-					bind:value={set.reps}
-				/>
+				<div class="relative">
+					<Input
+						class="h-9 px-7 text-center"
+						id="{exercise.name}-set-{idx + 1}-reps"
+						disabled={set.completed || set.skipped}
+						min={1}
+						required
+						type="number"
+						inputmode="numeric"
+						bind:value={set.reps}
+					/>
+					{#if repTargetDelta !== undefined}
+						{@const repTargetLabel = getRepTargetLabel(repTargetDelta)}
+						<span
+							aria-label={repTargetLabel}
+							aria-live="polite"
+							class:text-emerald-500={repTargetDelta > 0}
+							class:text-rose-500={repTargetDelta < 0}
+							class:text-[#8fa0b3]={repTargetDelta === 0}
+							class="absolute inset-y-0 right-2 flex items-center"
+							data-testid="{exercise.name}-set-{idx + 1}-rep-target-status"
+							role="img"
+							title={repTargetLabel}
+						>
+							{#if repTargetDelta > 0}
+								<AboveTargetIcon class="h-4 w-4" />
+							{:else if repTargetDelta < 0}
+								<BelowTargetIcon class="h-4 w-4" />
+							{:else}
+								<AtTargetIcon class="h-4 w-4" />
+							{/if}
+						</span>
+					{/if}
+				</div>
 				{#if idx === 0 || !isSameLoadExercise}
 					<Input
 						class="h-9 px-2 text-center"
@@ -307,7 +351,7 @@
 						<span class="text-xs text-muted-foreground">skipped</span>
 						<Separator class="w-px grow" />
 					</div>
-					<Button class="place-self-end h-9 w-9" disabled size="icon" variant="secondary">
+					<Button class="h-9 w-9 place-self-end" disabled size="icon" variant="secondary">
 						<CheckIcon />
 					</Button>
 				{:else}
@@ -349,7 +393,7 @@
 							bind:value={miniSet.RIR}
 						/>
 						<Button
-							class="place-self-end h-9 w-9"
+							class="h-9 w-9 place-self-end"
 							data-testid="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-action"
 							disabled={miniSetButtonDisabled}
 							size="icon"

@@ -34,7 +34,7 @@
 		savingWorkout = true;
 		const workoutExercisesSets = workoutRunes.workoutExercises.map((ex) => {
 			return ex.sets.map((_set, idx) => {
-				const { completed, ...set } = _set;
+				const { completed, plannedReps: _plannedReps, ...set } = _set;
 				if (set.skipped) [set.reps, set.load, set.RIR] = [0, 0, 0];
 				return { ...set, setIndex: idx };
 			});
@@ -162,19 +162,19 @@
 			}
 			toast.success(result.message);
 			await invalidate('workouts:all');
-			await workoutRunes.resetStores();
-			// Reset meso editing store as it won't change if workout affects meso split days and same mesocycle gets edited
-			// 1. User attempts active meso edit but doesn't complete it (stores save meso data)
-			// 2. User performs workouts affecting the meso split structure
-			// 3. User tries to update meso again, but sees old data as it didn't sync the new changes from workouts
-			// So to prevent this from happening, just reset the meso split runes after a workout is completed
-			mesocycleExerciseSplitRunes.resetStores();
+			const completedMesocycleId = result.mesocycleCompleted
+				? workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.id
+				: undefined;
 
-			if (result.mesocycleCompleted) {
-				await goto(`/mesocycles/${workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.id}?completion`);
+			if (completedMesocycleId) {
+				await goto(`/mesocycles/${completedMesocycleId}?completion`);
 			} else {
 				await goto('/workouts');
 			}
+
+			await workoutRunes.resetStores();
+			// Prevent a stale, unfinished mesocycle split edit from surviving a workout that changed the split.
+			mesocycleExerciseSplitRunes.resetStores();
 		} catch (error) {
 			if (error instanceof TRPCClientError) toast.error(error.message);
 		}
@@ -213,7 +213,10 @@
 
 <div class="mt-4 flex w-full flex-col gap-1.5">
 	<Label for="workout-note">Workout note</Label>
-	<Textarea id="workout-note" placeholder="Type here (optional)" bind:value={workoutRunes.workoutData!.note}></Textarea>
+	{#if workoutRunes.workoutData}
+		<Textarea id="workout-note" placeholder="Type here (optional)" bind:value={workoutRunes.workoutData.note}
+		></Textarea>
+	{/if}
 </div>
 
 <div class="mt-auto grid grid-cols-2 gap-1">

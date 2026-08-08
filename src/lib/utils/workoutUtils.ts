@@ -199,6 +199,7 @@ export type WorkoutExerciseInProgress = Omit<
 		'reps' | 'load' | 'RIR' | 'miniSets' | 'setIndex'
 	> &
 		SetInProgress & {
+			plannedReps?: number;
 			miniSets: (Omit<
 				Prisma.WorkoutExerciseMiniSetCreateWithoutParentSetInput,
 				'reps' | 'load' | 'RIR' | 'miniSetIndex'
@@ -289,6 +290,7 @@ export function normalizePersistedWorkoutExercises(
 ): WorkoutExerciseInProgress[] {
 	return exercises.map((exercise) => ({
 		...exercise,
+		sets: exercise.sets.map((set) => ({ ...set, plannedReps: set.plannedReps ?? set.reps })),
 		workStarted:
 			Boolean(exercise.workStarted) ||
 			exercise.sets.some((set) => Boolean(set.completed) || set.miniSets.some((miniSet) => Boolean(miniSet.completed)))
@@ -833,5 +835,5 @@ export function progressiveOverloadMagic(
 			});
 	});
 
-	return workoutExercises;
+	return normalizePersistedWorkoutExercises(workoutExercises);
 }

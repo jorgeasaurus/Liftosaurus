@@ -113,7 +113,7 @@ function exercise(name: string): WorkoutExerciseInProgress {
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		isDeload: false,
-		sets: [{ reps: 9, load: 135, RIR: 2, skipped: false, completed: true, miniSets: [] }]
+		sets: [{ reps: 9, plannedReps: 10, load: 135, RIR: 2, skipped: false, completed: true, miniSets: [] }]
 	};
 }
 
@@ -126,7 +126,7 @@ function completedExercise(name: string) {
 		workoutId: LEGACY_WORKOUT_ID,
 		exerciseIndex: 0,
 		sets: workoutExercise.sets.map((set, setIndex) => {
-			const { completed, ...setData } = set;
+			const { completed, plannedReps: _plannedReps, ...setData } = set;
 			const setId = createId();
 			return {
 				...setData,
@@ -219,6 +219,7 @@ describe('workout draft storage', () => {
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].name, 'Historical squat');
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].preferredProgressionVariable, null);
 		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].name, 'Active bench press');
+		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].sets[0].plannedReps, 10);
 		assert.ok(restored.storage.editDraft?.workoutData.startedAt instanceof Date);
 	});
 

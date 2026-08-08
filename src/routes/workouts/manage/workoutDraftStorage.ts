@@ -205,6 +205,7 @@ const inProgressSetSchema: z.ZodType<InProgressSet, z.ZodTypeDef, unknown> = Wor
 })
 	.extend({
 		reps: optionalNumber,
+		plannedReps: optionalNumber,
 		load: optionalNumber,
 		RIR: optionalNumber,
 		completed: z.boolean(),
