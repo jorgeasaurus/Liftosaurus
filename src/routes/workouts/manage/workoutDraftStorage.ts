@@ -15,7 +15,8 @@ import { z } from 'zod';
 
 export const WORKOUT_DRAFT_STORAGE_KEY = 'workoutRunes';
 export const WORKOUT_DRAFT_STORAGE_VERSION = 2 as const;
-export const WORKOUT_DRAFT_RECORD_VERSION = 1 as const;
+export const WORKOUT_DRAFT_RECORD_VERSION = 2 as const;
+const LEGACY_WORKOUT_DRAFT_RECORD_VERSION = 1 as const;
 export const WORKOUT_DRAFT_LOCK_PREFIX = 'liftosaurus:workout-draft:';
 
 export type WorkoutDraftStorageKeys = {
@@ -205,6 +206,7 @@ const inProgressSetSchema: z.ZodType<InProgressSet, z.ZodTypeDef, unknown> = Wor
 })
 	.extend({
 		reps: optionalNumber,
+		plannedReps: optionalNumber,
 		load: optionalNumber,
 		RIR: optionalNumber,
 		completed: z.boolean(),
@@ -468,7 +470,7 @@ function serializeDraftRecord<T>(draft: T) {
 
 function parseDraftRecord<T>(
 	rawStorage: string | null,
-	schema: z.ZodType<{ version: 1; draft: T }, z.ZodTypeDef, unknown>
+	schema: z.ZodType<{ version: typeof WORKOUT_DRAFT_RECORD_VERSION; draft: T }, z.ZodTypeDef, unknown>
 ): WorkoutDraftRecord<T> {
 	if (rawStorage === null) return { raw: null, status: 'empty', draft: null, ownsRaw: true };
 	let parsed: unknown;
@@ -477,8 +479,13 @@ function parseDraftRecord<T>(
 	} catch {
 		return { raw: rawStorage, status: 'corrupt', draft: null, ownsRaw: false };
 	}
-	if (isObject(parsed) && typeof parsed.version === 'number' && parsed.version !== WORKOUT_DRAFT_RECORD_VERSION) {
-		return { raw: rawStorage, status: 'unsupported', draft: null, ownsRaw: false };
+	if (isObject(parsed) && typeof parsed.version === 'number') {
+		if (parsed.version !== LEGACY_WORKOUT_DRAFT_RECORD_VERSION && parsed.version !== WORKOUT_DRAFT_RECORD_VERSION) {
+			return { raw: rawStorage, status: 'unsupported', draft: null, ownsRaw: false };
+		}
+		if (parsed.version === LEGACY_WORKOUT_DRAFT_RECORD_VERSION) {
+			parsed = { ...parsed, version: WORKOUT_DRAFT_RECORD_VERSION };
+		}
 	}
 	const result = schema.safeParse(parsed);
 	return result.success
@@ -582,7 +589,7 @@ function observeDraftRecord<T>(current: WorkoutDraftRecord<T>, parsed: WorkoutDr
 async function saveDraftRecord<T extends { workoutExercises: unknown }>(
 	storageAdapter: StorageAdapter,
 	key: string,
-	schema: z.ZodType<{ version: 1; draft: T }, z.ZodTypeDef, unknown>,
+	schema: z.ZodType<{ version: typeof WORKOUT_DRAFT_RECORD_VERSION; draft: T }, z.ZodTypeDef, unknown>,
 	ownedRecord: WorkoutDraftRecord<T>,
 	draft: T | null,
 	lockManager?: WorkoutDraftLockManager | null,

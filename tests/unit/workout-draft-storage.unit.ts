@@ -113,7 +113,7 @@ function exercise(name: string): WorkoutExerciseInProgress {
 		topRepRangeStart: null,
 		topRepRangeEnd: null,
 		isDeload: false,
-		sets: [{ reps: 9, load: 135, RIR: 2, skipped: false, completed: true, miniSets: [] }]
+		sets: [{ reps: 9, plannedReps: 10, load: 135, RIR: 2, skipped: false, completed: true, miniSets: [] }]
 	};
 }
 
@@ -126,7 +126,7 @@ function completedExercise(name: string) {
 		workoutId: LEGACY_WORKOUT_ID,
 		exerciseIndex: 0,
 		sets: workoutExercise.sets.map((set, setIndex) => {
-			const { completed, ...setData } = set;
+			const { completed, plannedReps: _plannedReps, ...setData } = set;
 			const setId = createId();
 			return {
 				...setData,
@@ -219,6 +219,7 @@ describe('workout draft storage', () => {
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].name, 'Historical squat');
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].preferredProgressionVariable, null);
 		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].name, 'Active bench press');
+		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].sets[0].plannedReps, 10);
 		assert.ok(restored.storage.editDraft?.workoutData.startedAt instanceof Date);
 	});
 
@@ -543,6 +544,32 @@ describe('workout draft storage', () => {
 			assert.equal(storage.writes, 0);
 			assert.equal(storage.value, raw);
 		}
+	});
+
+	it('loads version 1 records and upgrades them when next saved', async () => {
+		const draft = activeDraft();
+		const legacyDraft = {
+			...draft,
+			workoutExercises: draft.workoutExercises?.map((workoutExercise) => ({
+				...workoutExercise,
+				sets: workoutExercise.sets.map(({ plannedReps: _plannedReps, ...set }) => set)
+			}))
+		};
+		const storage = keyValueStorage({
+			[WORKOUT_ACTIVE_DRAFT_STORAGE_KEY]: JSON.stringify({ version: 1, draft: legacyDraft })
+		});
+
+		const loaded = loadWorkoutDraftStorage(storage, keyValueStorage());
+
+		assert.equal(loaded.status, 'valid');
+		assert.equal(loaded.storage.activeDraft?.workoutExercises?.[0].sets[0].plannedReps, 9);
+
+		const saved = await saveActiveWorkoutDraft(storage, loaded.records.active, loaded.records.active.draft);
+		const persisted = JSON.parse(storage.getItem(WORKOUT_ACTIVE_DRAFT_STORAGE_KEY) ?? '{}');
+
+		assert.equal(saved.written, true);
+		assert.equal(persisted.version, WORKOUT_DRAFT_RECORD_VERSION);
+		assert.equal(persisted.draft.workoutExercises[0].sets[0].plannedReps, 9);
 	});
 
 	it('preserves an unreadable separate active record when historical editing snapshots the active draft', async () => {
