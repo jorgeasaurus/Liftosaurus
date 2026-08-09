@@ -188,7 +188,7 @@
 	}
 </script>
 
-<section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-4">
+<section class="workout-start mx-auto flex h-full w-full max-w-[1240px] flex-col gap-4">
 	<header>
 		<h1 class="text-4xl font-semibold tracking-[-0.03em] text-foreground">Start workout</h1>
 		<p class="mt-1 text-sm text-muted-foreground">Set context, verify plan details, then launch your live session.</p>
@@ -340,7 +340,7 @@
 	{/if}
 	{#if workoutData.workoutOfMesocycle?.workoutStatus !== 'RestDay'}
 		<Button
-			class="mt-auto border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
+			class="workout-start-next mt-auto border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
 			type="submit"
 			form="user-bodyweight-form"
 			disabled={userBodyweight === null || $navigating !== null}
@@ -354,6 +354,22 @@
 	{/if}
 	{/if}
 </section>
+
+<style>
+	@media (max-width: 1023px) {
+		.workout-start {
+			padding-bottom: calc(52px + env(safe-area-inset-bottom));
+		}
+
+		:global(.workout-start-next) {
+			position: fixed;
+			right: 12px;
+			bottom: calc(12px + env(safe-area-inset-bottom));
+			left: 12px;
+			z-index: 20;
+		}
+	}
+</style>
 
 <ResponsiveDialog title="Warning" bind:open={overwriteWorkoutDialogOpen}>
 	{#snippet description()}

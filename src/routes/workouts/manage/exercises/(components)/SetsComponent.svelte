@@ -31,6 +31,7 @@
 	let { exercise = $bindable(), originalSetLoads = $bindable() }: PropsType = $props();
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
+	let lastSharedLoad = $state(exercise.sets[0]?.load);
 	let oldBodyweightFraction = $derived(
 		getPreviousBodyweightFraction(
 			workoutRunes.previousWorkoutData?.exercises,
@@ -52,8 +53,12 @@
 		}
 		if (!set.completed) markWorkoutExerciseStarted(exercise);
 		set.completed = !set.completed;
-		if (['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType) && idx === 0)
-			exercise.sets.forEach((_set) => (_set.load = set.load));
+		if (isSameLoadExercise && idx === 0) {
+			exercise.sets.forEach((otherSet, otherSetIdx) => {
+				if (otherSetIdx > 0 && (otherSet.load === undefined || otherSet.load === lastSharedLoad)) otherSet.load = set.load;
+			});
+			lastSharedLoad = set.load;
+		}
 
 		await workoutRunes.saveStoresToLocalStorage();
 	}
@@ -273,27 +278,18 @@
 						</span>
 					{/if}
 				</div>
-				{#if idx === 0 || !isSameLoadExercise}
-					<Input
-						class="h-9 px-2 text-center"
-						id="{exercise.name}-set-{idx + 1}-load"
-						disabled={set.completed || set.skipped}
-						min={exercise.bodyweightFraction ? undefined : 0.25}
-						placeholder={getNextLoad(idx)}
-						required
-						step={0.25}
-						type="number"
-						inputmode="decimal"
-						bind:value={set.load}
-					/>
-				{:else}
-					<span
-						class="flex h-9 items-center justify-center rounded-md border border-transparent text-sm tabular-nums text-[#8fa0b3]"
-						title="Same load as set 1"
-					>
-						{exercise.sets[0].load ?? '—'}
-					</span>
-				{/if}
+				<Input
+					class="h-9 px-2 text-center"
+					id="{exercise.name}-set-{idx + 1}-load"
+					disabled={set.completed || set.skipped}
+					min={exercise.bodyweightFraction ? undefined : 0.25}
+					placeholder={getNextLoad(idx)}
+					required
+					step={0.25}
+					type="number"
+					inputmode="decimal"
+					bind:value={set.load}
+				/>
 				<Input
 					class="h-9 px-2 text-center"
 					id="{exercise.name}-set-{idx + 1}-RIR"
