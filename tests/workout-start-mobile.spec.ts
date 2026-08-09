@@ -48,9 +48,11 @@ test('next button is fully visible when the mobile workout start page opens', as
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/workouts/manage/start');
 
+	const viewport = page.viewportSize();
+	expect(viewport).not.toBeNull();
 	const nextButton = page.getByRole('button', { name: 'Next' });
 	await expect(nextButton).toBeVisible();
 	const buttonBounds = await nextButton.boundingBox();
 	expect(buttonBounds).not.toBeNull();
-	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(844);
+	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(viewport!.height);
 });

@@ -53,7 +53,7 @@
 		}
 		if (!set.completed) markWorkoutExerciseStarted(exercise);
 		set.completed = !set.completed;
-		if (['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType) && idx === 0) {
+		if (isSameLoadExercise && idx === 0) {
 			exercise.sets.forEach((otherSet, otherSetIdx) => {
 				if (otherSetIdx > 0 && (otherSet.load === undefined || otherSet.load === lastSharedLoad)) otherSet.load = set.load;
 			});
