@@ -76,7 +76,14 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	const laterLoad = page.locator('[id="Dumbbell\\ lateral\\ raise-set-2-load"]');
 	await expect(laterLoad).toBeEditable();
 	await laterLoad.fill('35');
+	await page.locator('[id="Dumbbell\\ lateral\\ raise-set-1-load"]').fill('45');
+	await page.getByTestId('Dumbbell lateral raise-set-1-action').click();
+	await expect(laterLoad).toHaveValue('35');
 	await page.getByTestId('Dumbbell lateral raise-set-2-action').click();
+	await page.waitForFunction((activeKey) => {
+		const draft = JSON.parse(localStorage.getItem(activeKey) ?? '{}').draft;
+		return draft?.workoutExercises?.[0]?.sets?.[1]?.load === 35;
+	}, keys.active);
 	await page.reload();
 	await expect(laterLoad).toHaveValue('35');
 });

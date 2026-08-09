@@ -31,6 +31,7 @@
 	let { exercise = $bindable(), originalSetLoads = $bindable() }: PropsType = $props();
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
+	let lastSharedLoad = $state(exercise.sets[0]?.load);
 	let oldBodyweightFraction = $derived(
 		getPreviousBodyweightFraction(
 			workoutRunes.previousWorkoutData?.exercises,
@@ -52,8 +53,12 @@
 		}
 		if (!set.completed) markWorkoutExerciseStarted(exercise);
 		set.completed = !set.completed;
-		if (['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType) && idx === 0)
-			exercise.sets.forEach((_set) => (_set.load = set.load));
+		if (['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType) && idx === 0) {
+			exercise.sets.forEach((otherSet, otherSetIdx) => {
+				if (otherSetIdx > 0 && (otherSet.load === undefined || otherSet.load === lastSharedLoad)) otherSet.load = set.load;
+			});
+			lastSharedLoad = set.load;
+		}
 
 		await workoutRunes.saveStoresToLocalStorage();
 	}
