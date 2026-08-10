@@ -288,7 +288,7 @@
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
 		{@const expectedReps = getExpectedReps(set)}
-		{@const displayedReps = set.completed ? set.reps : expectedReps}
+		{@const displayedReps = set.completed ? set.reps : (set.reps ?? expectedReps)}
 		{@const repTargetDelta = set.completed && typeof set.reps === 'number' && typeof expectedReps === 'number' ? set.reps - expectedReps : undefined}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
@@ -311,6 +311,7 @@
 					step={0.25}
 					type="number"
 					inputmode="decimal"
+					value={set.load}
 					oninput={(event) => updateSetLoad(set, (event.currentTarget as HTMLInputElement).value)}
 				/>
 				<div class="relative">

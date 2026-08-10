@@ -97,7 +97,7 @@ export function solveBergerFormula(input: BergerInput) {
 				(1 + knownValues.overloadPercentage / 100) * (9745640 * oldLoad - 423641) * exponentialMultiplier;
 			const denominator = 9745640 * newLoad - 423641;
 			const estimatedReps = 38.1679 * Math.log(numerator / denominator) - newSet.RIR;
-			return Math.max(1, estimatedReps);
+			return Number.isFinite(estimatedReps) ? Math.max(1, estimatedReps) : 1;
 		}
 
 		case 'OverloadPercentage': {
@@ -294,7 +294,7 @@ export function normalizePersistedWorkoutExercises(
 		sets: exercise.sets.map((set) => ({
 			...set,
 			reps: set.reps === undefined ? undefined : Math.max(1, set.reps),
-			plannedReps: set.plannedReps === undefined ? set.reps : Math.max(1, set.plannedReps)
+			plannedReps: Math.max(1, set.plannedReps ?? set.reps ?? 1)
 		})),
 		workStarted:
 			Boolean(exercise.workStarted) ||
