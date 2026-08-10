@@ -170,7 +170,7 @@ test('create a workout with active mesocycle', async ({ page }) => {
 	await page.getByRole('button', { name: 'Next' }).click();
 	await expect(page.getByRole('main')).toContainText('Weight (+BW) Reps RIR');
 	await expect(page.getByRole('main')).toContainText('Rep targets');
-	await page.getByLabel('rep-targets-info').click();
+	await page.getByLabel('Show rep targets').click();
 	await expect(page.getByText('Aim for these rep ranges')).toBeVisible();
 	await expect(page.getByText('Pull-ups:')).toBeVisible();
 	await page.locator('#Pull-ups-set-1-reps').fill('12');

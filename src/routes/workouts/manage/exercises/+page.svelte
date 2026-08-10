@@ -175,7 +175,7 @@
 		{#if repTargets.length > 0}
 			<div class="flex items-center gap-1.5 text-xs text-[#9dadbe]">
 				<span>Rep targets</span>
-				<InfoPopover align="start" ariaLabel="rep-targets-info">
+				<InfoPopover align="start" ariaLabel="Show rep targets">
 					<p class="mb-2 font-semibold text-[#e9eef5]">Aim for these rep ranges</p>
 					<ul class="space-y-1">
 						{#each repTargets as repTarget}

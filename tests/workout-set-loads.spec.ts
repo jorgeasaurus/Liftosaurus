@@ -74,7 +74,7 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	await page.goto('/workouts/manage/exercises?keepCurrent');
 
 	await expect(page.getByText('Rep targets')).toBeVisible();
-	await page.getByLabel('rep-targets-info').click();
+	await page.getByLabel('Show rep targets').click();
 	await expect(page.getByText('Dumbbell lateral raise:')).toBeVisible();
 	const laterLoad = page.locator(`[id="${exerciseName}-set-2-load"]`);
 	const laterReps = page.locator(`[id="${exerciseName}-set-2-reps"]`);
