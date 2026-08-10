@@ -22,13 +22,13 @@
 	});
 </script>
 
-<section class="mx-auto flex w-full max-w-5xl flex-col gap-5 lg:gap-6">
+<section class="mx-auto flex w-full max-w-5xl flex-col gap-6">
 	<header>
-		<h1 class="flex items-center gap-2.5 text-2xl font-semibold tracking-tight lg:text-4xl">
-			<GreetingIcon class="h-6 w-6 shrink-0 text-primary lg:h-8 lg:w-8" />
+		<h1 class="flex items-center gap-3 text-[1.7rem] font-semibold leading-tight tracking-tight lg:text-4xl">
+			<GreetingIcon class="h-7 w-7 shrink-0 text-primary lg:h-8 lg:w-8" />
 			{greeting}{userName ? `, ${userName}` : ''}
 		</h1>
-		<p class="mt-1 text-sm text-muted-foreground">{today}</p>
+		<p class="mt-1.5 text-base text-muted-foreground lg:text-sm">{today}</p>
 	</header>
 
 	<div class="grid items-start gap-4 lg:grid-cols-12 lg:gap-6">

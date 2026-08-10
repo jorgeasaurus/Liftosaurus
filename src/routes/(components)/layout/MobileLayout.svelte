@@ -85,17 +85,17 @@
 		top: 0;
 		z-index: 20;
 		display: flex;
-		height: 62px;
+		height: calc(62px + env(safe-area-inset-top));
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: env(safe-area-inset-top) 20px 0;
 		border-bottom: 1px solid #273034;
 		background: rgba(9, 13, 14, 0.92);
 		backdrop-filter: blur(16px);
 	}
 
 	.mobile-topbar.compact {
-		height: 48px;
+		height: calc(48px + env(safe-area-inset-top));
 	}
 
 	.mobile-brand {
@@ -132,7 +132,7 @@
 		width: 100%;
 		flex: 1;
 		overflow-y: auto;
-		padding: 20px 16px 104px;
+		padding: 28px 20px calc(104px + env(safe-area-inset-bottom));
 	}
 
 	.mobile-main.focused {
@@ -147,8 +147,8 @@
 		z-index: 30;
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		gap: 2px;
-		padding: 9px 8px calc(9px + env(safe-area-inset-bottom));
+		gap: 4px;
+		padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
 		border-top: 1px solid #273034;
 		background: rgba(15, 21, 22, 0.96);
 		backdrop-filter: blur(18px);
@@ -156,14 +156,14 @@
 
 	.mobile-bottom-nav a {
 		display: flex;
-		min-height: 48px;
+		min-height: 52px;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 4px;
-		border-radius: 12px;
+		border-radius: 14px;
 		color: #8f999d;
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 600;
 		transition:
 			color 150ms ease,
