@@ -313,7 +313,7 @@
 					type="number"
 					inputmode="decimal"
 					value={set.load}
-					oninput={(event) => updateSetLoad(set, (event.currentTarget as HTMLInputElement).value)}
+					onchange={(event) => updateSetLoad(set, (event.currentTarget as HTMLInputElement).value)}
 				/>
 				<div class="relative">
 					<Input
