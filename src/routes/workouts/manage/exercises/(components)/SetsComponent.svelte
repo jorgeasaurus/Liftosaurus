@@ -55,7 +55,8 @@
 		set.completed = !set.completed;
 		if (isSameLoadExercise && idx === 0) {
 			exercise.sets.forEach((otherSet, otherSetIdx) => {
-				if (otherSetIdx > 0 && (otherSet.load === undefined || otherSet.load === lastSharedLoad)) otherSet.load = set.load;
+				if (otherSetIdx > 0 && (otherSet.load === undefined || otherSet.load === lastSharedLoad))
+					otherSet.load = set.load;
 			});
 			lastSharedLoad = set.load;
 		}
@@ -127,15 +128,22 @@
 		}
 	}
 
-	function getRepTargetDelta(set: WorkoutExerciseSet) {
-		if (!set.completed || typeof set.reps !== 'number' || typeof set.plannedReps !== 'number') return;
-		return set.reps - set.plannedReps;
+	function getRepTargetDelta(set: WorkoutExerciseSet, setIndex: number) {
+		if (!set.completed || typeof set.reps !== 'number') return;
+
+		const isTopSet = exercise.setType === 'TopBackoff' && setIndex === 0;
+		const repRangeStart = isTopSet ? (exercise.topRepRangeStart ?? exercise.repRangeStart) : exercise.repRangeStart;
+		const repRangeEnd = isTopSet ? (exercise.topRepRangeEnd ?? exercise.repRangeEnd) : exercise.repRangeEnd;
+
+		if (set.reps < repRangeStart) return set.reps - repRangeStart;
+		if (set.reps > repRangeEnd) return set.reps - repRangeEnd;
+		return 0;
 	}
 
 	function getRepTargetLabel(delta: number) {
-		if (delta === 0) return 'Reps at target';
+		if (delta === 0) return 'Reps within target range';
 		const difference = Math.abs(delta);
-		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} target`;
+		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} target range`;
 	}
 
 	function adjustLoads(setIdx: number) {
@@ -233,7 +241,7 @@
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
-		{@const repTargetDelta = getRepTargetDelta(set)}
+		{@const repTargetDelta = getRepTargetDelta(set, idx)}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
 				<div class="col-span-full flex items-center gap-2 text-muted-foreground">
