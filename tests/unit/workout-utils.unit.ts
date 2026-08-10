@@ -70,6 +70,15 @@ test('persisted negative reps are normalized to one rep', async () => {
 		} as never
 	]);
 	assert.equal(missingPlannedReps.sets[0].plannedReps, 1);
+
+	const [nonFiniteReps] = normalizePersistedWorkoutExercises([
+		{
+			name: 'Chest press',
+			sets: [{ reps: Number.NaN, plannedReps: Number.POSITIVE_INFINITY, miniSets: [] }]
+		} as never
+	]);
+	assert.equal(nonFiniteReps.sets[0].reps, 1);
+	assert.equal(nonFiniteReps.sets[0].plannedReps, 1);
 });
 
 test('previous bodyweight fraction preserves an explicit non-bodyweight exercise', () => {

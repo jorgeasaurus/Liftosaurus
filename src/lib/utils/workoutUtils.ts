@@ -286,6 +286,10 @@ export function getEditedManualDeloadMetadata(
 	};
 }
 
+function normalizePositiveReps(value: number | undefined) {
+	return typeof value === 'number' && Number.isFinite(value) ? Math.max(1, value) : 1;
+}
+
 export function normalizePersistedWorkoutExercises(
 	exercises: WorkoutExerciseInProgress[]
 ): WorkoutExerciseInProgress[] {
@@ -293,8 +297,8 @@ export function normalizePersistedWorkoutExercises(
 		...exercise,
 		sets: exercise.sets.map((set) => ({
 			...set,
-			reps: set.reps === undefined ? undefined : Math.max(1, set.reps),
-			plannedReps: Math.max(1, set.plannedReps ?? set.reps ?? 1)
+			reps: set.reps === undefined ? undefined : normalizePositiveReps(set.reps),
+			plannedReps: normalizePositiveReps(set.plannedReps ?? set.reps)
 		})),
 		workStarted:
 			Boolean(exercise.workStarted) ||
