@@ -130,11 +130,12 @@
 
 	function updateSetLoad(set: WorkoutExerciseSet, value: string) {
 		const load = Number(value);
-		set.load = Number.isFinite(load) && load > 0 ? load : undefined;
+		const allowsZeroLoad = Boolean(exercise.bodyweightFraction);
+		set.load = Number.isFinite(load) && (load > 0 || (allowsZeroLoad && load === 0)) ? load : undefined;
 		if (set.completed || set.load === undefined || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number') return;
 
 		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
-		if (typeof oldLoad !== 'number' || oldLoad <= 0) return;
+		if (typeof oldLoad !== 'number' || oldLoad < 0) return;
 		const estimatedReps = solveBergerFormula({
 			variableToSolve: 'NewReps',
 			knownValues: {
@@ -164,7 +165,7 @@
 			return set.plannedReps;
 		}
 		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
-		if (typeof oldLoad !== 'number' || oldLoad <= 0 || oldLoad === set.load) return set.plannedReps;
+		if (typeof oldLoad !== 'number' || oldLoad < 0 || oldLoad === set.load) return set.plannedReps;
 
 		const estimatedReps = solveBergerFormula({
 			variableToSolve: 'NewReps',

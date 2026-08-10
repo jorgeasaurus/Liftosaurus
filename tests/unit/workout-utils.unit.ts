@@ -33,6 +33,24 @@ test('estimated reps change when the new set load changes', () => {
 	assert.notEqual(estimate(105), estimate(120));
 });
 
+test('estimated reps support zero external load for bodyweight exercises', () => {
+	const estimate = (load: number) =>
+		solveBergerFormula({
+			variableToSolve: 'NewReps',
+			knownValues: {
+				oldSet: { reps: 10, load: 0, RIR: 1, miniSets: [] },
+				newSet: { load, RIR: 1, miniSets: [] },
+				oldBodyweightFraction: 1,
+				newBodyweightFraction: 1,
+				oldUserBodyweight: 180,
+				newUserBodyweight: 180,
+				overloadPercentage: 0
+			}
+		});
+
+	assert.notEqual(estimate(0), estimate(20));
+});
+
 test('persisted negative reps are normalized to one rep', async () => {
 	const { normalizePersistedWorkoutExercises } = await import('../../src/lib/utils/workoutUtils.js');
 	const [exercise] = normalizePersistedWorkoutExercises([
