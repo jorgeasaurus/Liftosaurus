@@ -1,14 +1,12 @@
 import { createContext } from '$lib/trpc/context';
 import { createCaller } from '$lib/trpc/router';
-import { error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 
 export const load = async (event) => {
 	event.depends('workouts:all');
 	const session = await event.locals.auth();
 
-	if (session === null) {
-		error(401, 'Not logged in');
-	}
+	if (!session) redirect(302, '/');
 
 	const trpc = createCaller(await createContext(event));
 
