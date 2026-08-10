@@ -74,7 +74,12 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	await page.goto('/workouts/manage/exercises?keepCurrent');
 
 	const laterLoad = page.locator(`[id="${exerciseName}-set-2-load"]`);
+	const laterReps = page.locator(`[id="${exerciseName}-set-2-reps"]`);
 	await expect(laterLoad).toBeEditable();
+	const [loadBounds, repBounds] = await Promise.all([laterLoad.boundingBox(), laterReps.boundingBox()]);
+	expect(loadBounds).not.toBeNull();
+	expect(repBounds).not.toBeNull();
+	expect(loadBounds!.x).toBeLessThan(repBounds!.x);
 	await laterLoad.fill('35');
 	await page.locator(`[id="${exerciseName}-set-1-load"]`).fill('45');
 	await page.getByTestId(`${exerciseName}-set-1-action`).click();

@@ -210,9 +210,8 @@
 </script>
 
 <div class="grid grid-cols-4 gap-1">
-	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Reps</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">
-		Load
+		Weight
 		{#if typeof exercise.bodyweightFraction === 'number'}
 			<Popover.Root>
 				<Popover.Trigger>
@@ -230,6 +229,7 @@
 			</Popover.Root>
 		{/if}
 	</span>
+	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Reps</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
@@ -245,6 +245,18 @@
 				</div>
 			{/if}
 			{#if !set.skipped}
+				<Input
+					class="h-9 px-2 text-center"
+					id="{exercise.name}-set-{idx + 1}-load"
+					disabled={set.completed || set.skipped}
+					min={exercise.bodyweightFraction ? undefined : 0.25}
+					placeholder={getNextLoad(idx)}
+					required
+					step={0.25}
+					type="number"
+					inputmode="decimal"
+					bind:value={set.load}
+				/>
 				<div class="relative">
 					<Input
 						class="h-9 px-7 text-center"
@@ -278,18 +290,6 @@
 						</span>
 					{/if}
 				</div>
-				<Input
-					class="h-9 px-2 text-center"
-					id="{exercise.name}-set-{idx + 1}-load"
-					disabled={set.completed || set.skipped}
-					min={exercise.bodyweightFraction ? undefined : 0.25}
-					placeholder={getNextLoad(idx)}
-					required
-					step={0.25}
-					type="number"
-					inputmode="decimal"
-					bind:value={set.load}
-				/>
 				<Input
 					class="h-9 px-2 text-center"
 					id="{exercise.name}-set-{idx + 1}-RIR"
@@ -351,16 +351,6 @@
 					</Button>
 				{:else}
 					<form class="contents" onsubmit={(e) => completeMiniSet(e, set, miniIdx)}>
-						<Input
-							class="h-9 px-2 text-center"
-							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-reps"
-							disabled={miniSet.completed}
-							min={1}
-							required
-							type="number"
-							inputmode="numeric"
-							bind:value={miniSet.reps}
-						/>
 						{#if exercise.setType === 'MyorepMatch' || exercise.setType === 'MyorepMatchDown'}
 							<span></span>
 						{:else}
@@ -378,6 +368,16 @@
 								bind:value={miniSet.load}
 							/>
 						{/if}
+						<Input
+							class="h-9 px-2 text-center"
+							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-reps"
+							disabled={miniSet.completed}
+							min={1}
+							required
+							type="number"
+							inputmode="numeric"
+							bind:value={miniSet.reps}
+						/>
 						<Input
 							class="h-9 px-2 text-center"
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-RIR"

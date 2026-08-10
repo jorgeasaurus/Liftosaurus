@@ -67,8 +67,7 @@
 			</span>
 			<span class="truncate text-[15px] font-semibold leading-tight text-[#e9eef5]">{exercise.name}</span>
 			<span class="text-xs leading-tight text-[#8fa0b3]">
-				{exercise.sets.length}
-				{convertCamelCaseToNormal(exercise.setType)} · {exercise.repRangeStart}–{exercise.repRangeEnd} reps
+				{exercise.sets.length} {convertCamelCaseToNormal(exercise.setType)}
 			</span>
 		</div>
 		<div class="flex shrink-0 items-center gap-1">

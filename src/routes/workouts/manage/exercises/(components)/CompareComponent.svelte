@@ -86,9 +86,8 @@
 
 {#if prevExercise}
 	<div class="custom-grid grid grid-cols-4 place-items-center gap-y-2">
-		<span class="text-sm font-medium">Reps</span>
 		<span class="text-sm font-medium">
-			Load (lbs)
+			Weight (lbs)
 			{#if exercise.bodyweightFraction !== null}
 				<Popover.Root>
 					<Popover.Trigger class="text-xs font-semibold text-muted-foreground underline">(BW)</Popover.Trigger>
@@ -101,6 +100,7 @@
 				</Popover.Root>
 			{/if}
 		</span>
+		<span class="text-sm font-medium">Reps</span>
 		<span class="text-sm font-medium">RIR</span>
 		<span class="flex w-full items-center justify-end gap-1 text-sm font-semibold">
 			{#if !isNaN(Number(totalVolumeChange)) && totalVolumeChange !== undefined}
@@ -119,16 +119,16 @@
 			{#if prevSet && !prevSet.skipped && !set.skipped}
 				{@const volumeChange = getTheoreticalVolumeChange(idx)}
 				<p>
-					{#if prevSet.reps !== set.reps}
-						<span class="text-muted-foreground">{prevSet.reps} -&gt;</span>
-					{/if}
-					{set.reps}
-				</p>
-				<p>
 					{#if prevSet.load !== set.load}
 						<span class="text-muted-foreground">{prevSet.load} -&gt;</span>
 					{/if}
 					{set.load}
+				</p>
+				<p>
+					{#if prevSet.reps !== set.reps}
+						<span class="text-muted-foreground">{prevSet.reps} -&gt;</span>
+					{/if}
+					{set.reps}
 				</p>
 				<p>
 					{#if prevSet.RIR !== set.RIR}
@@ -153,16 +153,16 @@
 					{@const miniSetVolumeChange = getTheoreticalVolumeChangeOfMiniSet(prevMiniSet, miniSet)}
 					{#if prevMiniSet}
 						<p class="text-sm font-light italic">
-							{#if prevMiniSet.reps !== miniSet.reps}
-								<span class="text-muted-foreground">{prevMiniSet.reps} -&gt;</span>
-							{/if}
-							{miniSet.reps}
-						</p>
-						<p class="text-sm font-light italic">
 							{#if prevMiniSet.load !== miniSet.load}
 								<span class="text-muted-foreground">{prevMiniSet.load} -&gt;</span>
 							{/if}
 							{miniSet.load}
+						</p>
+						<p class="text-sm font-light italic">
+							{#if prevMiniSet.reps !== miniSet.reps}
+								<span class="text-muted-foreground">{prevMiniSet.reps} -&gt;</span>
+							{/if}
+							{miniSet.reps}
 						</p>
 						<p class="text-sm font-light italic">
 							{#if prevMiniSet.RIR !== miniSet.RIR}
@@ -215,6 +215,6 @@
 
 <style lang="postcss">
 	.custom-grid {
-		grid-template-columns: 1fr 1.25fr 1fr 1fr;
+		grid-template-columns: 1.25fr 1fr 1fr 1fr;
 	}
 </style>
