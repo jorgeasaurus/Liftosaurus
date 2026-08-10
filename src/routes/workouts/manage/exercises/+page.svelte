@@ -114,20 +114,6 @@
 					<span class="flex items-center gap-1.5 text-xs text-[#9dadbe]">
 						Day {workoutData.workoutOfMesocycle?.splitDayIndex + 1} · Cycle {workoutData.workoutOfMesocycle
 							?.cycleNumber}
-						{#if repTargets.length > 0}
-							· <span>Rep targets</span>
-							<InfoPopover align="start" ariaLabel="rep-targets-info">
-								<p class="mb-2 font-semibold text-[#e9eef5]">Aim for these rep ranges</p>
-								<ul class="space-y-1">
-									{#each repTargets as repTarget}
-										<li>
-											<span class="font-medium text-[#dbe3ec]">{repTarget.name}:</span>
-											{repTarget.repRangeStart}–{repTarget.repRangeEnd} reps
-										</li>
-									{/each}
-								</ul>
-							</InfoPopover>
-						{/if}
 						<InfoPopover align="center" ariaLabel="mesocycle-info">
 							<span class="text-sm text-[#dbe3ec]">
 								<p class="font-semibold">{workoutData.workoutOfMesocycle.mesocycle.name}</p>
@@ -186,6 +172,22 @@
 				/>
 			</div>
 		</div>
+		{#if repTargets.length > 0}
+			<div class="flex items-center gap-1.5 text-xs text-[#9dadbe]">
+				<span>Rep targets</span>
+				<InfoPopover align="start" ariaLabel="rep-targets-info">
+					<p class="mb-2 font-semibold text-[#e9eef5]">Aim for these rep ranges</p>
+					<ul class="space-y-1">
+						{#each repTargets as repTarget}
+							<li>
+								<span class="font-medium text-[#dbe3ec]">{repTarget.name}:</span>
+								{repTarget.repRangeStart}–{repTarget.repRangeEnd} reps
+							</li>
+						{/each}
+					</ul>
+				</InfoPopover>
+			</div>
+		{/if}
 		{#if totalSets !== null && completedSets !== null}
 			<div class="flex items-center gap-2">
 				<Progress class="h-1.5 flex-1 bg-[#232b35] [&>div]:bg-[#c7f73a]" max={totalSets} value={completedSets} />
