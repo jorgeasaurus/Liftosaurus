@@ -23,7 +23,7 @@
 	}
 </script>
 
-<Card.Root class="mt-2">
+<Card.Root>
 	<Card.Header>
 		<Card.Title>Progress trends</Card.Title>
 		<Card.Description>Track performance or bodyweight without tying progress to one volume metric.</Card.Description>
