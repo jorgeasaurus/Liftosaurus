@@ -129,6 +129,10 @@
 	}
 
 	function updateSetLoad(set: WorkoutExerciseSet, value: string) {
+		if (value.trim() === '') {
+			set.load = undefined;
+			return;
+		}
 		const load = Number(value);
 		const allowsZeroLoad = Boolean(exercise.bodyweightFraction);
 		set.load = Number.isFinite(load) && (load > 0 || (allowsZeroLoad && load === 0)) ? load : undefined;
