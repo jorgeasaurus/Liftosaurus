@@ -28,6 +28,13 @@
 
 	let workoutData = $derived(workoutRunes.workoutData);
 	let workoutExercises = $derived(workoutRunes.workoutExercises);
+	let repTargets = $derived(
+		workoutExercises?.map((exercise) => ({
+			name: exercise.name,
+			repRangeStart: exercise.repRangeStart,
+			repRangeEnd: exercise.repRangeEnd
+		})) ?? []
+	);
 
 	let totalSets = $derived(
 		workoutExercises
@@ -165,6 +172,22 @@
 				/>
 			</div>
 		</div>
+		{#if repTargets.length > 0}
+			<div class="flex items-center gap-1.5 text-xs text-[#9dadbe]">
+				<span>Rep targets</span>
+				<InfoPopover align="start" ariaLabel="Show rep targets">
+					<p class="mb-2 font-semibold text-[#e9eef5]">Aim for these rep ranges</p>
+					<ul class="space-y-1">
+						{#each repTargets as repTarget}
+							<li>
+								<span class="font-medium text-[#dbe3ec]">{repTarget.name}:</span>
+								{repTarget.repRangeStart}–{repTarget.repRangeEnd} reps
+							</li>
+						{/each}
+					</ul>
+				</InfoPopover>
+			</div>
+		{/if}
 		{#if totalSets !== null && completedSets !== null}
 			<div class="flex items-center gap-2">
 				<Progress class="h-1.5 flex-1 bg-[#232b35] [&>div]:bg-[#c7f73a]" max={totalSets} value={completedSets} />
