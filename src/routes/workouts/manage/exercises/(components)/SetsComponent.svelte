@@ -128,22 +128,73 @@
 		}
 	}
 
-	function getRepTargetDelta(set: WorkoutExerciseSet, setIndex: number) {
-		if (!set.completed || typeof set.reps !== 'number') return;
+	function updateSetLoad(set: WorkoutExerciseSet, value: string) {
+		if (value.trim() === '') {
+			set.load = undefined;
+			return;
+		}
+		const load = Number(value);
+		const allowsZeroLoad = Boolean(exercise.bodyweightFraction);
+		set.load = Number.isFinite(load) && (load > 0 || (allowsZeroLoad && load === 0)) ? load : undefined;
+		if (set.completed || set.load === undefined || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number') return;
 
-		const isTopSet = exercise.setType === 'TopBackoff' && setIndex === 0;
-		const repRangeStart = isTopSet ? (exercise.topRepRangeStart ?? exercise.repRangeStart) : exercise.repRangeStart;
-		const repRangeEnd = isTopSet ? (exercise.topRepRangeEnd ?? exercise.repRangeEnd) : exercise.repRangeEnd;
+		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
+		if (typeof oldLoad !== 'number' || oldLoad < 0) return;
+		const estimatedReps = solveBergerFormula({
+			variableToSolve: 'NewReps',
+			knownValues: {
+				oldSet: {
+					reps: set.plannedReps,
+					load: oldLoad,
+					RIR: set.RIR,
+					miniSets: cleanupInProgressMiniSets(set.miniSets)
+				},
+				newSet: { load: set.load, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
+				oldUserBodyweight: previousUserBodyweight,
+				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
+				oldBodyweightFraction,
+				newBodyweightFraction: exercise.bodyweightFraction ?? null,
+				overloadPercentage: 0
+			}
+		});
+		set.reps = Math.max(1, Math.round(estimatedReps));
+	}
 
-		if (set.reps < repRangeStart) return set.reps - repRangeStart;
-		if (set.reps > repRangeEnd) return set.reps - repRangeEnd;
-		return 0;
+	function getExpectedReps(set: WorkoutExerciseSet) {
+		if (
+			typeof set.load !== 'number' ||
+			typeof set.plannedReps !== 'number' ||
+			typeof set.RIR !== 'number'
+		) {
+			return set.plannedReps;
+		}
+		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
+		if (typeof oldLoad !== 'number' || oldLoad < 0 || oldLoad === set.load) return set.plannedReps;
+
+		const estimatedReps = solveBergerFormula({
+			variableToSolve: 'NewReps',
+			knownValues: {
+				oldSet: {
+					reps: set.plannedReps,
+					load: oldLoad,
+					RIR: set.RIR,
+					miniSets: cleanupInProgressMiniSets(set.miniSets)
+				},
+				newSet: { load: set.load, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
+				oldUserBodyweight: previousUserBodyweight,
+				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
+				oldBodyweightFraction,
+				newBodyweightFraction: exercise.bodyweightFraction ?? null,
+				overloadPercentage: 0
+			}
+		});
+		return Math.max(1, Math.round(estimatedReps));
 	}
 
 	function getRepTargetLabel(delta: number) {
-		if (delta === 0) return 'Reps within target range';
+		if (delta === 0) return 'Reps matched expected';
 		const difference = Math.abs(delta);
-		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} target range`;
+		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} expected`;
 	}
 
 	function adjustLoads(setIdx: number) {
@@ -241,7 +292,9 @@
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
-		{@const repTargetDelta = getRepTargetDelta(set, idx)}
+		{@const expectedReps = getExpectedReps(set)}
+		{@const displayedReps = set.completed ? set.reps : (set.reps ?? expectedReps)}
+		{@const repTargetDelta = set.completed && typeof set.reps === 'number' && typeof expectedReps === 'number' ? set.reps - expectedReps : undefined}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
 				<div class="col-span-full flex items-center gap-2 text-muted-foreground">
@@ -263,7 +316,8 @@
 					step={0.25}
 					type="number"
 					inputmode="decimal"
-					bind:value={set.load}
+					value={set.load}
+					onchange={(event) => updateSetLoad(set, (event.currentTarget as HTMLInputElement).value)}
 				/>
 				<div class="relative">
 					<Input
@@ -274,7 +328,11 @@
 						required
 						type="number"
 						inputmode="numeric"
-						bind:value={set.reps}
+						value={displayedReps}
+					oninput={(event) => {
+						const value = Number((event.currentTarget as HTMLInputElement).value);
+						set.reps = Number.isFinite(value) && value > 0 ? value : undefined;
+					}}
 					/>
 					{#if repTargetDelta !== undefined}
 						{@const repTargetLabel = getRepTargetLabel(repTargetDelta)}
