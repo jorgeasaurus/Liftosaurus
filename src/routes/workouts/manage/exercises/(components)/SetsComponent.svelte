@@ -187,9 +187,9 @@
 	}
 
 	function getRepTargetLabel(delta: number) {
-		if (delta === 0) return 'Reps within target range';
+		if (delta === 0) return 'Reps matched expected';
 		const difference = Math.abs(delta);
-		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} target range`;
+		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} expected`;
 	}
 
 	function adjustLoads(setIdx: number) {
