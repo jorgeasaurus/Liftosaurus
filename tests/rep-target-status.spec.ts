@@ -4,9 +4,9 @@ import {
 	workoutDraftStorageKeys
 } from '../src/routes/workouts/manage/workoutDraftStorage';
 
-test('completed sets show their rep result relative to target after reload', async ({ page, userData }) => {
+test('completed sets show their rep result relative to the target range after reload', async ({ page, userData }) => {
 	const exerciseName = 'Bench press';
-	const sets = [11, 10, 9].map((reps) => ({
+	const sets = [13, 10, 4].map((reps) => ({
 		reps,
 		plannedReps: 10,
 		load: 195,
@@ -76,13 +76,13 @@ test('completed sets show their rep result relative to target after reload', asy
 
 	const statuses = page.getByTestId(/Bench press-set-\d-rep-target-status/);
 	await expect(statuses).toHaveCount(3);
-	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above target');
-	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps at target');
-	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below target');
+	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above target range');
+	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps within target range');
+	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below target range');
 
 	await page.reload();
 	await expect(statuses).toHaveCount(3);
-	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above target');
-	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps at target');
-	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below target');
+	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above target range');
+	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps within target range');
+	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below target range');
 });
