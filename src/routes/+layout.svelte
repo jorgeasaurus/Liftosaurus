@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
@@ -40,11 +41,22 @@
 <ModeWatcher />
 <Toaster />
 
-<UpdateDataLossDialog />
-<TermsOfServiceDialog />
+{#if $page.url.pathname === '/'}
+	<main class="landing-shell">{@render children()}</main>
+{:else}
+	<UpdateDataLossDialog />
+	<TermsOfServiceDialog />
 
-{#if isMobile === true}
-	<MobileLayout>{@render children()}</MobileLayout>
-{:else if isMobile === false}
-	<DesktopLayout>{@render children()}</DesktopLayout>
+	{#if isMobile === true}
+		<MobileLayout>{@render children()}</MobileLayout>
+	{:else if isMobile === false}
+		<DesktopLayout>{@render children()}</DesktopLayout>
+	{/if}
 {/if}
+
+<style>
+	.landing-shell {
+		min-height: 100dvh;
+		width: 100%;
+	}
+</style>
