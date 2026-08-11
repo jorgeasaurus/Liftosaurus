@@ -11,6 +11,14 @@ async function createSplitAndMesoForTest(page: Page) {
 	await page.goto('/workouts');
 }
 
+async function deleteWorkoutExercise(page: Page, exerciseName: string) {
+	await page.getByTestId(`${exerciseName}-menu-button`).click();
+	await Promise.all([
+		page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+		page.getByRole('menuitem', { name: 'Delete' }).last().click()
+	]);
+}
+
 test('create workout', async ({ page }) => {
 	await page.goto('/workouts');
 	await page.getByLabel('create-workout').click();
@@ -281,14 +289,10 @@ test('delete a workout', async ({ page }) => {
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	page.on('dialog', (dialog) => dialog.accept());
 
-	await page.getByTestId('Pull-ups-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
+	await deleteWorkoutExercise(page, 'Pull-ups');
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
 
 	await page.locator('[id="Face\\ pulls-set-1-reps"]').fill('5');
 	await page.locator('[id="Face\\ pulls-set-2-reps"]').fill('5');
@@ -320,14 +324,10 @@ test('edit a workout', async ({ page, userData }) => {
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	page.on('dialog', (dialog) => dialog.accept());
 
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Face pulls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
+	await deleteWorkoutExercise(page, 'Face pulls');
 	await page.locator('#Pull-ups-set-1-reps').fill('8');
 	await page.locator('#Pull-ups-set-2-reps').fill('6');
 	await page.locator('#Pull-ups-set-3-reps').fill('5');
@@ -446,14 +446,10 @@ test('workout changes should update mesocycle split', async ({ page }) => {
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	page.on('dialog', (dialog) => dialog.accept());
 
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Face pulls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
+	await deleteWorkoutExercise(page, 'Face pulls');
 
 	await page.locator('#Pull-ups-set-1-reps').fill('8');
 	await page.locator('#Pull-ups-set-2-reps').fill('7');

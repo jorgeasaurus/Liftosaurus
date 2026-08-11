@@ -11,6 +11,14 @@ async function fillRequiredVolumeInputs(page: Page) {
 	}
 }
 
+async function deleteWorkoutExercise(page: Page, exerciseName: string) {
+	await page.getByTestId(`${exerciseName}-menu-button`).click();
+	await Promise.all([
+		page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+		page.getByRole('menuitem', { name: 'Delete' }).last().click()
+	]);
+}
+
 test.beforeEach(async ({ page }) => {
 	await page.goto('/exercise-splits');
 	await createTemplateExerciseSplit(page);
@@ -187,13 +195,9 @@ test('disallow exercise split editing after workout added', async ({ page }) => 
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	page.on('dialog', (dialog) => dialog.accept());
-	await page.getByTestId('Pull-ups-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
+	await deleteWorkoutExercise(page, 'Pull-ups');
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
 
 	await page.locator('[id="Face\\ pulls-set-1-reps"]').fill('13');
 	await page.locator('[id="Face\\ pulls-set-2-reps"]').fill('11');
