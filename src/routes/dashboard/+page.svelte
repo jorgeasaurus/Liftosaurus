@@ -5,7 +5,7 @@
 	import DashboardMetricsCard from './(components)/DashboardMetricsCard.svelte';
 	import GetStartedComponent from './(components)/GetStartedComponent.svelte';
 	import TodaysWorkoutCard from './(components)/TodaysWorkoutCard.svelte';
-	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
+	import CraftedLoadingState from '$lib/components/CraftedLoadingState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -39,7 +39,9 @@
 		</div>
 		<aside class="lg:col-span-5 xl:col-span-4">
 			{#await data.entityCounts}
-				<Skeleton class="h-52 w-full" />
+				<div class="surface-panel rounded-xl">
+					<CraftedLoadingState label="Checking your setup" />
+				</div>
 			{:then entityCounts}
 				<GetStartedComponent {entityCounts} />
 			{:catch}
