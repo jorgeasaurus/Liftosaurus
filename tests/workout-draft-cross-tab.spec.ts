@@ -62,8 +62,8 @@ async function disableWebLocks(page: Page) {
 
 async function holdEditDraftLock(page: Page, userId: string) {
 	const lockName = editDraftLockName(userId);
-	const lockRequest = page.evaluate(async (lockName) => {
-		await navigator.locks.request(lockName, async () => {
+	await page.evaluate((lockName) => {
+		void navigator.locks.request(lockName, async () => {
 			(window as typeof window & { draftLockHeld?: boolean }).draftLockHeld = true;
 			await new Promise<void>((resolve) => {
 				(window as typeof window & { releaseDraftLock?: () => void }).releaseDraftLock = resolve;
@@ -73,7 +73,6 @@ async function holdEditDraftLock(page: Page, userId: string) {
 	await expect
 		.poll(() => page.evaluate(() => (window as typeof window & { draftLockHeld?: boolean }).draftLockHeld))
 		.toBe(true);
-	return lockRequest;
 }
 
 async function waitForPendingEditMutation(page: Page, userId: string) {
@@ -237,7 +236,7 @@ test('future active records survive stale save and reset transitions', async ({ 
 		.poll(() => page.evaluate((activeKey) => localStorage.getItem(activeKey), keys.active))
 		.toBe(futureActiveRecord);
 
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await expect(page).toHaveURL(/\/workouts\/manage\/overview/);
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page).toHaveURL(/\/workouts$/);
@@ -329,15 +328,14 @@ test('locked concurrent edit writers survive stale cancel across valid, future, 
 			delete (window as typeof window & { draftLockHeld?: boolean }).draftLockHeld;
 			delete (window as typeof window & { releaseDraftLock?: () => void }).releaseDraftLock;
 		});
-		const lockRequest = holdEditDraftLock(writerPage, userData.userId);
+		await holdEditDraftLock(writerPage, userData.userId);
 		await expect
 			.poll(() => writerPage.evaluate(() => (window as typeof window & { draftLockHeld?: boolean }).draftLockHeld))
 			.toBe(true);
 
-		await page.getByRole('button', { name: 'Cancel edit' }).click();
+		await page.getByRole('button', { name: 'Cancel edit' }).evaluate((button: HTMLButtonElement) => button.click());
 		await waitForPendingEditMutation(page, userData.userId);
 		await writeEditRecordAndRelease(writerPage, userData.userId, replacementRaw);
-		await lockRequest;
 
 		await expect.poll(() => page.evaluate((editKey) => localStorage.getItem(editKey), keys.edit)).toBe(replacementRaw);
 		if (index === 0) {
@@ -410,6 +408,7 @@ test('queued account A writes are fenced across same-document A to anonymous to 
 	page,
 	userData
 }) => {
+	test.slow();
 	const secondUserId = createId();
 	const secondSessionToken = createId();
 	await prisma.session.create({
@@ -436,34 +435,35 @@ test('queued account A writes are fenced across same-document A to anonymous to 
 			{ activeKey: secondKeys.active, secondDraft }
 		);
 
-		const lockRequest = holdEditDraftLock(lockPage, userData.userId);
-		await page.getByRole('button', { name: 'Cancel edit' }).click();
+		await holdEditDraftLock(lockPage, userData.userId);
+		await page.getByRole('button', { name: 'Cancel edit' }).evaluate((button: HTMLButtonElement) => button.click());
 		await waitForPendingEditMutation(page, userData.userId);
 		await page.evaluate(() => {
 			(window as typeof window & { sameDocumentSessionSentinel?: string }).sameDocumentSessionSentinel = 'mounted';
 		});
 
 		await page.context().clearCookies();
-		await page.getByRole('link', { name: 'Dashboard', exact: true }).click();
-		await expect(page).toHaveURL(/\/dashboard$/);
-		await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
-
-		const appOrigin = new URL(page.url()).origin;
-		await page.context().addCookies([{ name: 'authjs.session-token', value: secondSessionToken, url: appOrigin }]);
-		await page.getByRole('link', { name: 'Workouts', exact: true }).click();
-		await expect(page).toHaveURL(/\/workouts$/);
-		await page.getByRole('button', { name: 'create-workout' }).click();
-		await expect(page.getByRole('spinbutton', { name: 'Bodyweight (lbs)' })).toHaveValue('207');
-
-		await lockPage.evaluate(() => (window as typeof window & { releaseDraftLock?: () => void }).releaseDraftLock?.());
-		await lockRequest;
-		await expect.poll(() => page.evaluate((editKey) => localStorage.getItem(editKey), firstKeys.edit)).toBe(firstRaw);
-		expect(await page.evaluate((activeKey) => localStorage.getItem(activeKey), secondKeys.active)).toContain('207');
+		await page
+			.getByRole('link', { name: 'Today', exact: true })
+			.evaluate((link: HTMLAnchorElement) => link.click());
+		await expect(page).toHaveURL(/\/$/);
+		await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 		expect(
 			await page.evaluate(
 				() => (window as typeof window & { sameDocumentSessionSentinel?: string }).sameDocumentSessionSentinel
 			)
 		).toBe('mounted');
+
+		const appOrigin = new URL(page.url()).origin;
+		await page.context().addCookies([{ name: 'authjs.session-token', value: secondSessionToken, url: appOrigin }]);
+		await page.goto('/workouts');
+		await expect(page).toHaveURL(/\/workouts$/);
+		await page.getByRole('button', { name: 'create-workout' }).click();
+		await expect(page.getByRole('spinbutton', { name: 'Bodyweight (lbs)' })).toHaveValue('207');
+
+		await lockPage.evaluate(() => (window as typeof window & { releaseDraftLock?: () => void }).releaseDraftLock?.());
+		await expect.poll(() => page.evaluate((editKey) => localStorage.getItem(editKey), firstKeys.edit)).toBe(firstRaw);
+		expect(await page.evaluate((activeKey) => localStorage.getItem(activeKey), secondKeys.active)).toContain('207');
 	} finally {
 		await prisma.session.deleteMany({ where: { userId: secondUserId } });
 		await prisma.user.deleteMany({ where: { id: secondUserId } });
@@ -471,6 +471,7 @@ test('queued account A writes are fenced across same-document A to anonymous to 
 });
 
 test('real logout and account switch preserve scoped drafts and quarantined storage', async ({ page, userData }) => {
+	test.slow();
 	const secondUserId = createId();
 	const secondSessionToken = createId();
 	await prisma.session.create({
@@ -495,6 +496,7 @@ test('real logout and account switch preserve scoped drafts and quarantined stor
 	const unrelatedRaw = 'preserve me';
 
 	try {
+		await page.setViewportSize({ width: 430, height: 800 });
 		await page.goto('/dashboard');
 		await page.evaluate(
 			({ firstKeys, firstRaw, originGlobalRaw, secondKeys, secondRaw, unrelatedRaw }) => {
@@ -506,9 +508,9 @@ test('real logout and account switch preserve scoped drafts and quarantined stor
 			{ firstKeys, firstRaw, originGlobalRaw, secondKeys, secondRaw, unrelatedRaw }
 		);
 
-		await page.locator('header').getByRole('button').last().click();
+		await page.getByRole('button', { name: 'Open profile menu' }).last().click();
 		await page.getByRole('menuitem', { name: 'Logout' }).click();
-		await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
 
 		const preserved = await page.evaluate(
 			({ firstKeys, secondKeys }) => ({

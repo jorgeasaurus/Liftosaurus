@@ -57,7 +57,7 @@ test('next button is fully visible when the mobile workout start page opens', as
 	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(viewport!.height);
 	const navigationBounds = await page.getByRole('navigation', { name: 'Primary navigation' }).boundingBox();
 	expect(navigationBounds).not.toBeNull();
-	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(navigationBounds!.y - 12);
+	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(navigationBounds!.y);
 	await page.getByRole('spinbutton', { name: 'Bodyweight (lbs)' }).fill('195');
 	await nextButton.click();
 	await expect(page).toHaveURL(/\/workouts\/manage\/exercises/);

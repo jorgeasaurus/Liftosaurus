@@ -91,7 +91,9 @@ test('edit an exercise split', async ({ page }) => {
 	await page.getByRole('button', { name: 'Remove' }).click();
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.getByRole('button', { name: 'Continue' }).click();
+	await page.waitForURL('/exercise-splits/manage/exercises');
 	await page.getByRole('button', { name: 'Next' }).click();
+	await page.waitForURL('/exercise-splits/manage/overview');
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Exercise split edited successfully' })).toBeVisible({
 		timeout: 10000

@@ -1,21 +1,28 @@
 import { config } from 'dotenv';
+import type { Prisma } from '@prisma/client';
 config();
 import { prisma } from '../src/lib/prisma';
 import type { UserData } from './global-setup';
 
-export default async function globalTeardown() {
-	const testUsersData: UserData[] = JSON.parse(process.env.TEST_USERS_DATA as string);
+export function getTestUserCleanupFilters(testUsersDataJson?: string) {
+	const filters: Prisma.UserWhereInput[] = [];
+	if (testUsersDataJson) {
+		const testUsersData: UserData[] = JSON.parse(testUsersDataJson);
+		filters.push({ id: { in: testUsersData.map(({ userId }) => userId) } });
+	}
 
-	await prisma.user.deleteMany({
-		where: { id: { in: testUsersData.map(({ userId }) => userId) } }
-	});
-
-	await prisma.user.deleteMany({
-		where: {
-			email: {
-				startsWith: 'test-user-',
-				endsWith: '@Liftosaurus.com'
-			}
+	filters.push({
+		email: {
+			startsWith: 'test-user-',
+			endsWith: '@Liftosaurus.com'
 		}
 	});
+
+	return filters;
+}
+
+export default async function globalTeardown() {
+	for (const where of getTestUserCleanupFilters(process.env.TEST_USERS_DATA)) {
+		await prisma.user.deleteMany({ where });
+	}
 }

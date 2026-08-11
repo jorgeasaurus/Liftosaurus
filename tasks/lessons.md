@@ -30,3 +30,4 @@
 - Safe-area-aware mobile layouts must include left and right insets, and `viewport-fit=cover` must be enabled before relying on iOS inset values.
 - Mobile overflow fixes must constrain the shell and every flex/grid child that can establish intrinsic width; safe-area padding alone cannot prevent a workout row from widening the page.
 - When a repeated per-set control represents a shared workout target, surface one exercise-level control and preserve completed-set values as history.
+- When asked to finish a repair loop, keep the task active through grouped fixes and full-suite verification; do not hand back after partial progress.
