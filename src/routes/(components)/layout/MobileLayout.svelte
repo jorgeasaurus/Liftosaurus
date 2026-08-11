@@ -27,10 +27,11 @@
 	const isActive = (href: string) =>
 		href === '/dashboard' ? $page.url.pathname.startsWith('/dashboard') : $page.url.pathname.startsWith(href);
 
-	// Hide global chrome during live workout logging to free vertical space
+	// Keep workout chrome compact while retaining the persistent bottom navigation.
 	let isFocusedWorkout = $derived(
 		$page.url.pathname === '/workouts/manage' || $page.url.pathname.startsWith('/workouts/manage/')
 	);
+	let isExerciseLogging = $derived($page.url.pathname === '/workouts/manage/exercises');
 </script>
 
 <header class="mobile-topbar" class:compact={isFocusedWorkout}>
@@ -64,20 +65,18 @@
 		{/if}
 	</div>
 </header>
-<main class="mobile-main" class:focused={isFocusedWorkout}>
+<main class="mobile-main" class:focused={isExerciseLogging}>
 	{@render children()}
 </main>
 
-{#if !isFocusedWorkout}
-	<nav class="mobile-bottom-nav" aria-label="Primary navigation">
-		{#each navLinks as item}
-			<a class:active={isActive(item.href)} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
-				<item.icon aria-hidden="true" />
-				<span>{item.label}</span>
-			</a>
-		{/each}
-	</nav>
-{/if}
+<nav class="mobile-bottom-nav" aria-label="Primary navigation">
+	{#each navLinks as item}
+		<a class:active={isActive(item.href)} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+			<item.icon aria-hidden="true" />
+			<span>{item.label}</span>
+		</a>
+	{/each}
+</nav>
 
 <style>
 	.mobile-topbar {
@@ -140,7 +139,8 @@
 	}
 
 	.mobile-main.focused {
-		padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom))
+		overflow: hidden;
+		padding: 12px max(12px, env(safe-area-inset-right)) calc(92px + env(safe-area-inset-bottom))
 			max(12px, env(safe-area-inset-left));
 	}
 

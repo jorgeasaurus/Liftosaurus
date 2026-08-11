@@ -58,9 +58,7 @@
 	);
 
 	// totalSets === 0 (all skipped / no sets) is treated as complete so Next is available
-	let allSetsComplete = $derived(
-		totalSets !== null && completedSets !== null && completedSets >= totalSets
-	);
+	let allSetsComplete = $derived(totalSets !== null && completedSets !== null && completedSets >= totalSets);
 
 	onMount(async () => {
 		if (workoutRunes.workoutData === null) {
@@ -103,10 +101,10 @@
 	}
 </script>
 
-<section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-2">
+<section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-2 overflow-hidden">
 	{#if workoutData !== null}
 		<div class="flex items-start gap-2">
-			<div class="mr-auto min-w-0 flex flex-col">
+			<div class="mr-auto flex min-w-0 flex-col">
 				{#if workoutData.workoutOfMesocycle !== undefined}
 					<span class="truncate text-base font-semibold tracking-tight text-[#e9eef5]">
 						{workoutData.workoutOfMesocycle.splitDayName}
@@ -223,23 +221,14 @@
 		</div>
 	{/if}
 
-	<div class="grid shrink-0 grid-cols-2 gap-2 pt-1">
+	{#if allSetsComplete}
 		<Button
-			class="h-11 border border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
-			href="./start"
-			variant="secondary"
-		>
-			Previous
-		</Button>
-		<Button
-			class="h-11 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a] disabled:opacity-40"
-			disabled={!allSetsComplete}
+			class="h-11 shrink-0 border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
 			onclick={submitWorkoutExercises}
-			title={allSetsComplete ? 'Continue to overview' : 'Complete all sets to proceed'}
 		>
-			Next
+			Finish workout
 		</Button>
-	</div>
+	{/if}
 
 	<ExerciseHistorySheet />
 	<WarmUpDialog />
