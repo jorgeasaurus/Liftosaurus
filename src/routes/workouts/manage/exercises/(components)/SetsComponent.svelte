@@ -36,10 +36,15 @@
 		for (const set of exercise.sets) {
 			if (set.skipped) continue;
 			const incompleteMiniSet = set.miniSets.find((miniSet) => !miniSet.completed);
-			if (incompleteMiniSet?.RIR !== undefined) return incompleteMiniSet.RIR;
-			if (!set.completed && set.RIR !== undefined) return set.RIR;
+			if (hasValidRIR(incompleteMiniSet?.RIR)) return incompleteMiniSet.RIR;
+			if (!set.completed && hasValidRIR(set.RIR)) return set.RIR;
 		}
-		return exercise.sets.find((set) => !set.skipped)?.RIR;
+		for (const set of exercise.sets) {
+			if (set.skipped) continue;
+			if (hasValidRIR(set.RIR)) return set.RIR;
+			const miniSetRIR = set.miniSets.find((miniSet) => hasValidRIR(miniSet.RIR))?.RIR;
+			if (hasValidRIR(miniSetRIR)) return miniSetRIR;
+		}
 	});
 	let hasEditableRIRTargets = $derived(
 		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
