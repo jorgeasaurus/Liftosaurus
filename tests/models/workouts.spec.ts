@@ -27,8 +27,8 @@ test('create workout', async ({ page }) => {
 	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('2');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('95').fill('95');
-	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
 	await page.getByRole('button', { name: 'Next' }).click();
@@ -237,8 +237,8 @@ test('create workout without using active mesocycle', async ({ page }) => {
 	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('2');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('95').fill('95');
-	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
 	await page.getByRole('button', { name: 'Next' }).click();

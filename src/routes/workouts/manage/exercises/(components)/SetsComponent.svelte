@@ -36,11 +36,14 @@
 		for (const set of exercise.sets) {
 			if (set.skipped) continue;
 			const incompleteMiniSet = set.miniSets.find((miniSet) => !miniSet.completed);
-			if (incompleteMiniSet) return incompleteMiniSet.RIR ?? set.RIR;
-			if (!set.completed) return set.RIR;
+			if (incompleteMiniSet?.RIR !== undefined) return incompleteMiniSet.RIR;
+			if (!set.completed && set.RIR !== undefined) return set.RIR;
 		}
 		return exercise.sets.find((set) => !set.skipped)?.RIR;
 	});
+	let hasEditableRIRTargets = $derived(
+		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
+	);
 	let oldBodyweightFraction = $derived(
 		getPreviousBodyweightFraction(
 			workoutRunes.previousWorkoutData?.exercises,
@@ -274,6 +277,7 @@
 	}
 
 	function updateSharedRIR(value: string) {
+		if (value.trim() === '') return;
 		const RIR = Number(value);
 		if (!Number.isInteger(RIR) || RIR < 0) return;
 
@@ -291,7 +295,7 @@
 	<Input
 		class="h-8 w-14 px-2 text-center"
 		id="{exercise.name}-RIR"
-		disabled={sharedRIR === undefined}
+		disabled={!hasEditableRIRTargets}
 		min={0}
 		required
 		step={1}
