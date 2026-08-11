@@ -27,3 +27,4 @@
 - Never use origin-wide storage clearing for logout or app updates; remove only explicit application-owned disposable keys and preserve all user-scoped and quarantined records.
 - Multi-key local-storage migration must remain resumable after every individual write; retain the source record until all destination records and mode are durably complete.
 - Treat suppressed review feedback as actionable when it identifies an avoidable local convention mismatch; do not dismiss it solely because the current API is valid.
+- Safe-area-aware mobile layouts must include left and right insets, and `viewport-fit=cover` must be enabled before relying on iOS inset values.

@@ -88,7 +88,7 @@
 		height: calc(62px + env(safe-area-inset-top));
 		align-items: center;
 		justify-content: space-between;
-		padding: env(safe-area-inset-top) 20px 0;
+		padding: env(safe-area-inset-top) max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
 		border-bottom: 1px solid #273034;
 		background: rgba(9, 13, 14, 0.92);
 		backdrop-filter: blur(16px);
@@ -132,11 +132,13 @@
 		width: 100%;
 		flex: 1;
 		overflow-y: auto;
-		padding: 28px 20px calc(104px + env(safe-area-inset-bottom));
+		padding: 28px max(20px, env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom))
+			max(20px, env(safe-area-inset-left));
 	}
 
 	.mobile-main.focused {
-		padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+		padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom))
+			max(12px, env(safe-area-inset-left));
 	}
 
 	.mobile-bottom-nav {
@@ -148,7 +150,8 @@
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
 		gap: 4px;
-		padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+		padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom))
+			max(12px, env(safe-area-inset-left));
 		border-top: 1px solid #273034;
 		background: rgba(15, 21, 22, 0.96);
 		backdrop-filter: blur(18px);
