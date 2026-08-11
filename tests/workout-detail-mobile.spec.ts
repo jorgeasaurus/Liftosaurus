@@ -38,8 +38,8 @@ test('completed workout exercises remain visible on mobile', async ({ page, user
 	await expect(exercisesTab).toHaveAttribute('data-state', 'active');
 	await expect(page.getByRole('tabpanel')).toBeVisible();
 	await expect(page.getByText(exerciseName, { exact: true })).toBeAttached();
-	expect(consoleErrors).toEqual([]);
 	await expect(page.getByText(exerciseName, { exact: true })).toBeVisible();
+	expect(consoleErrors).toEqual([]);
 });
 
 test('completed workout without exercises shows an explanatory empty state', async ({ page, userData }) => {
