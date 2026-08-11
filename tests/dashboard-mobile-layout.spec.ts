@@ -13,7 +13,7 @@ test('today workout card stays within a narrow mobile viewport', async ({ page, 
 			name: 'Mobile dashboard layout',
 			userId: userData.userId,
 			RIRProgression: [3],
-			startDate: new Date(new Date().setHours(0, 0, 0, 0)),
+			startDate: new Date('2026-08-10T00:00:00.000Z'),
 			startOverloadPercentage: 2,
 			lastSetToFailure: false,
 			forceRIRMatching: false,
@@ -56,7 +56,9 @@ test('today workout card stays within a narrow mobile viewport', async ({ page, 
 
 	const viewport = page.viewportSize();
 	expect(viewport).not.toBeNull();
-	for (const row of await page.locator('ol > li').all()) {
+	const rows = page.locator('ol > li');
+	await expect(rows).toHaveCount(exercises.length);
+	for (const row of await rows.all()) {
 		const bounds = await row.boundingBox();
 		expect(bounds).not.toBeNull();
 		expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport!.width);
