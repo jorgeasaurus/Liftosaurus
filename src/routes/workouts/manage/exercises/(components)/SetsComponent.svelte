@@ -32,6 +32,9 @@
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
 	let lastSharedLoad = $state(exercise.sets[0]?.load);
+	let hasEditableRIRTargets = $derived(
+		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
+	);
 	let sharedRIR = $derived.by(() => {
 		for (const set of exercise.sets) {
 			if (set.skipped) continue;
@@ -39,6 +42,7 @@
 			if (hasValidRIR(incompleteMiniSet?.RIR)) return incompleteMiniSet.RIR;
 			if (!set.completed && hasValidRIR(set.RIR)) return set.RIR;
 		}
+		if (hasEditableRIRTargets) return;
 		for (const set of exercise.sets) {
 			if (set.skipped) continue;
 			if (hasValidRIR(set.RIR)) return set.RIR;
@@ -46,9 +50,6 @@
 			if (hasValidRIR(miniSetRIR)) return miniSetRIR;
 		}
 	});
-	let hasEditableRIRTargets = $derived(
-		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
-	);
 	let oldBodyweightFraction = $derived(
 		getPreviousBodyweightFraction(
 			workoutRunes.previousWorkoutData?.exercises,
@@ -288,7 +289,15 @@
 	}
 
 	function updateSharedRIR(value: string) {
-		if (value.trim() === '') return;
+		if (value.trim() === '') {
+			for (const set of exercise.sets) {
+				if (!set.completed && !set.skipped) set.RIR = undefined;
+				for (const miniSet of set.miniSets) {
+					if (!miniSet.completed && !set.skipped) miniSet.RIR = undefined;
+				}
+			}
+			return;
+		}
 		const RIR = Number(value);
 		if (!Number.isInteger(RIR) || RIR < 0) return;
 

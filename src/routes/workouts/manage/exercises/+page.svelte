@@ -57,7 +57,7 @@
 			: null
 	);
 
-	// totalSets === 0 (all skipped / no sets) is treated as complete so Next is available
+	// totalSets === 0 (all skipped / no sets) is treated as complete so finishing is available
 	let allSetsComplete = $derived(totalSets !== null && completedSets !== null && completedSets >= totalSets);
 
 	onMount(async () => {
