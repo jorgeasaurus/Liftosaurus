@@ -129,8 +129,11 @@
 
 	.mobile-main {
 		min-height: 0;
+		min-width: 0;
+		max-width: 100%;
 		width: 100%;
 		flex: 1;
+		overflow-x: hidden;
 		overflow-y: auto;
 		padding: 28px max(20px, env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom))
 			max(20px, env(safe-area-inset-left));

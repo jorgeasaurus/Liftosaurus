@@ -24,7 +24,7 @@
 	});
 </script>
 
-<section class="mx-auto flex w-full max-w-5xl flex-col gap-6 lg:max-w-[1480px]">
+<section class="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6 lg:max-w-[1480px]">
 	<header>
 		<h1 class="flex items-center gap-3 text-[1.7rem] font-semibold leading-tight tracking-tight lg:text-4xl">
 			<SunriseIcon class="h-7 w-7 shrink-0 text-primary lg:h-8 lg:w-8" />

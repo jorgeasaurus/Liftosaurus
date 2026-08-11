@@ -21,7 +21,10 @@
 	}
 </script>
 
-<Card.Root class="overflow-hidden rounded-xl shadow-none lg:rounded-lg lg:shadow-sm">
+<Card.Root
+	data-testid="todays-workout-card"
+	class="min-w-0 max-w-full overflow-hidden rounded-xl shadow-none lg:rounded-lg lg:shadow-sm"
+>
 	{#await todaysWorkoutData}
 		<Card.Header>
 			<Card.Description>Today's session</Card.Description>
@@ -58,17 +61,17 @@
 				)}
 				<Card.Header class="p-5 pb-4 lg:p-6 lg:pb-4">
 					<Card.Description>{wm.mesocycle.name} · cycle {wm.cycleNumber}</Card.Description>
-					<Card.Title class="flex items-start justify-between gap-3 text-[1.75rem] leading-tight">
-						{wm.splitDayName}
+					<Card.Title class="flex min-w-0 items-start justify-between gap-3 text-[1.75rem] leading-tight">
+						<span class="min-w-0 truncate">{wm.splitDayName}</span>
 						<Badge class="mt-1 shrink-0" variant="secondary">{rir} RIR</Badge>
 					</Card.Title>
 				</Card.Header>
 				<Card.Content class="flex flex-col gap-4 p-5 pt-0 lg:p-6 lg:pt-0">
 					{#if todaysWorkoutData.workoutExercises.length > 0}
-						<ol class="flex flex-col divide-y text-sm">
+						<ol class="flex min-w-0 max-w-full flex-col divide-y text-sm">
 							{#each todaysWorkoutData.workoutExercises as exercise, idx}
 								<li
-									class="flex min-h-11 items-center justify-between gap-3 py-2 first:pt-0 last:pb-0 lg:min-h-0 lg:items-baseline"
+									class="grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2 first:pt-0 last:pb-0 lg:min-h-0 lg:items-baseline"
 								>
 									<span class="min-w-0 truncate text-[0.95rem] font-medium lg:text-sm">
 										<span class="mr-3 inline-block w-4 text-right tabular-nums text-muted-foreground lg:mr-2"
@@ -76,7 +79,7 @@
 										>
 										{exercise.name}
 									</span>
-									<span class="shrink-0 text-sm text-muted-foreground lg:text-xs">
+									<span class="max-w-[7rem] truncate text-right text-sm text-muted-foreground lg:max-w-none lg:text-xs">
 										{convertCamelCaseToNormal(exercise.customMuscleGroup ?? exercise.targetMuscleGroup)}
 									</span>
 								</li>
@@ -84,7 +87,7 @@
 						</ol>
 					{/if}
 					{#if muscleGroups.length > 0}
-						<p class="text-sm text-muted-foreground lg:text-xs">
+						<p class="break-words text-sm text-muted-foreground lg:text-xs">
 							{todaysWorkoutData.workoutExercises.length} exercises · {muscleGroups.join(', ')}
 						</p>
 					{/if}
