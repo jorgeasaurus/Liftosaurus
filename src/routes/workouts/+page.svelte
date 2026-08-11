@@ -68,7 +68,7 @@
 	function setFilters(
 		selectedDateRange: DateRange,
 		selectedMesocycles: (string | null)[],
-		selectedWorkoutStatus: (WorkoutStatus | null)[]
+		selectedWorkoutStatus: (WorkoutStatus | null)[] | undefined
 	) {
 		const newURL = new URL($page.url);
 
@@ -90,7 +90,7 @@
 			newURL.searchParams.delete('selectedMesocycles');
 		}
 
-		if (selectedWorkoutStatus.length) {
+		if (selectedWorkoutStatus !== undefined) {
 			newURL.searchParams.set('selectedWorkoutStatuses', JSON.stringify(selectedWorkoutStatus));
 		} else {
 			newURL.searchParams.delete('selectedWorkoutStatuses');

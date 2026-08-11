@@ -18,7 +18,7 @@
 		setFilters: (
 			selectedDateRange: DateRange,
 			selectedMesocycles: (string | null)[],
-			selectedWorkoutStatus: (WorkoutStatus | null)[]
+			selectedWorkoutStatus: (WorkoutStatus | null)[] | undefined
 		) => void;
 	};
 	let { currentFilters, filterData, setFilters }: PropsType = $props();
@@ -35,7 +35,10 @@
 	let activeFilterCount = $derived(
 		Number(Boolean(currentFilters.startDate || currentFilters.endDate)) +
 			Number(Boolean(currentFilters.selectedMesocycles?.length)) +
-			Number(selectedWorkoutStatusFilterCount > 0 && selectedWorkoutStatusFilterCount < selectedWorkoutStatuses.size)
+			Number(
+				currentFilters.selectedWorkoutStatuses !== undefined &&
+					selectedWorkoutStatusFilterCount < selectedWorkoutStatuses.size
+			)
 	);
 
 	onMount(() => {
@@ -68,7 +71,7 @@
 		setFilters(
 			selectedDateRange,
 			selectedMesocycles.map((s) => s.value),
-			workoutStatuses.length === selectedWorkoutStatuses.size ? [] : workoutStatuses
+			workoutStatuses.length === selectedWorkoutStatuses.size ? undefined : workoutStatuses
 		);
 		open = false;
 	}

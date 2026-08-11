@@ -57,7 +57,9 @@
 			hsl(var(--muted-foreground)) 75%
 		);
 		background-size: 200% 100%;
+		-webkit-background-clip: text;
 		background-clip: text;
+		-webkit-text-fill-color: transparent;
 		color: transparent;
 		animation: label-shimmer 1.5s linear infinite;
 	}
