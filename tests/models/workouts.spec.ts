@@ -24,11 +24,11 @@ test('create workout', async ({ page }) => {
 
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-reps"]').fill('9');
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-load"]').fill('100');
-	await page.locator('[id="Barbell\\ bench\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('2');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('95').fill('95');
-	await page.locator('[id="Barbell\\ bench\\ press-set-2-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
 	await page.getByRole('button', { name: 'Next' }).click();
@@ -57,10 +57,10 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-reps"]').fill('9');
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-load"]').fill('50');
-	await page.locator('[id="Barbell\\ bench\\ press-set-1-RIR"]').fill('1');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('45').fill('45');
-	await page.locator('[id="Barbell\\ bench\\ press-set-2-RIR"]').fill('1');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
@@ -74,16 +74,16 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-1-reps"]').fill('12');
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-1-load"]').fill('10');
-	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-1-RIR"]').fill('2');
+	await page.locator('[id="Dumbbell\\ bicep\\ curls-RIR"]').fill('2');
 	await page.getByTestId('Dumbbell bicep curls-set-1-action').click();
 	await expect(page.getByRole('main')).toContainText('12 reps left');
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-reps"]').fill('10');
-	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-RIR"]').fill('0');
+	await page.locator('[id="Dumbbell\\ bicep\\ curls-RIR"]').fill('0');
 	await expect(page.getByRole('main')).toContainText('2 reps left');
 	await page.getByLabel('add-mini-set-to-set-2-of-').click();
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-mini-set-1-reps"]').fill('2');
 	await expect(page.getByRole('main')).toContainText('matched');
-	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-mini-set-1-RIR"]').fill('0');
+	await page.locator('[id="Dumbbell\\ bicep\\ curls-RIR"]').fill('0');
 	await page.getByTestId('Dumbbell bicep curls-set-2-action').click();
 	await page.getByTestId('Dumbbell bicep curls-set-2-mini-set-1-action').click();
 
@@ -100,20 +100,20 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-reps"]').fill('18');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-load"]').fill('10');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.getByLabel('add-mini-set-to-set-1-of-').click();
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-mini-set-1-reps"]').fill('12');
 	await page.getByPlaceholder('5', { exact: true }).fill('5');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-mini-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.getByTestId('Leaning dumbbell lateral raises-set-1-action').click();
 	await page.getByTestId('Leaning dumbbell lateral raises-set-1-mini-set-1-action').click();
 	await page.getByLabel('add-mini-set-to-set-2-of-Leaning dumbbell lateral raises').click();
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-reps"]').fill('16');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-load"]').fill('10');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-mini-set-1-reps"]').fill('10');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-mini-set-1-load"]').fill('5');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-mini-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.getByTestId('Leaning dumbbell lateral raises-set-2-action').click();
 	await page.getByTestId('Leaning dumbbell lateral raises-set-2-mini-set-1-action').click();
 
@@ -127,10 +127,10 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-1-reps"]').fill('14');
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-1-load"]').fill('20');
-	await page.locator('[id="Incline\\ dumbbell\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Incline\\ dumbbell\\ press-RIR"]').fill('2');
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-2-reps"]').fill('12');
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-2-load"]').fill('15');
-	await page.locator('[id="Incline\\ dumbbell\\ press-set-2-RIR"]').fill('1');
+	await page.locator('[id="Incline\\ dumbbell\\ press-RIR"]').fill('1');
 	await page.getByTestId('Incline dumbbell press-set-1-action').click();
 	await page.getByTestId('Incline dumbbell press-set-2-action').click();
 
@@ -146,9 +146,9 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Leg\\ press-set-1-reps"]').fill('18');
 	await page.locator('[id="Leg\\ press-set-1-load"]').fill('180');
-	await page.locator('[id="Leg\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leg\\ press-RIR"]').fill('2');
 	await page.locator('[id="Leg\\ press-set-2-reps"]').fill('12');
-	await page.locator('[id="Leg\\ press-set-2-RIR"]').fill('0');
+	await page.locator('[id="Leg\\ press-RIR"]').fill('0');
 	await page.getByTestId('Leg press-set-1-action').click();
 	await page.getByTestId('Leg press-set-2-action').click();
 	await page.getByRole('button', { name: 'Next' }).click();
@@ -168,7 +168,7 @@ test('create a workout with active mesocycle', async ({ page }) => {
 	await page.getByPlaceholder('Type here').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	await expect(page.getByRole('main')).toContainText('Weight (+BW) Reps RIR');
+	await expect(page.getByRole('main')).toContainText('Weight (+BW) Reps Log');
 	await expect(page.getByRole('main')).toContainText('Rep targets');
 	await page.getByLabel('Show rep targets').click();
 	await expect(page.getByText('Aim for these rep ranges')).toBeVisible();
@@ -234,11 +234,11 @@ test('create workout without using active mesocycle', async ({ page }) => {
 
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-reps"]').fill('9');
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-load"]').fill('100');
-	await page.locator('[id="Barbell\\ bench\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('2');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('95').fill('95');
-	await page.locator('[id="Barbell\\ bench\\ press-set-2-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
 	await page.getByRole('button', { name: 'Next' }).click();
@@ -327,7 +327,7 @@ test('edit a workout', async ({ page, userData }) => {
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.locator('[id="Incline barbell press-set-1-reps"]').fill('9');
 	await page.locator('[id="Incline barbell press-set-1-load"]').fill('135');
-	await page.locator('[id="Incline barbell press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Incline barbell press-RIR"]').fill('2');
 	await page.getByTestId('Incline barbell press-set-1-action').click();
 	await page.getByRole('link', { name: 'Workouts' }).click();
 
