@@ -76,7 +76,7 @@
 										>
 										{exercise.name}
 									</span>
-									<span class="max-w-28 truncate text-right text-sm text-muted-foreground lg:max-w-none lg:text-xs">
+									<span class="max-w-[7rem] truncate text-right text-sm text-muted-foreground lg:max-w-none lg:text-xs">
 										{convertCamelCaseToNormal(exercise.customMuscleGroup ?? exercise.targetMuscleGroup)}
 									</span>
 								</li>
