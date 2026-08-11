@@ -4,7 +4,7 @@ import { createMesocycle, createTemplateExerciseSplit } from './commonFunctions'
 test.beforeEach(async ({ page }) => {
 	await page.goto('/exercise-splits');
 	await createTemplateExerciseSplit(page);
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 });
 
 test('create a mesocycle', async ({ page }) => {
@@ -125,7 +125,7 @@ test('start and stop a mesocycle', async ({ page }) => {
 		timeout: 10000
 	});
 	await expect(page.getByRole('tabpanel')).toContainText(`MesoName ${new Date().toLocaleDateString('en-US')} Active`);
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await expect(page.getByRole('main')).toContainText("Active MesoName Active All MesoName Active That's all");
 	await page.getByRole('link', { name: 'MesoName Active' }).first().click();
 	await page.getByRole('button', { name: 'Stop mesocycle' }).click();
@@ -135,7 +135,7 @@ test('start and stop a mesocycle', async ({ page }) => {
 	await expect(page.getByRole('tabpanel')).toContainText(
 		`MesoName ${new Date().toLocaleDateString('en-US')} to ${new Date().toLocaleDateString('en-US')} Completed`
 	);
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await expect(page.getByRole('main')).toContainText("Active No active mesocycle All MesoName Completed That's all");
 });
 

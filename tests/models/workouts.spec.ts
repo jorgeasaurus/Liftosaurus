@@ -454,7 +454,7 @@ test('workout changes should update mesocycle split', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.waitForURL('/workouts');
 
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await page.getByRole('link', { name: 'MyMeso Active' }).first().click();
 	await page.getByRole('tab', { name: 'Split' }).click();
 	await expect(page.getByRole('main')).toContainText(

@@ -100,9 +100,9 @@ test('saved deload restores template volume and normal progression the following
 	await expect(page.getByText('Deload', { exact: true })).toBeVisible();
 	await expect(page.locator('#Bench\\ press-set-3-reps')).toHaveCount(0);
 	await expect(page.locator('#Bench\\ press-set-1-load')).toHaveValue('50');
-	await page.getByRole('button', { name: 'compare-exercises' }).click();
+	await page.getByRole('button', { name: 'Compare to previous workout' }).click();
 	await expect(page.getByText('Manual deloads are excluded from progression comparisons.')).toBeVisible();
-	await page.getByRole('button', { name: 'compare-exercises' }).click();
+	await page.getByRole('button', { name: 'Compare to previous workout' }).click();
 	await page.getByTestId('Bench press-menu-button').click();
 	await page.getByRole('menuitem', { name: 'Edit' }).click();
 	await page.getByPlaceholder('Type here or search...').fill('Incline press');
@@ -358,10 +358,10 @@ test('mixed deload comparison includes only matched normal exercises', async ({ 
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.getByTestId('Bench press-menu-button').click();
 	await page.getByRole('menuitem', { name: 'Deload exercise' }).click();
-	await page.getByRole('button', { name: 'compare-exercises' }).click();
+	await page.getByRole('button', { name: 'Compare to previous workout' }).click();
 	await expect(page.getByText('Manual deloads are excluded from progression comparisons.')).toBeVisible();
 	await expect(page.getByText('No previous normal performance is available to compare.')).toBeVisible();
-	await page.getByRole('button', { name: 'compare-exercises' }).click();
+	await page.getByRole('button', { name: 'Compare to previous workout' }).click();
 
 	for (const [exerciseName, setCount, load] of [
 		['Bench press', 1, '50'],
