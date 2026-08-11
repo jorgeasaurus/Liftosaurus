@@ -13,6 +13,7 @@
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import { goto } from '$app/navigation';
 	import WorkoutActivityGraph from './WorkoutActivityGraph.svelte';
+	import InsightMetric from '$lib/components/InsightMetric.svelte';
 
 	let { data } = $props();
 	let migratingToV2 = $state(false);
@@ -36,15 +37,6 @@
 			}
 		}
 	}
-
-	function formatNumber(num: number) {
-		if (num >= 100000) {
-			return (num / 1000).toFixed(0) + 'k';
-		} else if (num >= 10000) {
-			return (num / 1000).toFixed(1) + 'k';
-		}
-		return num.toString();
-	}
 </script>
 
 <H2>Profile</H2>
@@ -62,42 +54,9 @@
 </div>
 
 <div class="mb-4 grid grid-cols-3 gap-2">
-	<Card.Root class="bg-background">
-		<Card.Header class="flex p-4">
-			<Card.Title class="text-center text-sm font-medium">Workouts</Card.Title>
-		</Card.Header>
-		<Card.Content class="p-4 pt-0 text-center text-2xl font-bold">
-			{#await data.userCounts.workouts}
-				<Skeleton class="h-8 w-full" />
-			{:then userCounts}
-				{formatNumber(userCounts)}
-			{/await}
-		</Card.Content>
-	</Card.Root>
-	<Card.Root class="bg-background">
-		<Card.Header class="flex p-4">
-			<Card.Title class="text-center text-sm font-medium">Exercises</Card.Title>
-		</Card.Header>
-		<Card.Content class="p-4 pt-0 text-center text-2xl font-bold">
-			{#await data.userCounts.exercises}
-				<Skeleton class="h-8 w-full" />
-			{:then userCounts}
-				{formatNumber(userCounts)}
-			{/await}
-		</Card.Content>
-	</Card.Root>
-	<Card.Root class="bg-background">
-		<Card.Header class="flex p-4">
-			<Card.Title class="text-center text-sm font-medium">Sets</Card.Title>
-		</Card.Header>
-		<Card.Content class="p-4 pt-0 text-center text-2xl font-bold">
-			{#await data.userCounts.sets}
-				<Skeleton class="h-8 w-full" />
-			{:then userCounts}
-				{formatNumber(userCounts)}
-			{/await}
-		</Card.Content>
-	</Card.Root>
+	<InsightMetric label="Workouts" value={data.userCounts.workouts} />
+	<InsightMetric label="Exercises" value={data.userCounts.exercises} />
+	<InsightMetric label="Sets" value={data.userCounts.sets} />
 </div>
 
 {#await data.workoutsForGraph}

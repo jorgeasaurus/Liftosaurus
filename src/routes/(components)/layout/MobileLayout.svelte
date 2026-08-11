@@ -161,6 +161,7 @@
 	}
 
 	.mobile-bottom-nav a {
+		position: relative;
 		display: flex;
 		min-height: 52px;
 		flex-direction: column;
@@ -173,7 +174,12 @@
 		font-weight: 600;
 		transition:
 			color 150ms ease,
-			background 150ms ease;
+			background 150ms ease,
+			transform 150ms ease;
+	}
+
+	.mobile-bottom-nav a:active {
+		transform: scale(0.96);
 	}
 
 	.mobile-bottom-nav a :global(svg) {
@@ -184,5 +190,24 @@
 	.mobile-bottom-nav a.active {
 		background: #171e20;
 		color: #c7f43a;
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+	}
+
+	.mobile-bottom-nav a.active::before {
+		position: absolute;
+		top: 4px;
+		left: 50%;
+		width: 18px;
+		height: 2px;
+		border-radius: 999px;
+		background: #c7f43a;
+		content: '';
+		transform: translateX(-50%);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.mobile-bottom-nav a {
+			transition: none;
+		}
 	}
 </style>

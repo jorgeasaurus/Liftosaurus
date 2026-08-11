@@ -3,7 +3,7 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
+	import CraftedLoadingState from '$lib/components/CraftedLoadingState.svelte';
 	import type { RouterOutputs } from '$lib/trpc/router';
 	import { convertCamelCaseToNormal } from '$lib/utils';
 	import { getRIRForWeek } from '$lib/utils/workoutUtils';
@@ -23,19 +23,13 @@
 
 <Card.Root
 	data-testid="todays-workout-card"
-	class="min-w-0 max-w-full overflow-hidden rounded-xl shadow-none lg:rounded-lg lg:shadow-sm"
+	class="surface-panel min-w-0 max-w-full overflow-hidden rounded-xl shadow-none lg:shadow-sm"
 >
 	{#await todaysWorkoutData}
-		<Card.Header>
-			<Card.Description>Today's session</Card.Description>
-			<Card.Title><Skeleton class="h-7 w-44" /></Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<Skeleton class="h-24 w-full" />
+		<Card.Content class="p-5 lg:p-6">
+			<span class="section-kicker">Today's session</span>
+			<CraftedLoadingState label="Preparing your workout" />
 		</Card.Content>
-		<Card.Footer>
-			<Skeleton class="ml-auto h-10 w-36" />
-		</Card.Footer>
 	{:then todaysWorkoutData}
 		{@const wm = todaysWorkoutData.workoutOfMesocycle}
 		{#if wm}
@@ -68,18 +62,21 @@
 				</Card.Header>
 				<Card.Content class="flex flex-col gap-4 p-5 pt-0 lg:p-6 lg:pt-0">
 					{#if todaysWorkoutData.workoutExercises.length > 0}
-						<ol class="flex min-w-0 max-w-full flex-col divide-y text-sm">
+						<ol class="flex min-w-0 max-w-full flex-col text-sm">
 							{#each todaysWorkoutData.workoutExercises as exercise, idx}
 								<li
-									class="grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2 first:pt-0 last:pb-0 lg:min-h-0 lg:items-baseline"
+									class="divided-row grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-1 py-2.5 first:border-t-0 first:pt-0 last:pb-0 lg:min-h-0 lg:items-baseline"
 								>
 									<span class="min-w-0 truncate text-[0.95rem] font-medium lg:text-sm">
-										<span class="mr-3 inline-block w-4 text-right tabular-nums text-muted-foreground lg:mr-2"
+										<span
+											class="mr-3 inline-flex h-5 w-5 items-center justify-center rounded-md border bg-muted/40 text-[10px] tabular-nums text-muted-foreground lg:mr-2"
 											>{idx + 1}</span
 										>
 										{exercise.name}
 									</span>
-									<span class="max-w-[7rem] truncate text-right text-sm text-muted-foreground lg:max-w-none lg:text-xs">
+									<span
+										class="max-w-[7rem] truncate rounded-full bg-muted/70 px-2 py-1 text-right text-[11px] text-muted-foreground lg:max-w-none"
+									>
 										{convertCamelCaseToNormal(exercise.customMuscleGroup ?? exercise.targetMuscleGroup)}
 									</span>
 								</li>
@@ -94,7 +91,7 @@
 				</Card.Content>
 				<Card.Footer class="p-5 pt-1 lg:p-6 lg:pt-0">
 					<Button
-						class="h-12 w-full gap-2 text-base sm:ml-auto sm:w-auto lg:h-10 lg:text-sm"
+						class="pressable-control h-12 w-full gap-2 text-base sm:ml-auto sm:w-auto lg:h-10 lg:text-sm"
 						onclick={createNewWorkout}
 					>
 						<PlayIcon class="h-5 w-5 lg:h-4 lg:w-4" />

@@ -38,9 +38,9 @@
 	<nav aria-label="Primary navigation" class="space-y-1">
 		{#each navLinks as item}
 			<a
-				class={`relative flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${
+				class={`pressable-control group relative flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm ${
 					isActive(item.href)
-						? 'border-[#2a3438] bg-[#171e20] text-[#f3f6f2]'
+						? 'border-[#344044] bg-[#192123] text-[#f3f6f2] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]'
 						: 'border-transparent text-[#a6afb1] hover:border-[#2a3438] hover:bg-[#151d1f] hover:text-[#e5ebea]'
 				}`}
 				href={item.href}
@@ -48,7 +48,9 @@
 				{#if isActive(item.href)}
 					<span aria-hidden="true" class="absolute -left-4 h-6 w-1 rounded-r-full bg-[#c7f43a]"></span>
 				{/if}
-				<item.icon class={`h-4 w-4 ${isActive(item.href) ? 'text-[#f3f6f2]' : 'text-[#8f999d]'}`} />
+				<item.icon
+					class={`h-4 w-4 transition-transform group-hover:scale-105 ${isActive(item.href) ? 'text-[#c7f43a]' : 'text-[#8f999d]'}`}
+				/>
 				<span>{item.label}</span>
 			</a>
 		{/each}
@@ -88,6 +90,6 @@
 		{/if}
 	</div>
 </header>
-<main class="flex h-screen w-full flex-col overflow-y-auto bg-[#090d0e] p-6 text-[#f3f6f2]">
+<main class="flex h-screen w-full flex-col overflow-y-auto bg-background p-6 text-foreground">
 	{@render children()}
 </main>
