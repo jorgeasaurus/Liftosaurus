@@ -308,7 +308,7 @@
 		type="number"
 		inputmode="numeric"
 		value={sharedRIR}
-		onchange={(event) => updateSharedRIR((event.currentTarget as HTMLInputElement).value)}
+		oninput={(event) => updateSharedRIR((event.currentTarget as HTMLInputElement).value)}
 	/>
 </div>
 
