@@ -56,7 +56,13 @@ test('today workout card stays within a narrow mobile viewport', async ({ page, 
 
 	const viewport = page.viewportSize();
 	expect(viewport).not.toBeNull();
-	const rows = page.locator('ol > li');
+	const workoutCard = page.getByTestId('todays-workout-card');
+	const cardBounds = await workoutCard.boundingBox();
+	expect(cardBounds).not.toBeNull();
+	expect(cardBounds!.x).toBeGreaterThanOrEqual(0);
+	expect(cardBounds!.x + cardBounds!.width).toBeLessThanOrEqual(viewport!.width);
+
+	const rows = workoutCard.locator('ol > li');
 	await expect(rows).toHaveCount(exercises.length);
 	for (const row of await rows.all()) {
 		const bounds = await row.boundingBox();

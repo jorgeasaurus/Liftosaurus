@@ -21,7 +21,10 @@
 	}
 </script>
 
-<Card.Root class="min-w-0 max-w-full overflow-hidden rounded-xl shadow-none lg:rounded-lg lg:shadow-sm">
+<Card.Root
+	data-testid="todays-workout-card"
+	class="min-w-0 max-w-full overflow-hidden rounded-xl shadow-none lg:rounded-lg lg:shadow-sm"
+>
 	{#await todaysWorkoutData}
 		<Card.Header>
 			<Card.Description>Today's session</Card.Description>
