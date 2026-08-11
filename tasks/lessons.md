@@ -29,3 +29,4 @@
 - Treat suppressed review feedback as actionable when it identifies an avoidable local convention mismatch; do not dismiss it solely because the current API is valid.
 - Safe-area-aware mobile layouts must include left and right insets, and `viewport-fit=cover` must be enabled before relying on iOS inset values.
 - Mobile overflow fixes must constrain the shell and every flex/grid child that can establish intrinsic width; safe-area padding alone cannot prevent a workout row from widening the page.
+- When a repeated per-set control represents a shared workout target, surface one exercise-level control and preserve completed-set values as history.

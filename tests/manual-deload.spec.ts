@@ -156,7 +156,7 @@ test('reopening a completed set does not re-enable deload', async ({ page, userD
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.locator('#Bench\\ press-set-1-reps').fill('10');
 	await page.locator('#Bench\\ press-set-1-load').fill('100');
-	await page.locator('#Bench\\ press-set-1-RIR').fill('2');
+	await page.locator('#Bench\\ press-RIR').fill('2');
 	await page.getByTestId('Bench press-set-1-action').click();
 	await page.getByTestId('Bench press-set-1-action').click();
 	await page.getByTestId('Bench press-menu-button').click();

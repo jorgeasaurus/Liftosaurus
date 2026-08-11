@@ -32,6 +32,15 @@
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
 	let lastSharedLoad = $state(exercise.sets[0]?.load);
+	let sharedRIR = $derived.by(() => {
+		for (const set of exercise.sets) {
+			if (set.skipped) continue;
+			const incompleteMiniSet = set.miniSets.find((miniSet) => !miniSet.completed);
+			if (incompleteMiniSet) return incompleteMiniSet.RIR ?? set.RIR;
+			if (!set.completed) return set.RIR;
+		}
+		return exercise.sets.find((set) => !set.skipped)?.RIR;
+	});
 	let oldBodyweightFraction = $derived(
 		getPreviousBodyweightFraction(
 			workoutRunes.previousWorkoutData?.exercises,
@@ -136,7 +145,8 @@
 		const load = Number(value);
 		const allowsZeroLoad = Boolean(exercise.bodyweightFraction);
 		set.load = Number.isFinite(load) && (load > 0 || (allowsZeroLoad && load === 0)) ? load : undefined;
-		if (set.completed || set.load === undefined || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number') return;
+		if (set.completed || set.load === undefined || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number')
+			return;
 
 		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
 		if (typeof oldLoad !== 'number' || oldLoad < 0) return;
@@ -161,11 +171,7 @@
 	}
 
 	function getExpectedReps(set: WorkoutExerciseSet) {
-		if (
-			typeof set.load !== 'number' ||
-			typeof set.plannedReps !== 'number' ||
-			typeof set.RIR !== 'number'
-		) {
+		if (typeof set.load !== 'number' || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number') {
 			return set.plannedReps;
 		}
 		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
@@ -266,9 +272,37 @@
 			exercise.sets[currentSetIdx].plannedReps = newReps;
 		});
 	}
+
+	function updateSharedRIR(value: string) {
+		const RIR = Number(value);
+		if (!Number.isInteger(RIR) || RIR < 0) return;
+
+		for (const set of exercise.sets) {
+			if (!set.completed && !set.skipped) set.RIR = RIR;
+			for (const miniSet of set.miniSets) {
+				if (!miniSet.completed && !set.skipped) miniSet.RIR = RIR;
+			}
+		}
+	}
 </script>
 
-<div class="grid grid-cols-4 gap-1">
+<div class="flex items-center justify-end gap-2 pb-1">
+	<label class="text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]" for="{exercise.name}-RIR">RIR</label>
+	<Input
+		class="h-8 w-14 px-2 text-center"
+		id="{exercise.name}-RIR"
+		disabled={sharedRIR === undefined}
+		min={0}
+		required
+		step={1}
+		type="number"
+		inputmode="numeric"
+		value={sharedRIR}
+		onchange={(event) => updateSharedRIR((event.currentTarget as HTMLInputElement).value)}
+	/>
+</div>
+
+<div class="grid grid-cols-3 gap-1">
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">
 		Weight
 		{#if typeof exercise.bodyweightFraction === 'number'}
@@ -289,12 +323,14 @@
 		{/if}
 	</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Reps</span>
-	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
 		{@const expectedReps = getExpectedReps(set)}
 		{@const displayedReps = set.completed ? set.reps : (set.reps ?? expectedReps)}
-		{@const repTargetDelta = set.completed && typeof set.reps === 'number' && typeof expectedReps === 'number' ? set.reps - expectedReps : undefined}
+		{@const repTargetDelta =
+			set.completed && typeof set.reps === 'number' && typeof expectedReps === 'number'
+				? set.reps - expectedReps
+				: undefined}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
 				<div class="col-span-full flex items-center gap-2 text-muted-foreground">
@@ -329,10 +365,10 @@
 						type="number"
 						inputmode="numeric"
 						value={displayedReps}
-					oninput={(event) => {
-						const value = Number((event.currentTarget as HTMLInputElement).value);
-						set.reps = Number.isFinite(value) && value > 0 ? value : undefined;
-					}}
+						oninput={(event) => {
+							const value = Number((event.currentTarget as HTMLInputElement).value);
+							set.reps = Number.isFinite(value) && value > 0 ? value : undefined;
+						}}
 					/>
 					{#if repTargetDelta !== undefined}
 						{@const repTargetLabel = getRepTargetLabel(repTargetDelta)}
@@ -356,17 +392,8 @@
 						</span>
 					{/if}
 				</div>
-				<Input
-					class="h-9 px-2 text-center"
-					id="{exercise.name}-set-{idx + 1}-RIR"
-					disabled={set.completed || set.skipped}
-					required
-					type="number"
-					inputmode="numeric"
-					bind:value={set.RIR}
-				/>
 			{:else}
-				<div class="col-span-3 flex items-center gap-2">
+				<div class="col-span-2 flex items-center gap-2">
 					<Separator class="w-px grow" />
 					<span class="text-xs text-muted-foreground">skipped</span>
 					<Separator class="w-px grow" />
@@ -443,15 +470,6 @@
 							type="number"
 							inputmode="numeric"
 							bind:value={miniSet.reps}
-						/>
-						<Input
-							class="h-9 px-2 text-center"
-							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-RIR"
-							disabled={miniSet.completed}
-							required
-							type="number"
-							inputmode="numeric"
-							bind:value={miniSet.RIR}
 						/>
 						<Button
 							class="h-9 w-9 place-self-end"
