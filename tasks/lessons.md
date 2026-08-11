@@ -26,3 +26,4 @@
 - Bind singleton client state reactively to the current session, including anonymous transitions, and fence every queued or locked continuation with a captured user-and-epoch token.
 - Never use origin-wide storage clearing for logout or app updates; remove only explicit application-owned disposable keys and preserve all user-scoped and quarantined records.
 - Multi-key local-storage migration must remain resumable after every individual write; retain the source record until all destination records and mode are durably complete.
+- Treat suppressed review feedback as actionable when it identifies an avoidable local convention mismatch; do not dismiss it solely because the current API is valid.

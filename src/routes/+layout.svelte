@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { page } from '$app/state';
+	import { page } from '$app/stores';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
@@ -41,7 +41,7 @@
 <ModeWatcher />
 <Toaster />
 
-{#if page.url.pathname === '/'}
+{#if $page.url.pathname === '/'}
 	<main class="landing-shell">{@render children()}</main>
 {:else}
 	<UpdateDataLossDialog />
