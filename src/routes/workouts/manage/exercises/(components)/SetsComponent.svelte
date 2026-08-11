@@ -218,6 +218,16 @@
 		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} expected`;
 	}
 
+	function getRepTargetDelta(set: WorkoutExerciseSet, setIdx: number) {
+		if (!set.completed || typeof set.reps !== 'number') return;
+		const isTopSet = exercise.setType === 'TopBackoff' && setIdx === 0;
+		const rangeStart = isTopSet ? (exercise.topRepRangeStart ?? exercise.repRangeStart) : exercise.repRangeStart;
+		const rangeEnd = isTopSet ? (exercise.topRepRangeEnd ?? exercise.repRangeEnd) : exercise.repRangeEnd;
+		if (set.reps < rangeStart) return set.reps - rangeStart;
+		if (set.reps > rangeEnd) return set.reps - rangeEnd;
+		return 0;
+	}
+
 	function adjustLoads(setIdx: number) {
 		let extraOverloadAchieved = 0;
 		const exerciseSet = exercise.sets[setIdx];
@@ -351,10 +361,7 @@
 	{#each exercise.sets as set, idx}
 		{@const expectedReps = getExpectedReps(set)}
 		{@const displayedReps = set.completed ? set.reps : (set.reps ?? expectedReps)}
-		{@const repTargetDelta =
-			set.completed && typeof set.reps === 'number' && typeof expectedReps === 'number'
-				? set.reps - expectedReps
-				: undefined}
+		{@const repTargetDelta = getRepTargetDelta(set, idx)}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
 				<div class="col-span-full flex items-center gap-2 text-muted-foreground">
