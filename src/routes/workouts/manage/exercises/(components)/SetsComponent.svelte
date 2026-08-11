@@ -95,7 +95,7 @@
 			completed: false,
 			reps: undefined,
 			load,
-			RIR: undefined
+			RIR: hasValidRIR(sharedRIR) ? sharedRIR : undefined
 		});
 	}
 
