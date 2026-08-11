@@ -63,6 +63,7 @@
 			await workoutRunes.saveStoresToLocalStorage();
 			return;
 		}
+		if (!set.completed && (typeof set.RIR !== 'number' || set.RIR < 0)) return;
 		if (!set.completed) markWorkoutExerciseStarted(exercise);
 		set.completed = !set.completed;
 		if (isSameLoadExercise && idx === 0) {
@@ -97,6 +98,7 @@
 	async function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
 		e.preventDefault();
 		if (exercise.setType === 'MyorepMatchDown') set.miniSets[miniSetIndex].load = set.load;
+		if (!set.miniSets[miniSetIndex].completed && typeof set.miniSets[miniSetIndex].RIR !== 'number') return;
 		if (!set.miniSets[miniSetIndex].completed) markWorkoutExerciseStarted(exercise);
 		set.miniSets[miniSetIndex].completed = !set.miniSets[miniSetIndex].completed;
 		await workoutRunes.saveStoresToLocalStorage();
@@ -420,6 +422,7 @@
 				<Button
 					class="ml-auto h-9 w-9"
 					data-testid="{exercise.name}-set-{idx + 1}-action"
+					disabled={!set.completed && !set.skipped && typeof set.RIR !== 'number'}
 					size="icon"
 					type="submit"
 					variant={set.completed ? 'outline' : 'default'}
@@ -478,7 +481,7 @@
 						<Button
 							class="h-9 w-9 place-self-end"
 							data-testid="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-action"
-							disabled={miniSetButtonDisabled}
+							disabled={miniSetButtonDisabled || (!miniSet.completed && typeof miniSet.RIR !== 'number')}
 							size="icon"
 							type="submit"
 							variant={miniSet.completed ? 'outline' : 'default'}
