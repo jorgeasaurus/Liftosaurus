@@ -14,13 +14,21 @@
 	let selectedTabValue = $state('basics');
 	let chartMode = $state(false);
 
+	function isLoadedWorkout(value: typeof workout): value is FullWorkoutWithMesoData {
+		return value !== 'loading' && value !== null;
+	}
+
+	let showChartIcon = $derived(
+		selectedTabValue === 'exercises' && isLoadedWorkout(workout) && workout.workoutExercises.length > 0
+	);
+
 	onMount(async () => {
 		workout = await data.workout;
 		if (workout === null) toast.error('Workout not found');
 	});
 </script>
 
-<H2 showChartIcon={selectedTabValue !== 'basics'} bind:chartMode>View workout</H2>
+<H2 {showChartIcon} bind:chartMode>View workout</H2>
 
 {#if workout === 'loading'}
 	<WorkoutSkeleton />
