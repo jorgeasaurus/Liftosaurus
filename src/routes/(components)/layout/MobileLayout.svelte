@@ -85,17 +85,17 @@
 		top: 0;
 		z-index: 20;
 		display: flex;
-		height: 62px;
+		height: calc(62px + env(safe-area-inset-top));
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: env(safe-area-inset-top) max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
 		border-bottom: 1px solid #273034;
 		background: rgba(9, 13, 14, 0.92);
 		backdrop-filter: blur(16px);
 	}
 
 	.mobile-topbar.compact {
-		height: 48px;
+		height: calc(48px + env(safe-area-inset-top));
 	}
 
 	.mobile-brand {
@@ -132,11 +132,13 @@
 		width: 100%;
 		flex: 1;
 		overflow-y: auto;
-		padding: 20px 16px 104px;
+		padding: 28px max(20px, env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom))
+			max(20px, env(safe-area-inset-left));
 	}
 
 	.mobile-main.focused {
-		padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+		padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom))
+			max(12px, env(safe-area-inset-left));
 	}
 
 	.mobile-bottom-nav {
@@ -147,8 +149,9 @@
 		z-index: 30;
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		gap: 2px;
-		padding: 9px 8px calc(9px + env(safe-area-inset-bottom));
+		gap: 4px;
+		padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom))
+			max(12px, env(safe-area-inset-left));
 		border-top: 1px solid #273034;
 		background: rgba(15, 21, 22, 0.96);
 		backdrop-filter: blur(18px);
@@ -156,14 +159,14 @@
 
 	.mobile-bottom-nav a {
 		display: flex;
-		min-height: 48px;
+		min-height: 52px;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 4px;
-		border-radius: 12px;
+		border-radius: 14px;
 		color: #8f999d;
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 600;
 		transition:
 			color 150ms ease,
