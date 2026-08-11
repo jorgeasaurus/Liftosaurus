@@ -1,6 +1,5 @@
 <script lang="ts">
-	import MoonIcon from 'virtual:icons/lucide/moon';
-	import SunIcon from 'virtual:icons/lucide/sun';
+	import { onMount } from 'svelte';
 	import SunriseIcon from 'virtual:icons/lucide/sunrise';
 	import type { PageData } from './$types';
 	import DashboardMetricsCard from './(components)/DashboardMetricsCard.svelte';
@@ -11,21 +10,24 @@
 	let { data }: { data: PageData } = $props();
 
 	const userName = data.session?.user?.name?.split(' ')[0];
-	const userLocale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
-	const hour = new Date().getHours();
-	const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-	const GreetingIcon = hour < 12 ? SunriseIcon : hour < 18 ? SunIcon : MoonIcon;
-	const today = new Date().toLocaleDateString(userLocale, {
-		weekday: 'long',
-		month: 'long',
-		day: 'numeric'
+	let greeting = $state('Welcome');
+	let today = $state('');
+
+	onMount(() => {
+		const hour = new Date().getHours();
+		greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+		today = new Date().toLocaleDateString(navigator.language, {
+			weekday: 'long',
+			month: 'long',
+			day: 'numeric'
+		});
 	});
 </script>
 
-<section class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+<section class="mx-auto flex w-full max-w-5xl flex-col gap-6 lg:max-w-[1480px]">
 	<header>
 		<h1 class="flex items-center gap-3 text-[1.7rem] font-semibold leading-tight tracking-tight lg:text-4xl">
-			<GreetingIcon class="h-7 w-7 shrink-0 text-primary lg:h-8 lg:w-8" />
+			<SunriseIcon class="h-7 w-7 shrink-0 text-primary lg:h-8 lg:w-8" />
 			{greeting}{userName ? `, ${userName}` : ''}
 		</h1>
 		<p class="mt-1.5 text-base text-muted-foreground lg:text-sm">{today}</p>

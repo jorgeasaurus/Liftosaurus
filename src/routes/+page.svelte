@@ -63,7 +63,9 @@
 				</div>
 				<div class="exercise-row"><span>Barbell bench press</span><b>4 × 6–8</b></div>
 				<div class="progress-line"><span></span></div>
-				<div class="card-footer"><span>Next target</span><strong>67.5 kg <ArrowUpRight /></strong></div>
+				<div class="card-footer">
+					<span>Next target</span><strong>67.5 kg <ArrowUpRight aria-hidden="true" /></strong>
+				</div>
 			</div>
 		</section>
 
