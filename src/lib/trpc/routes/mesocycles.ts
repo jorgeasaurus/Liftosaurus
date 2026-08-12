@@ -4,12 +4,11 @@ import { t } from '$lib/trpc/t';
 import { runSerializableTransaction } from '$lib/trpc/transaction';
 import {
 	ExerciseSplitDayCreateWithoutExerciseSplitInputSchema,
-	ExerciseSplitSchema,
-	MesocycleCyclicSetChangeCreateWithoutMesocycleInputSchema,
 	MesocycleExerciseSplitDayCreateWithoutMesocycleInputSchema,
 	MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema,
-	MesocycleUncheckedCreateWithoutUserInputSchema,
-	MesocycleUpdateInputSchema
+	MuscleGroupSchema,
+	ProgressionVariableSchema,
+	RepRangeModeSchema
 } from '$lib/zodSchemas';
 import { Prisma } from '@prisma/client';
 import { createId } from '@paralleldrive/cuid2';
@@ -25,29 +24,65 @@ const clearedAdaptiveRepRangeState = {
 	adaptiveRepRangeResetAt: null
 } as const;
 
-const zodMesocycleCreateInput = z.strictObject({
-	mesocycle: MesocycleUncheckedCreateWithoutUserInputSchema,
-	mesocycleCyclicSetChanges: z.array(MesocycleCyclicSetChangeCreateWithoutMesocycleInputSchema),
-	mesocycleExerciseTemplates: z.array(
-		z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema)
-	),
-	exerciseSplit: ExerciseSplitSchema.extend({
-		exerciseSplitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema)
-	}),
-	startImmediately: z.boolean()
+const MAX_MESOCYCLE_DAYS = 31;
+const MAX_EXERCISES_PER_DAY = 50;
+const MAX_CYCLIC_SET_CHANGES = 100;
+
+const mesocycleFieldsSchema = z.strictObject({
+	name: z.string().max(200),
+	RIRProgression: z.array(z.number().int()).max(104),
+	startDate: z.date().nullable(),
+	endDate: z.date().nullable(),
+	startOverloadPercentage: z.number(),
+	preferredProgressionVariable: ProgressionVariableSchema,
+	repRangeMode: RepRangeModeSchema,
+	lastSetToFailure: z.boolean(),
+	forceRIRMatching: z.boolean()
 });
 
+const mesocycleCyclicSetChangeSchema = z.strictObject({
+	muscleGroup: MuscleGroupSchema,
+	customMuscleGroup: z.string().nullable().optional(),
+	regardlessOfProgress: z.boolean(),
+	setIncreaseAmount: z.number().int(),
+	maxVolume: z.number().int()
+});
+
+const zodMesocycleCreateInput = z
+	.strictObject({
+		mesocycle: mesocycleFieldsSchema.extend({ exerciseSplitId: z.string().cuid2().nullable() }),
+		mesocycleCyclicSetChanges: z.array(mesocycleCyclicSetChangeSchema).max(MAX_CYCLIC_SET_CHANGES),
+		mesocycleExerciseTemplates: z
+			.array(
+				z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema).max(MAX_EXERCISES_PER_DAY)
+			)
+			.max(MAX_MESOCYCLE_DAYS),
+		exerciseSplit: z.object({
+			exerciseSplitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema).max(MAX_MESOCYCLE_DAYS)
+		}),
+		startImmediately: z.boolean()
+	})
+	.superRefine((input, ctx) => {
+		if (input.mesocycleExerciseTemplates.length !== input.exerciseSplit.exerciseSplitDays.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every split day must have an exercise template list' });
+		}
+	});
+
 const zodMesocycleEditInput = z.strictObject({
-	mesocycle: MesocycleUpdateInputSchema,
-	mesocycleCyclicSetChanges: z.array(MesocycleCyclicSetChangeCreateWithoutMesocycleInputSchema)
+	mesocycle: mesocycleFieldsSchema.partial(),
+	mesocycleCyclicSetChanges: z.array(mesocycleCyclicSetChangeSchema).max(MAX_CYCLIC_SET_CHANGES)
 });
 
 const zodUpdateExerciseSplitInput = z
 	.strictObject({
-		mesocycleExerciseSplitDays: z.array(MesocycleExerciseSplitDayCreateWithoutMesocycleInputSchema),
-		mesocycleExerciseTemplates: z.array(
-			z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema)
-		),
+		mesocycleExerciseSplitDays: z
+			.array(MesocycleExerciseSplitDayCreateWithoutMesocycleInputSchema)
+			.max(MAX_MESOCYCLE_DAYS),
+		mesocycleExerciseTemplates: z
+			.array(
+				z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema).max(MAX_EXERCISES_PER_DAY)
+			)
+			.max(MAX_MESOCYCLE_DAYS),
 		mesocycleId: z.string().cuid2()
 	})
 	.superRefine((input, ctx) => {
@@ -106,7 +141,14 @@ export const mesocycles = t.router({
 		}),
 
 	create: t.procedure.input(zodMesocycleCreateInput).mutation(async ({ input, ctx }) => {
-		const mesocycleId = input.mesocycle.id ?? createId();
+		if (input.mesocycle.exerciseSplitId) {
+			const exerciseSplit = await prisma.exerciseSplit.findFirst({
+				where: { id: input.mesocycle.exerciseSplitId, userId: ctx.userId },
+				select: { id: true }
+			});
+			if (!exerciseSplit) throw new TRPCError({ code: 'NOT_FOUND', message: 'Exercise split not found' });
+		}
+		const mesocycleId = createId();
 		const mesocycle: Prisma.MesocycleUncheckedCreateInput = {
 			...input.mesocycle,
 			id: mesocycleId,
@@ -161,14 +203,14 @@ export const mesocycles = t.router({
 	editById: t.procedure
 		.input(z.strictObject({ id: z.string().cuid2(), mesocycleData: zodMesocycleEditInput }))
 		.mutation(async ({ input, ctx }) => {
-			await prisma.$transaction(async () => {
-				const mesocycle = await prisma.mesocycle.update({
+			await prisma.$transaction(async (tx) => {
+				const mesocycle = await tx.mesocycle.update({
 					where: { id: input.id, userId: ctx.userId },
 					data: { ...input.mesocycleData.mesocycle },
 					select: { id: true }
 				});
-				await prisma.mesocycleCyclicSetChange.deleteMany({ where: { mesocycleId: mesocycle.id } });
-				await prisma.mesocycleCyclicSetChange.createMany({
+				await tx.mesocycleCyclicSetChange.deleteMany({ where: { mesocycleId: mesocycle.id } });
+				await tx.mesocycleCyclicSetChange.createMany({
 					data: input.mesocycleData.mesocycleCyclicSetChanges.map((setChange) => ({
 						mesocycleId: mesocycle.id,
 						...setChange

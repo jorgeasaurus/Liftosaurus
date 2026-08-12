@@ -56,6 +56,10 @@ type WorkoutExercisesWithPreviousData = {
 	};
 };
 
+const MAX_WORKOUT_EXERCISES = 50;
+const MAX_SETS_PER_EXERCISE = 30;
+const MAX_MINI_SETS_PER_SET = 20;
+
 const createActiveMesocycleWithProgressionDataInclude = (splitDayIndex?: number) => {
 	const workoutsWhere = splitDayIndex !== undefined ? { where: { splitDayIndex } } : {};
 
@@ -101,24 +105,51 @@ const workoutInputDataSchema = z.object({
 	note: z.string().optional()
 });
 
-const createWorkoutSchema = z.strictObject({
-	draftOwnerUserId: z.string().cuid2(),
-	workoutData: workoutInputDataSchema,
-	workoutExercises: z.array(WorkoutExerciseCreateWithoutWorkoutInputSchema),
-	workoutExercisesSets: z.array(z.array(WorkoutExerciseSetCreateWithoutWorkoutExerciseInputSchema)),
-	workoutExercisesMiniSets: z.array(z.array(z.array(WorkoutExerciseMiniSetCreateWithoutParentSetInputSchema))),
-	manualDeloadMetadata: z
-		.array(
-			z
-				.strictObject({
-					sourceTemplateId: z.string().cuid2().nullable(),
-					originalSetCount: z.number().int().nonnegative()
-				})
-				.nullable()
-		)
-		.optional(),
-	confirmAdaptiveRepRangeOutliers: z.boolean().optional()
-});
+const createWorkoutSchema = z
+	.strictObject({
+		draftOwnerUserId: z.string().cuid2(),
+		workoutData: workoutInputDataSchema,
+		workoutExercises: z.array(WorkoutExerciseCreateWithoutWorkoutInputSchema).max(MAX_WORKOUT_EXERCISES),
+		workoutExercisesSets: z
+			.array(z.array(WorkoutExerciseSetCreateWithoutWorkoutExerciseInputSchema).max(MAX_SETS_PER_EXERCISE))
+			.max(MAX_WORKOUT_EXERCISES),
+		workoutExercisesMiniSets: z
+			.array(
+				z
+					.array(z.array(WorkoutExerciseMiniSetCreateWithoutParentSetInputSchema).max(MAX_MINI_SETS_PER_SET))
+					.max(MAX_SETS_PER_EXERCISE)
+			)
+			.max(MAX_WORKOUT_EXERCISES),
+		manualDeloadMetadata: z
+			.array(
+				z
+					.strictObject({
+						sourceTemplateId: z.string().cuid2().nullable(),
+						originalSetCount: z.number().int().nonnegative()
+					})
+					.nullable()
+			)
+			.max(MAX_WORKOUT_EXERCISES)
+			.optional(),
+		confirmAdaptiveRepRangeOutliers: z.boolean().optional()
+	})
+	.superRefine((input, ctx) => {
+		if (input.workoutExercises.length !== input.workoutExercisesSets.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every workout exercise must have a set list' });
+		}
+		if (input.workoutExercises.length !== input.workoutExercisesMiniSets.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every workout exercise must have a mini-set list' });
+		}
+		for (let index = 0; index < input.workoutExercisesSets.length; index += 1) {
+			if (input.workoutExercisesSets[index].length !== input.workoutExercisesMiniSets[index]?.length) {
+				ctx.addIssue({
+					code: 'custom',
+					message: 'Every workout set must have a mini-set list',
+					path: ['workoutExercisesMiniSets', index]
+				});
+			}
+		}
+	});
 
 const loadWorkoutsSchema = z.strictObject({
 	cursorId: z.string().cuid2().optional(),
