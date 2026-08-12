@@ -2,7 +2,6 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import {
-		cleanupInProgressMiniSets,
 		getComparableWorkoutExercisePairs,
 		getTotalExercisePerformanceChange,
 		solveBergerFormula,
@@ -39,8 +38,8 @@
 			variableToSolve: 'OverloadPercentage',
 			knownValues: {
 				oldSet: prevSet,
-				newSet: { reps, load, RIR, miniSets: cleanupInProgressMiniSets(miniSets) },
-				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
+				newSet: { reps, load, RIR, miniSets: getCompletedMiniSets(miniSets) },
+				newUserBodyweight: workoutRunes.workoutData?.userBodyweight ?? prevExercise.userBodyweight,
 				oldUserBodyweight: prevExercise.userBodyweight,
 				oldBodyweightFraction: prevExercise.bodyweightFraction,
 				newBodyweightFraction: exercise.bodyweightFraction ?? null
@@ -56,9 +55,7 @@
 			.map((set, setIndex) => ({ set, setIndex }))
 			.filter(
 				({ set, setIndex }) =>
-					!set.skipped &&
-					!exercise.sets[setIndex]?.skipped &&
-					isSetCompleted(exercise.sets[setIndex])
+					!set.skipped && !exercise.sets[setIndex]?.skipped && isSetCompleted(exercise.sets[setIndex])
 			)
 			.map(({ setIndex }) => setIndex);
 		return getTotalExercisePerformanceChange(
@@ -67,10 +64,10 @@
 				reps: exercise.sets[setIndex].reps,
 				load: exercise.sets[setIndex].load,
 				RIR: exercise.sets[setIndex].RIR,
-				miniSets: cleanupInProgressMiniSets(exercise.sets[setIndex].miniSets)
+				miniSets: getCompletedMiniSets(exercise.sets[setIndex].miniSets)
 			})) as SetDetails[],
 			prevExercise.userBodyweight,
-			workoutRunes.workoutData?.userBodyweight as number,
+			workoutRunes.workoutData?.userBodyweight ?? prevExercise.userBodyweight,
 			prevExercise.bodyweightFraction,
 			exercise.bodyweightFraction ?? null
 		);
@@ -83,6 +80,10 @@
 		if (!miniSet) return false;
 		const { reps, load, RIR } = miniSet;
 		return reps !== undefined && load !== undefined && RIR !== undefined;
+	}
+
+	function getCompletedMiniSets(miniSets: InProgressSet[]) {
+		return miniSets.filter(isSetCompleted).map(({ reps, load, RIR }) => ({ reps, load, RIR }));
 	}
 
 	function getTheoreticalVolumeChangeOfMiniSet(prev: Omit<CompletedSet, 'completed'>, current: InProgressSet) {
