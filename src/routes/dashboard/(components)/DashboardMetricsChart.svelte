@@ -31,7 +31,13 @@
 	);
 
 	type ChartData = RouterOutputs['workouts']['getDashboardChartData'];
-	type ChartType = 'relative-performance' | 'bodyweight' | 'seven-day-bodyweight' | 'work-volume';
+	type ChartType =
+		| 'relative-performance'
+		| 'bodyweight'
+		| 'seven-day-bodyweight'
+		| 'body-fat'
+		| 'seven-day-body-fat'
+		| 'work-volume';
 	type DataKey = keyof ChartData;
 	type ChartDefinition = {
 		value: ChartType;
@@ -67,6 +73,22 @@
 			dataKey: 'sevenDayBodyweight',
 			unit: 'lb',
 			description: 'Average of available bodyweight entries from the trailing seven days.',
+			decimals: 1
+		},
+		{
+			value: 'body-fat',
+			label: 'Body fat',
+			dataKey: 'bodyFat',
+			unit: '%',
+			description: 'Body fat percentage recorded when each workout started.',
+			decimals: 1
+		},
+		{
+			value: 'seven-day-body-fat',
+			label: 'Body fat · 7-day average',
+			dataKey: 'sevenDayBodyFat',
+			unit: '%',
+			description: 'Average of available body fat entries from the trailing seven days.',
 			decimals: 1
 		},
 		{

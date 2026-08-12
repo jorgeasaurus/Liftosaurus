@@ -58,6 +58,7 @@ type WorkoutForEditDraft = {
 	startedAt: Date;
 	endedAt: Date;
 	userBodyweight: number;
+	userBodyFat?: number | null;
 	note: string | null;
 	workoutExercises: Prisma.WorkoutExerciseGetPayload<{
 		include: { sets: { include: { miniSets: true } } };
@@ -106,6 +107,7 @@ export function createWorkoutEditDraft(workout: WorkoutForEditDraft): WorkoutEdi
 			startedAt: workout.startedAt,
 			endedAt: workout.endedAt,
 			userBodyweight: workout.userBodyweight,
+			userBodyFat: workout.userBodyFat ?? null,
 			workoutExercises: [],
 			note: workout.note,
 			isLastWorkout: false
@@ -269,6 +271,7 @@ const workoutDataSchema: z.ZodType<WorkoutData, z.ZodTypeDef, unknown> = z
 		startedAt: z.date(),
 		endedAt: z.date().nullable(),
 		userBodyweight: z.number().nullable(),
+		userBodyFat: z.number().min(0).max(100).nullable().default(null),
 		workoutExercises: z.array(
 			z
 				.object({

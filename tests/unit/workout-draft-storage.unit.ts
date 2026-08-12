@@ -220,6 +220,8 @@ describe('workout draft storage', () => {
 		assert.equal(restored.storage.editDraft?.workoutExercises[0].preferredProgressionVariable, null);
 		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].name, 'Active bench press');
 		assert.equal(restored.storage.activeDraft?.workoutExercises?.[0].sets[0].plannedReps, 10);
+		assert.equal(restored.storage.activeDraft?.workoutData.userBodyFat, null);
+		assert.equal(restored.storage.editDraft?.workoutData.userBodyFat, null);
 		assert.ok(restored.storage.editDraft?.workoutData.startedAt instanceof Date);
 	});
 

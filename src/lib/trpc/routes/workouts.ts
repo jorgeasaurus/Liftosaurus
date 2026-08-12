@@ -5,6 +5,7 @@ import { runSerializableTransaction } from '$lib/trpc/transaction';
 import { createWorkoutGraph, syncWorkoutExerciseTemplates } from '$lib/trpc/workoutCompletion';
 import { arraySum } from '$lib/utils';
 import {
+	buildBodyFatSeries,
 	buildBodyweightSeries,
 	buildRelativePerformanceSeries,
 	buildSevenDayAverageSeries,
@@ -39,6 +40,7 @@ type TodaysWorkoutData = {
 	startedAt: Date | string;
 	endedAt: Date | string | null;
 	userBodyweight: number | null;
+	userBodyFat?: number | null;
 	workoutExercises: Pick<WorkoutExercise, 'name' | 'targetMuscleGroup' | 'customMuscleGroup'>[];
 	workoutOfMesocycle?: Pick<WorkoutOfMesocycle, 'workoutStatus' | 'splitDayIndex'> & {
 		mesocycle: Mesocycle;
@@ -95,6 +97,7 @@ export type ActiveMesocycleWithProgressionData = Prisma.MesocycleGetPayload<{
 const workoutInputDataSchema = z.object({
 	startedAt: z.date().or(z.string().datetime()).optional(),
 	userBodyweight: z.number(),
+	userBodyFat: z.number().min(0).max(100).nullable().optional(),
 	workoutOfMesocycle: z
 		.object({
 			mesocycle: z.object({ id: z.string().cuid2() }),
@@ -176,7 +179,7 @@ export const workouts = t.router({
 			}),
 			prisma.workout.findMany({
 				where: { userId: ctx.userId },
-				select: { startedAt: true, userBodyweight: true },
+				select: { startedAt: true, userBodyweight: true, userBodyFat: true },
 				orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
 				take: 365
 			})
@@ -225,10 +228,13 @@ export const workouts = t.router({
 					});
 
 		const bodyweight = buildBodyweightSeries(bodyweightWorkouts);
+		const bodyFat = buildBodyFatSeries(bodyweightWorkouts);
 		return {
 			relativePerformance: buildRelativePerformanceSeries(splitWorkouts),
 			bodyweight,
 			sevenDayBodyweight: buildSevenDayAverageSeries(bodyweight),
+			bodyFat,
+			sevenDayBodyFat: buildSevenDayAverageSeries(bodyFat),
 			workVolume: buildWorkVolumeSeries(splitWorkouts)
 		};
 	}),
@@ -448,11 +454,13 @@ export const workouts = t.router({
 			}
 		});
 		const lastBodyweight = data?.workoutsOfMesocycle.map((wm) => wm.workout.userBodyweight)[0];
+		const lastBodyFat = data?.workoutsOfMesocycle.find((wm) => wm.workout.userBodyFat !== null)?.workout.userBodyFat;
 		const userBodyweight = lastBodyweight ?? null;
 
 		const todaysWorkoutData: TodaysWorkoutData = {
 			workoutExercises: [],
 			userBodyweight,
+			userBodyFat: lastBodyFat ?? null,
 			startedAt: new Date(),
 			endedAt: null,
 			note: null,
@@ -513,11 +521,13 @@ export const workouts = t.router({
 			}
 		});
 		const lastBodyweight = data?.workoutsOfMesocycle.map((wm) => wm.workout.userBodyweight)[0];
+		const lastBodyFat = data?.workoutsOfMesocycle.find((wm) => wm.workout.userBodyFat !== null)?.workout.userBodyFat;
 		const userBodyweight = lastBodyweight ?? null;
 
 		const todaysWorkoutData: TodaysWorkoutData = {
 			workoutExercises: [],
 			userBodyweight,
+			userBodyFat: lastBodyFat ?? null,
 			startedAt: new Date(),
 			endedAt: null,
 			note: null,
@@ -648,6 +658,7 @@ export const workouts = t.router({
 			startedAt: input.workoutData.startedAt ?? new Date(),
 			endedAt: new Date(),
 			userBodyweight: input.workoutData.userBodyweight,
+			userBodyFat: input.workoutData.userBodyFat ?? null,
 			note: input.workoutData.note
 		};
 
@@ -813,6 +824,7 @@ export const workouts = t.router({
 				startedAt: input.data.workoutData.startedAt!,
 				endedAt: input.endedAt,
 				userBodyweight: input.data.workoutData.userBodyweight,
+				userBodyFat: input.data.workoutData.userBodyFat ?? null,
 				note: input.data.workoutData.note
 			};
 

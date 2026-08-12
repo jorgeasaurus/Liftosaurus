@@ -41,6 +41,7 @@
 	let workoutData: RouterOutputs['workouts']['getTodaysWorkoutData'] | 'loading' = $state('loading');
 	let defaultWorkoutData = $state<RouterOutputs['workouts']['getTodaysWorkoutData']>();
 	let userBodyweight: null | number = $state(workoutRunes.workoutData?.userBodyweight ?? null);
+	let userBodyFat: null | number = $state(workoutRunes.workoutData?.userBodyFat ?? null);
 	let targetedMuscleGroups = $derived.by(() => {
 		let result: string[] = [];
 		if (workoutData !== 'loading') {
@@ -59,6 +60,7 @@
 	function applyWorkoutData(nextWorkoutData: RouterOutputs['workouts']['getTodaysWorkoutData']) {
 		workoutData = nextWorkoutData;
 		userBodyweight = nextWorkoutData.userBodyweight;
+		userBodyFat = nextWorkoutData.userBodyFat ?? null;
 		useActiveMesocycle = nextWorkoutData.workoutOfMesocycle !== undefined;
 	}
 
@@ -79,6 +81,7 @@
 			else {
 				workoutData = selection.workoutData;
 				userBodyweight = userBodyweight ?? workoutData.userBodyweight;
+				userBodyFat = userBodyFat ?? workoutData.userBodyFat ?? null;
 				if (workoutData.workoutOfMesocycle !== undefined) useActiveMesocycle = true;
 			}
 		});
@@ -108,7 +111,10 @@
 
 	async function startWorkout(fromDialog = false, mode: 'keepCurrent' | 'overwrite' = 'overwrite') {
 		if (workoutRunes.editingWorkoutId) {
-			if (workoutRunes.workoutData) workoutRunes.workoutData.userBodyweight = userBodyweight;
+			if (workoutRunes.workoutData) {
+				workoutRunes.workoutData.userBodyweight = userBodyweight;
+				workoutRunes.workoutData.userBodyFat = userBodyFat;
+			}
 			await workoutRunes.saveStoresToLocalStorage();
 			await goto('./exercises?editing');
 			return;
@@ -122,6 +128,7 @@
 
 		if (workoutData === 'loading') return;
 		workoutData.userBodyweight = userBodyweight;
+		workoutData.userBodyFat = userBodyFat;
 
 		if (mode === 'overwrite') {
 			if (useActiveMesocycle) workoutRunes.workoutData = workoutData;
@@ -166,6 +173,7 @@
 			draftOwnerUserId: workoutRunes.ownerUserId,
 			workoutData: {
 				userBodyweight,
+				userBodyFat,
 				workoutOfMesocycle: {
 					splitDayIndex: workoutData.workoutOfMesocycle?.splitDayIndex as number,
 					mesocycle: { id: workoutData.workoutOfMesocycle?.mesocycle.id as string },
@@ -257,6 +265,17 @@
 					min={1}
 					step={0.01}
 					bind:value={userBodyweight}
+				/>
+				<Label class="mt-2 text-[#dbe3ec]" for="user-body-fat">Body fat (%)</Label>
+				<Input
+					class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
+					id="user-body-fat"
+					placeholder="Optional"
+					type="number"
+					min={0}
+					max={100}
+					step={0.1}
+					bind:value={userBodyFat}
 				/>
 				{#if workoutRunes.editingWorkoutId !== null && workoutRunes.workoutData}
 					<div class="grid grid-cols-2 gap-x-2 gap-y-1.5">

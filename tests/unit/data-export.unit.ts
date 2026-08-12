@@ -5,6 +5,7 @@ import { buildWorkoutSetsCsv, type WorkoutForCsv } from '../../src/lib/server/us
 const workout: WorkoutForCsv = {
 	id: 'workout-owner',
 	userBodyweight: 195,
+	userBodyFat: 18.5,
 	startedAt: new Date('2026-08-01T10:00:00.000Z'),
 	endedAt: new Date('2026-08-01T11:00:00.000Z'),
 	note: 'Good session,\nstrong finish',
@@ -57,6 +58,7 @@ test('exports one RFC-4180 row per regular and mini set while neutralizing formu
 	assert.match(lines[1], /"regular","set-owner","",/);
 	assert.match(lines[2], /"mini","mini-set-owner","set-owner",/);
 	assert.match(lines[0], /"bodyweight_fraction"/);
+	assert.match(lines[0], /"body_fat_percent"/);
 	assert.match(lines[0], /"external_load_lb","effective_load_lb"/);
 	assert.match(lines[1], /"10","135","232.5","2","false"/);
 	assert.match(lines[2], /"4","135","232.5","0","false"/);
