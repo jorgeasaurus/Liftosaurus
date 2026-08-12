@@ -114,6 +114,7 @@
 	function selectExercise(exercise: ExerciseCatalogItem) {
 		const { type: _, ...template } = exercise;
 		currentExercise = structuredClone({
+			...defaultExercise,
 			...template,
 			...(props.context !== 'exerciseSplit' && structuredClone(extraMesocycleProps))
 		});

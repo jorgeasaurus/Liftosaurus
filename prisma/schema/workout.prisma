@@ -15,6 +15,7 @@ model Workout {
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   workoutOfMesocycle WorkoutOfMesocycle?
   userBodyweight     Float
+  userBodyFat        Float?
   startedAt          DateTime
   endedAt            DateTime
   workoutExercises   WorkoutExercise[]

@@ -18,7 +18,7 @@
 		setFilters: (
 			selectedDateRange: DateRange,
 			selectedMesocycles: (string | null)[],
-			selectedWorkoutStatus: (WorkoutStatus | null)[]
+			selectedWorkoutStatus: (WorkoutStatus | null)[] | undefined
 		) => void;
 	};
 	let { currentFilters, filterData, setFilters }: PropsType = $props();
@@ -31,6 +31,15 @@
 		['Skipped', true],
 		['RestDay', true]
 	]);
+	let selectedWorkoutStatusFilterCount = $derived(currentFilters.selectedWorkoutStatuses?.length ?? 0);
+	let activeFilterCount = $derived(
+		Number(Boolean(currentFilters.startDate || currentFilters.endDate)) +
+			Number(Boolean(currentFilters.selectedMesocycles?.length)) +
+			Number(
+				currentFilters.selectedWorkoutStatuses !== undefined &&
+					selectedWorkoutStatusFilterCount < selectedWorkoutStatuses.size
+			)
+	);
 
 	onMount(() => {
 		if (currentFilters.startDate) {
@@ -56,12 +65,13 @@
 	});
 
 	function applyFilters() {
+		const workoutStatuses = Array.from(selectedWorkoutStatuses.entries())
+			.filter(([_, value]) => value)
+			.map(([key]) => key);
 		setFilters(
 			selectedDateRange,
 			selectedMesocycles.map((s) => s.value),
-			Array.from(selectedWorkoutStatuses.entries())
-				.filter(([_, value]) => value)
-				.map(([key]) => key)
+			workoutStatuses.length === selectedWorkoutStatuses.size ? undefined : workoutStatuses
 		);
 		open = false;
 	}
@@ -69,15 +79,34 @@
 
 <Popover.Root bind:open>
 	<Popover.Trigger asChild let:builder>
-		<Button class="grow gap-2" aria-label="search" builders={[builder]} variant="secondary">
-			Filters <FilterIcon />
+		<Button
+			class="pressable-control h-11 grow justify-between gap-2 rounded-xl px-3"
+			aria-label="search"
+			builders={[builder]}
+			variant="secondary"
+		>
+			<span class="flex items-center gap-2"><FilterIcon class="h-4 w-4" /> Filters</span>
+			{#if activeFilterCount > 0}
+				<span
+					class="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground"
+				>
+					{activeFilterCount} active
+				</span>
+			{/if}
 		</Button>
 	</Popover.Trigger>
-	<Popover.Content class="flex w-11/12 max-w-xl flex-col gap-1">
-		<span class="text-sm font-semibold">Date range</span>
+	<Popover.Content class="surface-panel flex w-11/12 max-w-xl flex-col gap-1 rounded-xl p-4">
+		<div class="mb-2 flex items-center justify-between">
+			<div>
+				<p class="section-kicker">Workout history</p>
+				<p class="mt-1 text-sm font-semibold">Filter sessions</p>
+			</div>
+			{#if activeFilterCount > 0}<span class="text-xs text-muted-foreground">{activeFilterCount} active</span>{/if}
+		</div>
+		<span class="border-t border-dashed pt-3 text-sm font-semibold">Date range</span>
 		<DateRangePicker bind:value={selectedDateRange} {...filterData} />
 
-		<span class="mt-2 text-sm font-semibold">Mesocycles</span>
+		<span class="mt-3 border-t border-dashed pt-3 text-sm font-semibold">Mesocycles</span>
 		<Select.Root multiple bind:selected={selectedMesocycles}>
 			<Select.Trigger class="w-full">
 				<Select.Value placeholder="Select a value" />
@@ -96,10 +125,10 @@
 			</Select.Content>
 		</Select.Root>
 
-		<span class="mt-2 text-sm font-semibold">Workout types</span>
-		<div class="flex justify-between rounded-md border p-3">
+		<span class="mt-3 border-t border-dashed pt-3 text-sm font-semibold">Workout types</span>
+		<div class="grid grid-cols-3 gap-2 rounded-lg bg-muted/35 p-2">
 			{#each selectedWorkoutStatuses as [workoutStatus, selected]}
-				<div class="flex items-center gap-2">
+				<div class="flex min-w-0 items-center justify-between gap-2 rounded-md border bg-background/40 px-2 py-2">
 					<Label for="{workoutStatus}-workout-status" class="text-sm leading-none">
 						{workoutStatus ?? 'Normal'}
 					</Label>
@@ -114,6 +143,6 @@
 				</div>
 			{/each}
 		</div>
-		<Button class="mt-2" onclick={applyFilters}>Apply</Button>
+		<Button class="pressable-control mt-3" onclick={applyFilters}>Apply filters</Button>
 	</Popover.Content>
 </Popover.Root>

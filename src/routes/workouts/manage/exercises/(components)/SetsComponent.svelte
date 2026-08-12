@@ -34,6 +34,24 @@
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
 	let lastSharedLoad = $state(exercise.sets[0]?.load);
+	let hasEditableRIRTargets = $derived(
+		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
+	);
+	let sharedRIR = $derived.by(() => {
+		for (const set of exercise.sets) {
+			if (set.skipped) continue;
+			const incompleteMiniSet = set.miniSets.find((miniSet) => !miniSet.completed);
+			if (hasValidRIR(incompleteMiniSet?.RIR)) return incompleteMiniSet.RIR;
+			if (!set.completed && hasValidRIR(set.RIR)) return set.RIR;
+		}
+		if (hasEditableRIRTargets) return;
+		for (const set of exercise.sets) {
+			if (set.skipped) continue;
+			if (hasValidRIR(set.RIR)) return set.RIR;
+			const miniSetRIR = set.miniSets.find((miniSet) => hasValidRIR(miniSet.RIR))?.RIR;
+			if (hasValidRIR(miniSetRIR)) return miniSetRIR;
+		}
+	});
 	let oldBodyweightFraction = $derived(
 		getPreviousBodyweightFraction(
 			workoutRunes.previousWorkoutData?.exercises,
@@ -55,6 +73,10 @@
 	const scheduleDraftSave = () => workoutRunes.scheduleStoresToLocalStorage();
 	const flushDraftSave = () => void workoutRunes.saveStoresToLocalStorage();
 
+	function hasValidRIR(RIR: number | undefined): RIR is number {
+		return RIR !== undefined && Number.isInteger(RIR) && RIR >= 0;
+	}
+
 	async function completeSet(e: SubmitEvent, set: WorkoutExerciseSet, idx: number) {
 		e.preventDefault();
 		if (set.skipped) {
@@ -62,6 +84,7 @@
 			await workoutRunes.saveStoresToLocalStorage();
 			return;
 		}
+		if (!set.completed && !hasValidRIR(set.RIR)) return;
 		if (!set.completed) markWorkoutExerciseStarted(exercise);
 		set.completed = !set.completed;
 		if (isSameLoadExercise && idx === 0) {
@@ -89,7 +112,7 @@
 			completed: false,
 			reps: undefined,
 			load,
-			RIR: undefined
+			RIR: hasValidRIR(sharedRIR) ? sharedRIR : undefined
 		});
 		await workoutRunes.saveStoresToLocalStorage();
 	}
@@ -102,6 +125,7 @@
 	async function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
 		e.preventDefault();
 		if (exercise.setType === 'MyorepMatchDown') set.miniSets[miniSetIndex].load = set.load;
+		if (!set.miniSets[miniSetIndex].completed && !hasValidRIR(set.miniSets[miniSetIndex].RIR)) return;
 		if (!set.miniSets[miniSetIndex].completed) markWorkoutExerciseStarted(exercise);
 		set.miniSets[miniSetIndex].completed = !set.miniSets[miniSetIndex].completed;
 		await workoutRunes.saveStoresToLocalStorage();
@@ -145,22 +169,80 @@
 		}
 	}
 
-	function getRepTargetDelta(set: WorkoutExerciseSet, setIndex: number) {
-		if (!set.completed || typeof set.reps !== 'number') return;
+	function updateSetLoad(set: WorkoutExerciseSet, value: string) {
+		if (value.trim() === '') {
+			set.load = undefined;
+			return;
+		}
+		const load = Number(value);
+		const allowsZeroLoad = Boolean(exercise.bodyweightFraction);
+		set.load = Number.isFinite(load) && (load > 0 || (allowsZeroLoad && load === 0)) ? load : undefined;
+		if (set.completed || set.load === undefined || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number')
+			return;
 
-		const isTopSet = exercise.setType === 'TopBackoff' && setIndex === 0;
-		const repRangeStart = isTopSet ? (exercise.topRepRangeStart ?? exercise.repRangeStart) : exercise.repRangeStart;
-		const repRangeEnd = isTopSet ? (exercise.topRepRangeEnd ?? exercise.repRangeEnd) : exercise.repRangeEnd;
+		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
+		if (typeof oldLoad !== 'number' || oldLoad < 0) return;
+		const estimatedReps = solveBergerFormula({
+			variableToSolve: 'NewReps',
+			knownValues: {
+				oldSet: {
+					reps: set.plannedReps,
+					load: oldLoad,
+					RIR: set.RIR,
+					miniSets: cleanupInProgressMiniSets(set.miniSets)
+				},
+				newSet: { load: set.load, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
+				oldUserBodyweight: previousUserBodyweight,
+				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
+				oldBodyweightFraction,
+				newBodyweightFraction: exercise.bodyweightFraction ?? null,
+				overloadPercentage: 0
+			}
+		});
+		set.reps = Math.max(1, Math.round(estimatedReps));
+	}
 
-		if (set.reps < repRangeStart) return set.reps - repRangeStart;
-		if (set.reps > repRangeEnd) return set.reps - repRangeEnd;
-		return 0;
+	function getExpectedReps(set: WorkoutExerciseSet) {
+		if (typeof set.load !== 'number' || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number') {
+			return set.plannedReps;
+		}
+		const oldLoad = originalSetLoads[exercise.sets.indexOf(set)];
+		if (typeof oldLoad !== 'number' || oldLoad < 0 || oldLoad === set.load) return set.plannedReps;
+
+		const estimatedReps = solveBergerFormula({
+			variableToSolve: 'NewReps',
+			knownValues: {
+				oldSet: {
+					reps: set.plannedReps,
+					load: oldLoad,
+					RIR: set.RIR,
+					miniSets: cleanupInProgressMiniSets(set.miniSets)
+				},
+				newSet: { load: set.load, RIR: set.RIR, miniSets: cleanupInProgressMiniSets(set.miniSets) },
+				oldUserBodyweight: previousUserBodyweight,
+				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
+				oldBodyweightFraction,
+				newBodyweightFraction: exercise.bodyweightFraction ?? null,
+				overloadPercentage: 0
+			}
+		});
+		return Math.max(1, Math.round(estimatedReps));
 	}
 
 	function getRepTargetLabel(delta: number) {
-		if (delta === 0) return 'Reps within target range';
+		if (delta === 0) return 'Reps matched expected';
 		const difference = Math.abs(delta);
-		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} target range`;
+		return `${difference} ${difference === 1 ? 'rep' : 'reps'} ${delta > 0 ? 'above' : 'below'} expected`;
+	}
+
+	function getRepTargetDelta(set: WorkoutExerciseSet, setIdx: number) {
+		if (!set.completed || typeof set.reps !== 'number') return;
+		const isTopSet = exercise.setType === 'TopBackoff' && setIdx === 0;
+		const rangeStart = isTopSet ? (exercise.topRepRangeStart ?? exercise.repRangeStart) : exercise.repRangeStart;
+		const rangeEnd = isTopSet ? (exercise.topRepRangeEnd ?? exercise.repRangeEnd) : exercise.repRangeEnd;
+		if (set.reps < rangeStart) return set.reps - rangeStart;
+		if (set.reps > rangeEnd) return set.reps - rangeEnd;
+		return 0;
 	}
 
 	function adjustLoads(setIdx: number) {
@@ -232,9 +314,50 @@
 			exercise.sets[currentSetIdx].plannedReps = newReps;
 		});
 	}
+
+	function updateSharedRIR(value: string) {
+		if (value.trim() === '') {
+			for (const set of exercise.sets) {
+				if (!set.completed && !set.skipped) set.RIR = undefined;
+				for (const miniSet of set.miniSets) {
+					if (!miniSet.completed && !set.skipped) miniSet.RIR = undefined;
+				}
+			}
+			return;
+		}
+		const RIR = Number(value);
+		if (!Number.isInteger(RIR) || RIR < 0) return;
+
+		for (const set of exercise.sets) {
+			if (!set.completed && !set.skipped) set.RIR = RIR;
+			for (const miniSet of set.miniSets) {
+				if (!miniSet.completed && !set.skipped) miniSet.RIR = RIR;
+			}
+		}
+	}
 </script>
 
-<div class="grid grid-cols-4 gap-1">
+<div class="flex items-center justify-end gap-2 pb-1">
+	<label class="text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]" for="{exercise.name}-RIR">RIR</label>
+	<Input
+		class="h-11 w-14 px-2 text-center"
+		id="{exercise.name}-RIR"
+		disabled={!hasEditableRIRTargets}
+		min={0}
+		required
+		step={1}
+		type="number"
+		inputmode="numeric"
+		value={sharedRIR}
+		oninput={(event) => {
+			updateSharedRIR((event.currentTarget as HTMLInputElement).value);
+			scheduleDraftSave();
+		}}
+		onblur={flushDraftSave}
+	/>
+</div>
+
+<div class="grid grid-cols-3 gap-1">
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">
 		Weight
 		{#if typeof exercise.bodyweightFraction === 'number'}
@@ -255,9 +378,10 @@
 		{/if}
 	</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Reps</span>
-	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">RIR</span>
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
+		{@const expectedReps = getExpectedReps(set)}
+		{@const displayedReps = set.completed ? set.reps : (set.reps ?? expectedReps)}
 		{@const repTargetDelta = getRepTargetDelta(set, idx)}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
@@ -280,8 +404,11 @@
 					step={0.25}
 					type="number"
 					inputmode="decimal"
-					bind:value={set.load}
-					oninput={scheduleDraftSave}
+					value={set.load}
+					oninput={(event) => {
+						updateSetLoad(set, (event.currentTarget as HTMLInputElement).value);
+						scheduleDraftSave();
+					}}
 					onblur={flushDraftSave}
 				/>
 				<div class="relative">
@@ -293,8 +420,12 @@
 						required
 						type="number"
 						inputmode="numeric"
-						bind:value={set.reps}
-						oninput={scheduleDraftSave}
+						value={displayedReps}
+						oninput={(event) => {
+							const value = Number((event.currentTarget as HTMLInputElement).value);
+							set.reps = Number.isFinite(value) && value > 0 ? value : undefined;
+							scheduleDraftSave();
+						}}
 						onblur={flushDraftSave}
 					/>
 					{#if repTargetDelta !== undefined}
@@ -319,25 +450,14 @@
 						</span>
 					{/if}
 				</div>
-				<Input
-					class={cn('h-11 px-2 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
-					id="{exercise.name}-set-{idx + 1}-RIR"
-					disabled={set.completed || set.skipped}
-					required
-					type="number"
-					inputmode="numeric"
-					bind:value={set.RIR}
-					oninput={scheduleDraftSave}
-					onblur={flushDraftSave}
-				/>
 			{:else}
-				<div class="col-span-3 flex items-center gap-2">
+				<div class="col-span-2 flex items-center gap-2">
 					<Separator class="w-px grow" />
 					<span class="text-xs text-muted-foreground">skipped</span>
 					<Separator class="w-px grow" />
 				</div>
 			{/if}
-			<div class="flex items-center">
+			<div class="flex items-center justify-center gap-2">
 				{#if idx === 0 || !isSameLoadExercise}
 					{@const hasLoadChanged = set.load !== originalSetLoads[idx] && originalSetLoads[idx] !== undefined}
 					{#if hasLoadChanged}
@@ -357,6 +477,7 @@
 				<Button
 					class={cn('ml-auto h-11 w-11', isActiveSet(idx) && 'ring-2 ring-[#a5c63a66]')}
 					data-testid="{exercise.name}-set-{idx + 1}-action"
+					disabled={!set.completed && !set.skipped && !hasValidRIR(set.RIR)}
 					size="icon"
 					type="submit"
 					variant={set.completed ? 'outline' : 'default'}
@@ -422,24 +543,10 @@
 							oninput={scheduleDraftSave}
 							onblur={flushDraftSave}
 						/>
-						<Input
-							class={cn(
-								'h-11 px-2 text-center',
-								isActiveMiniSet(idx, miniIdx) && 'border-[#78942d] ring-1 ring-[#78942d66]'
-							)}
-							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-RIR"
-							disabled={miniSet.completed}
-							required
-							type="number"
-							inputmode="numeric"
-							bind:value={miniSet.RIR}
-							oninput={scheduleDraftSave}
-							onblur={flushDraftSave}
-						/>
 						<Button
 							class={cn('h-11 w-11 place-self-end', isActiveMiniSet(idx, miniIdx) && 'ring-2 ring-[#a5c63a66]')}
 							data-testid="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-action"
-							disabled={miniSetButtonDisabled}
+							disabled={miniSetButtonDisabled || (!miniSet.completed && !hasValidRIR(miniSet.RIR))}
 							size="icon"
 							type="submit"
 							variant={miniSet.completed ? 'outline' : 'default'}

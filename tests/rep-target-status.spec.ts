@@ -76,15 +76,15 @@ test('completed sets show their rep result relative to the target range after re
 
 	const statuses = page.getByTestId(/Bench press-set-\d-rep-target-status/);
 	await expect(statuses).toHaveCount(3);
-	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above target range');
-	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps within target range');
-	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below target range');
+	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above expected');
+	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps matched expected');
+	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below expected');
 
 	await page.reload();
 	await expect(statuses).toHaveCount(3);
-	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above target range');
-	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps within target range');
-	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below target range');
+	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '1 rep above expected');
+	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps matched expected');
+	await expect(statuses.nth(2)).toHaveAttribute('aria-label', '1 rep below expected');
 });
 
 test('TopBackoff sets use their dedicated top-set target range after reload', async ({ page, userData }) => {
@@ -154,11 +154,11 @@ test('TopBackoff sets use their dedicated top-set target range after reload', as
 
 	const statuses = page.getByTestId(/Top-backoff bench press-set-\d-rep-target-status/);
 	await expect(statuses).toHaveCount(2);
-	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '2 reps below target range');
-	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps within target range');
+	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '2 reps below expected');
+	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps matched expected');
 
 	await page.reload();
 	await expect(statuses).toHaveCount(2);
-	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '2 reps below target range');
-	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps within target range');
+	await expect(statuses.nth(0)).toHaveAttribute('aria-label', '2 reps below expected');
+	await expect(statuses.nth(1)).toHaveAttribute('aria-label', 'Reps matched expected');
 });

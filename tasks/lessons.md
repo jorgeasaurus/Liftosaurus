@@ -26,3 +26,9 @@
 - Bind singleton client state reactively to the current session, including anonymous transitions, and fence every queued or locked continuation with a captured user-and-epoch token.
 - Never use origin-wide storage clearing for logout or app updates; remove only explicit application-owned disposable keys and preserve all user-scoped and quarantined records.
 - Multi-key local-storage migration must remain resumable after every individual write; retain the source record until all destination records and mode are durably complete.
+- Treat suppressed review feedback as actionable when it identifies an avoidable local convention mismatch; do not dismiss it solely because the current API is valid.
+- Safe-area-aware mobile layouts must include left and right insets, and `viewport-fit=cover` must be enabled before relying on iOS inset values.
+- Mobile overflow fixes must constrain the shell and every flex/grid child that can establish intrinsic width; safe-area padding alone cannot prevent a workout row from widening the page.
+- Mobile layout verification must exercise data-bearing detail tabs, not only list and workout-entry screens; nested `grow` and percentage-height panels require a definite flex-column parent or their content can collapse while remaining in the DOM.
+- When a repeated per-set control represents a shared workout target, surface one exercise-level control and preserve completed-set values as history.
+- When asked to finish a repair loop, keep the task active through grouped fixes and full-suite verification; do not hand back after partial progress.

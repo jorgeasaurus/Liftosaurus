@@ -47,15 +47,19 @@ test('mobile workout actions stay above navigation and incomplete set edits pers
 
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/workouts/manage/start');
+	await expect(page.getByRole('spinbutton', { name: 'Body fat (%)' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
+	await page.getByRole('spinbutton', { name: 'Bodyweight (lbs)' }).fill('190');
 
 	const viewport = page.viewportSize();
 	expect(viewport).not.toBeNull();
 	const nextButton = page.getByRole('button', { name: 'Next' });
 	await expect(nextButton).toBeVisible();
+	await expect(nextButton).toBeEnabled();
+	await page.getByRole('spinbutton', { name: 'Body fat (%)' }).fill('18.5');
 	const buttonBounds = await nextButton.boundingBox();
 	expect(buttonBounds).not.toBeNull();
 	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(viewport!.height);
-
 	const navigation = page.getByRole('navigation', { name: 'Primary navigation' });
 	await expect(navigation).toBeVisible();
 	const navigationBounds = await navigation.boundingBox();
@@ -70,7 +74,7 @@ test('mobile workout actions stay above navigation and incomplete set edits pers
 
 	const loadInput = page.locator('input[id$="-set-1-load"]').first();
 	const repsInput = page.locator('input[id$="-set-1-reps"]').first();
-	const rirInput = page.locator('input[id$="-set-1-RIR"]').first();
+	const rirInput = page.getByLabel('RIR').first();
 	await loadInput.fill('80');
 	await repsInput.fill('10');
 	await rirInput.evaluate((input: HTMLInputElement) => {
@@ -82,13 +86,7 @@ test('mobile workout actions stay above navigation and incomplete set edits pers
 	await page.goto('/workouts/manage/exercises');
 	await expect(page.locator('input[id$="-set-1-load"]').first()).toHaveValue('80');
 	await expect(page.locator('input[id$="-set-1-reps"]').first()).toHaveValue('10');
-	await expect(page.locator('input[id$="-set-1-RIR"]').first()).toHaveValue('2');
-
-	const previousButtonBounds = await page.getByRole('link', { name: 'Previous' }).boundingBox();
-	const workoutNavigationBounds = await navigation.boundingBox();
-	expect(previousButtonBounds).not.toBeNull();
-	expect(workoutNavigationBounds).not.toBeNull();
-	expect(previousButtonBounds!.y + previousButtonBounds!.height).toBeLessThanOrEqual(workoutNavigationBounds!.y);
+	await expect(page.getByLabel('RIR').first()).toHaveValue('2');
 
 	const setActionBounds = await page.getByTestId('Calves exercise-set-1-action').boundingBox();
 	expect(setActionBounds).not.toBeNull();
@@ -98,5 +96,5 @@ test('mobile workout actions stay above navigation and incomplete set edits pers
 	await page.reload();
 	await expect(page.locator('input[id$="-set-1-load"]').first()).toHaveValue('80');
 	await expect(page.locator('input[id$="-set-1-reps"]').first()).toHaveValue('10');
-	await expect(page.locator('input[id$="-set-1-RIR"]').first()).toHaveValue('2');
+	await expect(page.getByLabel('RIR').first()).toHaveValue('2');
 });

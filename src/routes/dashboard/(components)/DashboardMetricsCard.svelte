@@ -2,9 +2,9 @@
 	import { invalidate } from '$app/navigation';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import * as Card from '$lib/components/ui/card';
-	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
 	import type { RouterOutputs } from '$lib/trpc/router';
 	import DashboardMetricsChart from './DashboardMetricsChart.svelte';
+	import CraftedLoadingState from '$lib/components/CraftedLoadingState.svelte';
 
 	type Props = {
 		chartData: Promise<RouterOutputs['workouts']['getDashboardChartData']>;
@@ -23,14 +23,14 @@
 	}
 </script>
 
-<Card.Root>
+<Card.Root class="surface-panel overflow-hidden rounded-xl">
 	<Card.Header>
 		<Card.Title>Progress trends</Card.Title>
 		<Card.Description>Track performance or bodyweight without tying progress to one volume metric.</Card.Description>
 	</Card.Header>
 	<Card.Content>
 		{#await chartData}
-			<Skeleton class="h-52 w-full" />
+			<CraftedLoadingState label="Loading progress trends" />
 		{:then chartData}
 			<DashboardMetricsChart data={chartData} />
 		{:catch}

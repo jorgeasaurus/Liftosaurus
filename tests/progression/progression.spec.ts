@@ -30,7 +30,19 @@ test('progress first cycle, no changes', () => {
 
 		const exercisesWithoutSets = testMesocycle.mesocycleExerciseSplitDays[i].mesocycleSplitDayExercises.map(
 			(exercise) => {
-				const { id, mesocycleExerciseSplitDayId, sets, ...rest } = exercise;
+				const {
+					id,
+					mesocycleExerciseSplitDayId,
+					sets,
+					adaptiveRepRangeStart,
+					adaptiveRepRangeEnd,
+					adaptiveTopRepRangeStart,
+					adaptiveTopRepRangeEnd,
+					adaptiveRepRangeSourceId,
+					adaptiveTopRepRangeSourceId,
+					adaptiveRepRangeResetAt,
+					...rest
+				} = exercise;
 				return { ...rest, mesocycleExerciseTemplateId: id, isDeload: false };
 			}
 		);

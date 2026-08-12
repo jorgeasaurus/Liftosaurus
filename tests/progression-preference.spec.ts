@@ -78,3 +78,38 @@ test('database defaults, nullable overrides, workout persistence, and tenant iso
 		'Reps'
 	);
 });
+
+test('mesocycle creation cannot attach another user exercise split', async ({ userData }) => {
+	const victimUserId = createId();
+	const victimSplit = await prisma.exerciseSplit.create({
+		data: {
+			name: 'Victim split',
+			user: { create: { id: victimUserId, email: `victim-split-${victimUserId}@Liftosaurus.com` } }
+		}
+	});
+	const caller = createCaller({ userId: userData.userId, event: null as never });
+
+	await expect(
+		caller.mesocycles.create({
+			mesocycle: {
+				name: 'Attacker mesocycle',
+				exerciseSplitId: victimSplit.id,
+				RIRProgression: [1],
+				startDate: null,
+				endDate: null,
+				startOverloadPercentage: 2.5,
+				preferredProgressionVariable: 'Reps',
+				repRangeMode: 'Fixed',
+				lastSetToFailure: false,
+				forceRIRMatching: false
+			},
+			mesocycleCyclicSetChanges: [],
+			mesocycleExerciseTemplates: [],
+			exerciseSplit: { exerciseSplitDays: [] },
+			startImmediately: false
+		})
+	).rejects.toThrow('Exercise split not found');
+
+	expect(await prisma.mesocycle.count({ where: { userId: userData.userId, exerciseSplitId: victimSplit.id } })).toBe(0);
+	await prisma.user.delete({ where: { id: victimUserId } });
+});

@@ -5,6 +5,7 @@ import { runSerializableTransaction } from '$lib/trpc/transaction';
 import { createWorkoutGraph, syncWorkoutExerciseTemplates } from '$lib/trpc/workoutCompletion';
 import { arraySum } from '$lib/utils';
 import {
+	buildBodyFatSeries,
 	buildBodyweightSeries,
 	buildRelativePerformanceSeries,
 	buildSevenDayAverageSeries,
@@ -39,6 +40,7 @@ type TodaysWorkoutData = {
 	startedAt: Date | string;
 	endedAt: Date | string | null;
 	userBodyweight: number | null;
+	userBodyFat?: number | null;
 	workoutExercises: Pick<WorkoutExercise, 'name' | 'targetMuscleGroup' | 'customMuscleGroup'>[];
 	workoutOfMesocycle?: Pick<WorkoutOfMesocycle, 'workoutStatus' | 'splitDayIndex'> & {
 		mesocycle: Mesocycle;
@@ -55,6 +57,10 @@ type WorkoutExercisesWithPreviousData = {
 		exercises: WorkoutExerciseWithPreviousBodyweight[];
 	};
 };
+
+const MAX_WORKOUT_EXERCISES = 50;
+const MAX_SETS_PER_EXERCISE = 30;
+const MAX_MINI_SETS_PER_SET = 20;
 
 const createActiveMesocycleWithProgressionDataInclude = (splitDayIndex?: number) => {
 	const workoutsWhere = splitDayIndex !== undefined ? { where: { splitDayIndex } } : {};
@@ -91,6 +97,7 @@ export type ActiveMesocycleWithProgressionData = Prisma.MesocycleGetPayload<{
 const workoutInputDataSchema = z.object({
 	startedAt: z.date().or(z.string().datetime()).optional(),
 	userBodyweight: z.number(),
+	userBodyFat: z.number().min(0).max(100).nullable().optional(),
 	workoutOfMesocycle: z
 		.object({
 			mesocycle: z.object({ id: z.string().cuid2() }),
@@ -101,24 +108,51 @@ const workoutInputDataSchema = z.object({
 	note: z.string().optional()
 });
 
-const createWorkoutSchema = z.strictObject({
-	draftOwnerUserId: z.string().cuid2(),
-	workoutData: workoutInputDataSchema,
-	workoutExercises: z.array(WorkoutExerciseCreateWithoutWorkoutInputSchema),
-	workoutExercisesSets: z.array(z.array(WorkoutExerciseSetCreateWithoutWorkoutExerciseInputSchema)),
-	workoutExercisesMiniSets: z.array(z.array(z.array(WorkoutExerciseMiniSetCreateWithoutParentSetInputSchema))),
-	manualDeloadMetadata: z
-		.array(
-			z
-				.strictObject({
-					sourceTemplateId: z.string().cuid2().nullable(),
-					originalSetCount: z.number().int().nonnegative()
-				})
-				.nullable()
-		)
-		.optional(),
-	confirmAdaptiveRepRangeOutliers: z.boolean().optional()
-});
+const createWorkoutSchema = z
+	.strictObject({
+		draftOwnerUserId: z.string().cuid2(),
+		workoutData: workoutInputDataSchema,
+		workoutExercises: z.array(WorkoutExerciseCreateWithoutWorkoutInputSchema).max(MAX_WORKOUT_EXERCISES),
+		workoutExercisesSets: z
+			.array(z.array(WorkoutExerciseSetCreateWithoutWorkoutExerciseInputSchema).max(MAX_SETS_PER_EXERCISE))
+			.max(MAX_WORKOUT_EXERCISES),
+		workoutExercisesMiniSets: z
+			.array(
+				z
+					.array(z.array(WorkoutExerciseMiniSetCreateWithoutParentSetInputSchema).max(MAX_MINI_SETS_PER_SET))
+					.max(MAX_SETS_PER_EXERCISE)
+			)
+			.max(MAX_WORKOUT_EXERCISES),
+		manualDeloadMetadata: z
+			.array(
+				z
+					.strictObject({
+						sourceTemplateId: z.string().cuid2().nullable(),
+						originalSetCount: z.number().int().nonnegative()
+					})
+					.nullable()
+			)
+			.max(MAX_WORKOUT_EXERCISES)
+			.optional(),
+		confirmAdaptiveRepRangeOutliers: z.boolean().optional()
+	})
+	.superRefine((input, ctx) => {
+		if (input.workoutExercises.length !== input.workoutExercisesSets.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every workout exercise must have a set list' });
+		}
+		if (input.workoutExercises.length !== input.workoutExercisesMiniSets.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every workout exercise must have a mini-set list' });
+		}
+		for (let index = 0; index < input.workoutExercisesSets.length; index += 1) {
+			if (input.workoutExercisesSets[index].length !== input.workoutExercisesMiniSets[index]?.length) {
+				ctx.addIssue({
+					code: 'custom',
+					message: 'Every workout set must have a mini-set list',
+					path: ['workoutExercisesMiniSets', index]
+				});
+			}
+		}
+	});
 
 const loadWorkoutsSchema = z.strictObject({
 	cursorId: z.string().cuid2().optional(),
@@ -145,7 +179,7 @@ export const workouts = t.router({
 			}),
 			prisma.workout.findMany({
 				where: { userId: ctx.userId },
-				select: { startedAt: true, userBodyweight: true },
+				select: { startedAt: true, userBodyweight: true, userBodyFat: true },
 				orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
 				take: 365
 			})
@@ -194,10 +228,13 @@ export const workouts = t.router({
 					});
 
 		const bodyweight = buildBodyweightSeries(bodyweightWorkouts);
+		const bodyFat = buildBodyFatSeries(bodyweightWorkouts);
 		return {
 			relativePerformance: buildRelativePerformanceSeries(splitWorkouts),
 			bodyweight,
 			sevenDayBodyweight: buildSevenDayAverageSeries(bodyweight),
+			bodyFat,
+			sevenDayBodyFat: buildSevenDayAverageSeries(bodyFat),
 			workVolume: buildWorkVolumeSeries(splitWorkouts)
 		};
 	}),
@@ -417,11 +454,13 @@ export const workouts = t.router({
 			}
 		});
 		const lastBodyweight = data?.workoutsOfMesocycle.map((wm) => wm.workout.userBodyweight)[0];
+		const lastBodyFat = data?.workoutsOfMesocycle.find((wm) => wm.workout.userBodyFat !== null)?.workout.userBodyFat;
 		const userBodyweight = lastBodyweight ?? null;
 
 		const todaysWorkoutData: TodaysWorkoutData = {
 			workoutExercises: [],
 			userBodyweight,
+			userBodyFat: lastBodyFat ?? null,
 			startedAt: new Date(),
 			endedAt: null,
 			note: null,
@@ -482,11 +521,13 @@ export const workouts = t.router({
 			}
 		});
 		const lastBodyweight = data?.workoutsOfMesocycle.map((wm) => wm.workout.userBodyweight)[0];
+		const lastBodyFat = data?.workoutsOfMesocycle.find((wm) => wm.workout.userBodyFat !== null)?.workout.userBodyFat;
 		const userBodyweight = lastBodyweight ?? null;
 
 		const todaysWorkoutData: TodaysWorkoutData = {
 			workoutExercises: [],
 			userBodyweight,
+			userBodyFat: lastBodyFat ?? null,
 			startedAt: new Date(),
 			endedAt: null,
 			note: null,
@@ -617,6 +658,7 @@ export const workouts = t.router({
 			startedAt: input.workoutData.startedAt ?? new Date(),
 			endedAt: new Date(),
 			userBodyweight: input.workoutData.userBodyweight,
+			userBodyFat: input.workoutData.userBodyFat ?? null,
 			note: input.workoutData.note
 		};
 
@@ -782,6 +824,7 @@ export const workouts = t.router({
 				startedAt: input.data.workoutData.startedAt!,
 				endedAt: input.endedAt,
 				userBodyweight: input.data.workoutData.userBodyweight,
+				userBodyFat: input.data.workoutData.userBodyFat ?? null,
 				note: input.data.workoutData.note
 			};
 

@@ -318,7 +318,8 @@ export const users = t.router({
 						startedAt: new Date(workout.startTimestamp),
 						endedAt: new Date(workout.startTimestamp + 1000 * 60 * input.duration),
 						note: null,
-						userBodyweight: input.bodyweight // Assumption (same bodyweight applied to all workouts)
+						userBodyweight: input.bodyweight, // Assumption (same bodyweight applied to all workouts)
+						userBodyFat: null
 					};
 					return prismaWorkout;
 				})

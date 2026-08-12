@@ -411,6 +411,7 @@ test('keeps the canonical muscle group when stale initial history arrives after 
 		await expect(page.getByTestId('exercise-performance-card')).not.toContainText('Chest');
 	} finally {
 		releaseInitialHistory();
+		await page.unrouteAll({ behavior: 'wait' });
 	}
 });
 
