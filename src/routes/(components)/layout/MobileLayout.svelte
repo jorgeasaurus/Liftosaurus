@@ -9,6 +9,7 @@
 	import { page } from '$app/stores';
 	import { getMobileSection, isWorkoutManagementPath, mobileSections } from '$lib/navigation/mobileNavigation';
 	import type { Snippet } from 'svelte';
+	import { workoutRunes } from '../../workouts/manage/workoutRunes.svelte';
 	import HomeIcon from 'virtual:icons/lucide/house';
 	import HistoryIcon from 'virtual:icons/lucide/history';
 	import ExercisesIcon from 'virtual:icons/lucide/dumbbell';
@@ -21,6 +22,11 @@
 	let activeSection = $derived(getMobileSection($page.url.pathname));
 	let isFocusedWorkout = $derived(isWorkoutManagementPath($page.url.pathname));
 	let isExerciseLogging = $derived($page.url.pathname === '/workouts/manage/exercises');
+	let workoutHref = $derived(
+		workoutRunes.editingWorkoutId === null && workoutRunes.workoutData !== null
+			? '/workouts/manage/exercises?keepCurrent'
+			: '/dashboard'
+	);
 </script>
 
 <header class="mobile-topbar" class:compact={isFocusedWorkout}>
@@ -63,7 +69,7 @@
 		{@const Icon = icons[item.id]}
 		<a
 			class:active={activeSection === item.id}
-			href={item.href}
+			href={item.id === 'workout' ? workoutHref : item.href}
 			aria-current={activeSection === item.id ? 'page' : undefined}
 		>
 			<Icon aria-hidden="true" />
