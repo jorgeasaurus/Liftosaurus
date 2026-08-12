@@ -7,30 +7,19 @@
 	import LoginProviderMenu from './LoginProviderMenu.svelte';
 	import PWAButtons from './PWAButtons.svelte';
 	import { page } from '$app/stores';
+	import { getMobileSection, isWorkoutManagementPath, mobileSections } from '$lib/navigation/mobileNavigation';
 	import type { Snippet } from 'svelte';
 	import HomeIcon from 'virtual:icons/lucide/house';
-	import WorkoutsIcon from 'virtual:icons/lucide/clipboard-list';
-	import ProgressIcon from 'virtual:icons/lucide/chart-column';
+	import HistoryIcon from 'virtual:icons/lucide/history';
+	import ExercisesIcon from 'virtual:icons/lucide/dumbbell';
 	import PlansIcon from 'virtual:icons/lucide/calendar-days';
-	import ProfileIcon from 'virtual:icons/lucide/circle-user-round';
+	import MoreIcon from 'virtual:icons/lucide/menu';
 
 	let { children }: { children: Snippet } = $props();
 
-	const navLinks = [
-		{ label: 'Today', href: '/dashboard', icon: HomeIcon },
-		{ label: 'Workouts', href: '/workouts', icon: WorkoutsIcon },
-		{ label: 'Progress', href: '/exercise-stats', icon: ProgressIcon },
-		{ label: 'Mesocycles', href: '/mesocycles', icon: PlansIcon },
-		{ label: 'Profile', href: '/profile', icon: ProfileIcon }
-	] as const;
-
-	const isActive = (href: string) =>
-		href === '/dashboard' ? $page.url.pathname.startsWith('/dashboard') : $page.url.pathname.startsWith(href);
-
-	// Keep workout chrome compact while retaining the persistent bottom navigation.
-	let isFocusedWorkout = $derived(
-		$page.url.pathname === '/workouts/manage' || $page.url.pathname.startsWith('/workouts/manage/')
-	);
+	const icons = { workout: HomeIcon, history: HistoryIcon, plans: PlansIcon, exercises: ExercisesIcon, more: MoreIcon };
+	let activeSection = $derived(getMobileSection($page.url.pathname));
+	let isFocusedWorkout = $derived(isWorkoutManagementPath($page.url.pathname));
 	let isExerciseLogging = $derived($page.url.pathname === '/workouts/manage/exercises');
 </script>
 
@@ -70,9 +59,14 @@
 </main>
 
 <nav class="mobile-bottom-nav" aria-label="Primary navigation">
-	{#each navLinks as item}
-		<a class:active={isActive(item.href)} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
-			<item.icon aria-hidden="true" />
+	{#each mobileSections as item}
+		{@const Icon = icons[item.id]}
+		<a
+			class:active={activeSection === item.id}
+			href={item.href}
+			aria-current={activeSection === item.id ? 'page' : undefined}
+		>
+			<Icon aria-hidden="true" />
 			<span>{item.label}</span>
 		</a>
 	{/each}
@@ -134,21 +128,16 @@
 		flex: 1;
 		overflow-x: hidden;
 		overflow-y: auto;
-		padding: 28px max(20px, env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom))
-			max(20px, env(safe-area-inset-left));
+		padding: 20px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
 	}
 
 	.mobile-main.focused {
 		overflow: hidden;
-		padding: 12px max(12px, env(safe-area-inset-right)) calc(92px + env(safe-area-inset-bottom))
-			max(12px, env(safe-area-inset-left));
+		padding: 12px max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left));
 	}
 
 	.mobile-bottom-nav {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
+		flex: none;
 		z-index: 30;
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);

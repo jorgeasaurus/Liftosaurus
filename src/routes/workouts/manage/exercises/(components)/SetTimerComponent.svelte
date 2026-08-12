@@ -36,7 +36,7 @@
 
 <Popover.Root>
 	<Popover.Trigger let:builder asChild>
-		<Button builders={[builder]} aria-label="time-since-last-set" size="icon" variant="outline">
+		<Button class="h-11 w-11" builders={[builder]} aria-label="time-since-last-set" size="icon" variant="outline">
 			<TimerIcon class={cn({ 'animate-bounce': showAnimation })} />
 		</Button>
 	</Popover.Trigger>
