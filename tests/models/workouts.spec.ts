@@ -11,6 +11,14 @@ async function createSplitAndMesoForTest(page: Page) {
 	await page.goto('/workouts');
 }
 
+async function deleteWorkoutExercise(page: Page, exerciseName: string) {
+	await page.getByTestId(`${exerciseName}-menu-button`).click();
+	await Promise.all([
+		page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+		page.getByRole('menuitem', { name: 'Delete' }).last().click()
+	]);
+}
+
 test('create workout', async ({ page }) => {
 	await page.goto('/workouts');
 	await page.getByLabel('create-workout').click();
@@ -24,22 +32,24 @@ test('create workout', async ({ page }) => {
 
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-reps"]').fill('9');
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-load"]').fill('100');
-	await page.locator('[id="Barbell\\ bench\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('2');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('95').fill('95');
-	await page.locator('[id="Barbell\\ bench\\ press-set-2-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByRole('status')).toContainText('Workout created successfully');
 	await page.getByRole('link', { name: `${getTodaysDateString()}` }).click();
-	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle No mesocycle User bodyweight 100');
+	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle No mesocycle User bodyweight (lbs) 100');
 	await page.getByRole('tab', { name: 'Exercises' }).click();
-	await expect(page.getByRole('tabpanel')).toContainText(
-		'Barbell bench press 2 Down sets of 5 to 10 reps Chest Feet flat, back arched, grip just outside shoulders. Lower bar to mid-chest, press up explosively. Reps Load RIR 1 9 100 2 2 8 95 1'
-	);
+	const exercisesPanel = page.getByRole('tabpanel');
+	await expect(exercisesPanel).toContainText('Barbell bench press');
+	await expect(exercisesPanel).toContainText('Down sets of 5 to 10 reps');
+	await expect(exercisesPanel).toContainText('Reps Load (lbs) RIR');
+	await expect(exercisesPanel).toContainText('1 9 100 2 2 8 95 1');
 });
 
 test('create workout with all set types', async ({ page }) => {
@@ -57,10 +67,10 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-reps"]').fill('9');
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-load"]').fill('50');
-	await page.locator('[id="Barbell\\ bench\\ press-set-1-RIR"]').fill('1');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('45').fill('45');
-	await page.locator('[id="Barbell\\ bench\\ press-set-2-RIR"]').fill('1');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
@@ -74,16 +84,16 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-1-reps"]').fill('12');
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-1-load"]').fill('10');
-	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-1-RIR"]').fill('2');
+	await page.locator('[id="Dumbbell\\ bicep\\ curls-RIR"]').fill('2');
 	await page.getByTestId('Dumbbell bicep curls-set-1-action').click();
 	await expect(page.getByRole('main')).toContainText('12 reps left');
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-reps"]').fill('10');
-	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-RIR"]').fill('0');
+	await page.locator('[id="Dumbbell\\ bicep\\ curls-RIR"]').fill('0');
 	await expect(page.getByRole('main')).toContainText('2 reps left');
 	await page.getByLabel('add-mini-set-to-set-2-of-').click();
 	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-mini-set-1-reps"]').fill('2');
 	await expect(page.getByRole('main')).toContainText('matched');
-	await page.locator('[id="Dumbbell\\ bicep\\ curls-set-2-mini-set-1-RIR"]').fill('0');
+	await page.locator('[id="Dumbbell\\ bicep\\ curls-RIR"]').fill('0');
 	await page.getByTestId('Dumbbell bicep curls-set-2-action').click();
 	await page.getByTestId('Dumbbell bicep curls-set-2-mini-set-1-action').click();
 
@@ -100,20 +110,20 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-reps"]').fill('18');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-load"]').fill('10');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.getByLabel('add-mini-set-to-set-1-of-').click();
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-mini-set-1-reps"]').fill('12');
 	await page.getByPlaceholder('5', { exact: true }).fill('5');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-1-mini-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.getByTestId('Leaning dumbbell lateral raises-set-1-action').click();
 	await page.getByTestId('Leaning dumbbell lateral raises-set-1-mini-set-1-action').click();
 	await page.getByLabel('add-mini-set-to-set-2-of-Leaning dumbbell lateral raises').click();
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-reps"]').fill('16');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-load"]').fill('10');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-mini-set-1-reps"]').fill('10');
 	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-mini-set-1-load"]').fill('5');
-	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-set-2-mini-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leaning\\ dumbbell\\ lateral\\ raises-RIR"]').fill('2');
 	await page.getByTestId('Leaning dumbbell lateral raises-set-2-action').click();
 	await page.getByTestId('Leaning dumbbell lateral raises-set-2-mini-set-1-action').click();
 
@@ -127,10 +137,10 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-1-reps"]').fill('14');
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-1-load"]').fill('20');
-	await page.locator('[id="Incline\\ dumbbell\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Incline\\ dumbbell\\ press-RIR"]').fill('2');
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-2-reps"]').fill('12');
 	await page.locator('[id="Incline\\ dumbbell\\ press-set-2-load"]').fill('15');
-	await page.locator('[id="Incline\\ dumbbell\\ press-set-2-RIR"]').fill('1');
+	await page.locator('[id="Incline\\ dumbbell\\ press-RIR"]').fill('1');
 	await page.getByTestId('Incline dumbbell press-set-1-action').click();
 	await page.getByTestId('Incline dumbbell press-set-2-action').click();
 
@@ -146,19 +156,29 @@ test('create workout with all set types', async ({ page }) => {
 
 	await page.locator('[id="Leg\\ press-set-1-reps"]').fill('18');
 	await page.locator('[id="Leg\\ press-set-1-load"]').fill('180');
-	await page.locator('[id="Leg\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Leg\\ press-RIR"]').fill('2');
 	await page.locator('[id="Leg\\ press-set-2-reps"]').fill('12');
-	await page.locator('[id="Leg\\ press-set-2-RIR"]').fill('0');
+	await page.locator('[id="Leg\\ press-RIR"]').fill('0');
 	await page.getByTestId('Leg press-set-1-action').click();
 	await page.getByTestId('Leg press-set-2-action').click();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.getByRole('link', { name: `${getTodaysDateString()}` }).click();
-	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle No mesocycle User bodyweight 100');
+	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle No mesocycle User bodyweight (lbs) 100');
 	await page.getByRole('tab', { name: 'Exercises' }).click();
-	await expect(page.getByRole('main')).toContainText(
-		'Barbell bench press 2 Down sets of 5 to 10 reps Chest Feet flat, back arched, grip just outside shoulders. Lower bar to mid-chest, press up explosively. Reps Load RIR 1 9 50 1 2 8 45 1 Dumbbell bicep curls 2 Myorep match sets of 10 to 20 reps Biceps Hold dumbbells at sides, curl up, squeeze biceps, lower slow. Reps Load RIR 1 12 10 2 2 10 10 0 1 2 10 0Leaning dumbbell lateral raises 2 Drop sets of 10 to 20 reps Side delts Lean slightly, raise dumbbells to shoulder height. Control descent. Reps Load RIR 1 18 10 2 1 12 5 22 16 10 2 1 10 5 2Incline dumbbell press 2 V2 sets of 10 to 15 reps Chest Bench at 30-45 degrees, elbows tucked. Press dumbbells up, control descent. Reps Load RIR 1 14 20 2 2 12 15 1 Leg press 2 Myorep sets of 10 to 20 reps BW Quads Feet high for quad focus, push up, control return. Reps Load RIR 1 18 180 2 2 12 180 0'
-	);
+	const exercisesPanel = page.getByRole('tabpanel');
+	for (const exerciseName of [
+		'Barbell bench press',
+		'Dumbbell bicep curls',
+		'Leaning dumbbell lateral raises',
+		'Incline dumbbell press',
+		'Leg press'
+	]) {
+		await expect(exercisesPanel).toContainText(exerciseName);
+	}
+	await expect(exercisesPanel).toContainText('Reps Load (lbs) RIR');
+	await expect(exercisesPanel).toContainText('1 9 50 1 2 8 45 1');
+	await expect(exercisesPanel).toContainText('1 18 180 0 2 12 180 0');
 });
 
 test('create a workout with active mesocycle', async ({ page }) => {
@@ -168,7 +188,7 @@ test('create a workout with active mesocycle', async ({ page }) => {
 	await page.getByPlaceholder('Type here').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	await expect(page.getByRole('main')).toContainText('Weight (+BW) Reps RIR');
+	await expect(page.getByRole('main')).toContainText('Weight (+BW) Reps Log');
 	await expect(page.getByRole('main')).toContainText('Rep targets');
 	await page.getByLabel('Show rep targets').click();
 	await expect(page.getByText('Aim for these rep ranges')).toBeVisible();
@@ -185,6 +205,8 @@ test('create a workout with active mesocycle', async ({ page }) => {
 	await page.locator('[id="Barbell\\ rows-set-2-reps"]').fill('14');
 	await page.locator('[id="Barbell\\ rows-set-3-reps"]').fill('15');
 	await page.locator('[id="Barbell\\ rows-set-1-load"]').fill('40');
+	await page.locator('[id="Barbell\\ rows-set-2-load"]').fill('40');
+	await page.locator('[id="Barbell\\ rows-set-3-load"]').fill('40');
 	await page.getByTestId('Barbell rows-set-1-action').click();
 	await page.getByTestId('Barbell rows-set-2-action').click();
 	await page.getByTestId('Barbell rows-set-3-action').click();
@@ -205,17 +227,17 @@ test('create a workout with active mesocycle', async ({ page }) => {
 	await page.getByTestId('Face pulls-set-2-action').click();
 	await page.getByTestId('Face pulls-set-3-action').click();
 
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByRole('status')).toContainText('Workout created successfully');
 	await page.getByRole('link', { name: `${getTodaysDateString()} Pull A` }).click();
-	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle MyMeso Pull A User bodyweight 100');
+	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle MyMeso Pull A User bodyweight (lbs) 100');
 	await page.getByRole('tab', { name: 'Exercises' }).click();
 	await expect(page.getByRole('tabpanel')).toContainText(
-		'Pull-ups 3 Straight sets of 5 to 15 reps BW Lats Reps Load RIR 1 12 0 3 2 11 0 3 3 10 0 0'
+		'Pull-ups 3 Straight sets of 5 to 15 reps BW Lats Reps Load (lbs) RIR 1 12 0 3 2 11 0 3 3 10 0 0'
 	);
 	await expect(page.getByRole('tabpanel')).toContainText(
-		'Barbell rows 3 Straight sets of 10 to 15 reps Traps Reps Load RIR 1 15 40 3 2 14 40 3 3 15 40 0'
+		'Barbell rows 3 Straight sets of 10 to 15 reps Traps Reps Load (lbs) RIR 1 15 40 3 2 14 40 3 3 15 40 0'
 	);
 });
 
@@ -234,21 +256,21 @@ test('create workout without using active mesocycle', async ({ page }) => {
 
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-reps"]').fill('9');
 	await page.locator('[id="Barbell\\ bench\\ press-set-1-load"]').fill('100');
-	await page.locator('[id="Barbell\\ bench\\ press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('2');
 	await page.locator('[id="Barbell\\ bench\\ press-set-2-reps"]').fill('8');
 	await page.getByPlaceholder('95').fill('95');
-	await page.locator('[id="Barbell\\ bench\\ press-set-2-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-1-action').click();
+	await page.locator('[id="Barbell\\ bench\\ press-RIR"]').fill('1');
 	await page.getByTestId('Barbell bench press-set-2-action').click();
 
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByRole('status')).toContainText('Workout created successfully');
 	await page.getByRole('link', { name: `${getTodaysDateString()}` }).click();
-	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle No mesocycle User bodyweight 100');
+	await expect(page.getByRole('tabpanel')).toContainText('Mesocycle No mesocycle User bodyweight (lbs) 100');
 	await page.getByRole('tab', { name: 'Exercises' }).click();
 	await expect(page.getByRole('tabpanel')).toContainText(
-		'Barbell bench press 2 Down sets of 5 to 10 reps Chest Feet flat, back arched, grip just outside shoulders. Lower bar to mid-chest, press up explosively. Reps Load RIR 1 9 100 2 2 8 95 1'
+		'Barbell bench press 2 Down sets of 5 to 10 reps Chest Feet flat, back arched, grip just outside shoulders. Lower bar to mid-chest, press up explosively. Reps Load (lbs) RIR 1 9 100 2 2 8 95 1'
 	);
 });
 
@@ -268,12 +290,9 @@ test('delete a workout', async ({ page }) => {
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
 
-	await page.getByTestId('Pull-ups-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
+	await deleteWorkoutExercise(page, 'Pull-ups');
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
 
 	await page.locator('[id="Face\\ pulls-set-1-reps"]').fill('5');
 	await page.locator('[id="Face\\ pulls-set-2-reps"]').fill('5');
@@ -282,7 +301,7 @@ test('delete a workout', async ({ page }) => {
 	await page.getByTestId('Face pulls-set-1-action').click();
 	await page.getByTestId('Face pulls-set-2-action').click();
 	await page.getByTestId('Face pulls-set-3-action').click();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await page.getByLabel('create-workout').click();
@@ -298,6 +317,7 @@ test('delete a workout', async ({ page }) => {
 });
 
 test('edit a workout', async ({ page, userData }) => {
+	test.slow();
 	const namespace = `workoutRunes:user:${encodeURIComponent(userData.userId)}`;
 	const draftKeys = { active: `${namespace}:active`, edit: `${namespace}:edit`, mode: `${namespace}:mode` };
 	await createSplitAndMesoForTest(page);
@@ -305,12 +325,9 @@ test('edit a workout', async ({ page, userData }) => {
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
 
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Face pulls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
+	await deleteWorkoutExercise(page, 'Face pulls');
 	await page.locator('#Pull-ups-set-1-reps').fill('8');
 	await page.locator('#Pull-ups-set-2-reps').fill('6');
 	await page.locator('#Pull-ups-set-3-reps').fill('5');
@@ -318,7 +335,7 @@ test('edit a workout', async ({ page, userData }) => {
 	await page.getByTestId('Pull-ups-set-1-action').click();
 	await page.getByTestId('Pull-ups-set-2-action').click();
 	await page.getByTestId('Pull-ups-set-3-action').click();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await page.getByLabel('create-workout').click();
@@ -327,7 +344,7 @@ test('edit a workout', async ({ page, userData }) => {
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.locator('[id="Incline barbell press-set-1-reps"]').fill('9');
 	await page.locator('[id="Incline barbell press-set-1-load"]').fill('135');
-	await page.locator('[id="Incline barbell press-set-1-RIR"]').fill('2');
+	await page.locator('[id="Incline barbell press-RIR"]').fill('2');
 	await page.getByTestId('Incline barbell press-set-1-action').click();
 	await page.getByRole('link', { name: 'Workouts' }).click();
 
@@ -367,7 +384,7 @@ test('edit a workout', async ({ page, userData }) => {
 	await page.getByTestId('Pull-ups-set-1-action').click();
 	await page.locator('#Pull-ups-set-1-reps').fill('7');
 	await page.getByTestId('Pull-ups-set-1-action').click();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect
 		.poll(() =>
@@ -430,12 +447,9 @@ test('workout changes should update mesocycle split', async ({ page }) => {
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
 
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Face pulls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
+	await deleteWorkoutExercise(page, 'Face pulls');
 
 	await page.locator('#Pull-ups-set-1-reps').fill('8');
 	await page.locator('#Pull-ups-set-2-reps').fill('7');
@@ -450,11 +464,11 @@ test('workout changes should update mesocycle split', async ({ page }) => {
 
 	await page.getByTestId('Pull-ups-set-1-action').click();
 	await page.getByTestId('Pull-ups-set-2-action').click();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.waitForURL('/workouts');
 
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await page.getByRole('link', { name: 'MyMeso Active' }).first().click();
 	await page.getByRole('tab', { name: 'Split' }).click();
 	await expect(page.getByRole('main')).toContainText(

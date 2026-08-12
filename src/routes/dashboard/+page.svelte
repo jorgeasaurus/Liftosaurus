@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import MoonIcon from 'virtual:icons/lucide/moon';
 	import SunIcon from 'virtual:icons/lucide/sun';
 	import SunriseIcon from 'virtual:icons/lucide/sunrise';
@@ -6,29 +7,35 @@
 	import DashboardMetricsCard from './(components)/DashboardMetricsCard.svelte';
 	import GetStartedComponent from './(components)/GetStartedComponent.svelte';
 	import TodaysWorkoutCard from './(components)/TodaysWorkoutCard.svelte';
-	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
+	import CraftedLoadingState from '$lib/components/CraftedLoadingState.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	const userName = data.session?.user?.name?.split(' ')[0];
-	const userLocale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
-	const hour = new Date().getHours();
-	const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-	const GreetingIcon = hour < 12 ? SunriseIcon : hour < 18 ? SunIcon : MoonIcon;
-	const today = new Date().toLocaleDateString(userLocale, {
-		weekday: 'long',
-		month: 'long',
-		day: 'numeric'
+	let greeting = $state('Welcome');
+	let today = $state('');
+	let GreetingIcon = $state(SunriseIcon);
+
+	onMount(() => {
+		const now = new Date();
+		const hour = now.getHours();
+		greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+		GreetingIcon = hour < 12 ? SunriseIcon : hour < 18 ? SunIcon : MoonIcon;
+		today = now.toLocaleDateString(navigator.language, {
+			weekday: 'long',
+			month: 'long',
+			day: 'numeric'
+		});
 	});
 </script>
 
-<section class="mx-auto flex w-full max-w-5xl flex-col gap-5 lg:gap-6">
+<section class="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-6 lg:max-w-[1480px]">
 	<header>
-		<h1 class="flex items-center gap-2.5 text-2xl font-semibold tracking-tight lg:text-4xl">
-			<GreetingIcon class="h-6 w-6 shrink-0 text-primary lg:h-8 lg:w-8" />
+		<h1 class="flex items-center gap-3 text-[1.7rem] font-semibold leading-tight tracking-tight lg:text-4xl">
+			<GreetingIcon class="h-7 w-7 shrink-0 text-primary lg:h-8 lg:w-8" />
 			{greeting}{userName ? `, ${userName}` : ''}
 		</h1>
-		<p class="mt-1 text-sm text-muted-foreground">{today}</p>
+		<p class="mt-1.5 text-base text-muted-foreground lg:text-sm">{today}</p>
 	</header>
 
 	<div class="grid items-start gap-4 lg:grid-cols-12 lg:gap-6">
@@ -37,7 +44,9 @@
 		</div>
 		<aside class="lg:col-span-5 xl:col-span-4">
 			{#await data.entityCounts}
-				<Skeleton class="h-52 w-full" />
+				<div class="surface-panel rounded-xl">
+					<CraftedLoadingState label="Checking your setup" />
+				</div>
 			{:then entityCounts}
 				<GetStartedComponent {entityCounts} />
 			{:catch}

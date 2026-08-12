@@ -7,29 +7,25 @@
 	import LoginProviderMenu from './LoginProviderMenu.svelte';
 	import PWAButtons from './PWAButtons.svelte';
 	import { page } from '$app/stores';
+	import { getMobileSection, isWorkoutManagementPath, mobileSections } from '$lib/navigation/mobileNavigation';
 	import type { Snippet } from 'svelte';
+	import { workoutRunes } from '../../workouts/manage/workoutRunes.svelte';
 	import HomeIcon from 'virtual:icons/lucide/house';
-	import WorkoutsIcon from 'virtual:icons/lucide/clipboard-list';
-	import ProgressIcon from 'virtual:icons/lucide/chart-column';
+	import HistoryIcon from 'virtual:icons/lucide/history';
+	import ExercisesIcon from 'virtual:icons/lucide/dumbbell';
 	import PlansIcon from 'virtual:icons/lucide/calendar-days';
-	import ProfileIcon from 'virtual:icons/lucide/circle-user-round';
+	import MoreIcon from 'virtual:icons/lucide/menu';
 
 	let { children }: { children: Snippet } = $props();
 
-	const navLinks = [
-		{ label: 'Today', href: '/dashboard', icon: HomeIcon },
-		{ label: 'Workouts', href: '/workouts', icon: WorkoutsIcon },
-		{ label: 'Progress', href: '/exercise-stats', icon: ProgressIcon },
-		{ label: 'Mesocycles', href: '/mesocycles', icon: PlansIcon },
-		{ label: 'Profile', href: '/profile', icon: ProfileIcon }
-	] as const;
-
-	const isActive = (href: string) =>
-		href === '/dashboard' ? $page.url.pathname.startsWith('/dashboard') : $page.url.pathname.startsWith(href);
-
-	// Hide global chrome during live workout logging to free vertical space
-	let isFocusedWorkout = $derived(
-		$page.url.pathname === '/workouts/manage' || $page.url.pathname.startsWith('/workouts/manage/')
+	const icons = { workout: HomeIcon, history: HistoryIcon, plans: PlansIcon, exercises: ExercisesIcon, more: MoreIcon };
+	let activeSection = $derived(getMobileSection($page.url.pathname));
+	let isFocusedWorkout = $derived(isWorkoutManagementPath($page.url.pathname));
+	let isExerciseLogging = $derived($page.url.pathname === '/workouts/manage/exercises');
+	let workoutHref = $derived(
+		workoutRunes.editingWorkoutId === null && workoutRunes.workoutData !== null
+			? '/workouts/manage/exercises?keepCurrent'
+			: '/dashboard'
 	);
 </script>
 
@@ -64,20 +60,23 @@
 		{/if}
 	</div>
 </header>
-<main class="mobile-main" class:focused={isFocusedWorkout}>
+<main class="mobile-main" class:focused={isExerciseLogging}>
 	{@render children()}
 </main>
 
-{#if !isFocusedWorkout}
-	<nav class="mobile-bottom-nav" aria-label="Primary navigation">
-		{#each navLinks as item}
-			<a class:active={isActive(item.href)} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
-				<item.icon aria-hidden="true" />
-				<span>{item.label}</span>
-			</a>
-		{/each}
-	</nav>
-{/if}
+<nav class="mobile-bottom-nav" aria-label="Primary navigation">
+	{#each mobileSections as item}
+		{@const Icon = icons[item.id]}
+		<a
+			class:active={activeSection === item.id}
+			href={item.id === 'workout' ? workoutHref : item.href}
+			aria-current={activeSection === item.id ? 'page' : undefined}
+		>
+			<Icon aria-hidden="true" />
+			<span>{item.label}</span>
+		</a>
+	{/each}
+</nav>
 
 <style>
 	.mobile-topbar {
@@ -85,17 +84,17 @@
 		top: 0;
 		z-index: 20;
 		display: flex;
-		height: 62px;
+		height: calc(62px + env(safe-area-inset-top));
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: env(safe-area-inset-top) max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
 		border-bottom: 1px solid #273034;
 		background: rgba(9, 13, 14, 0.92);
 		backdrop-filter: blur(16px);
 	}
 
 	.mobile-topbar.compact {
-		height: 48px;
+		height: calc(48px + env(safe-area-inset-top));
 	}
 
 	.mobile-brand {
@@ -129,45 +128,53 @@
 
 	.mobile-main {
 		min-height: 0;
+		min-width: 0;
+		max-width: 100%;
 		width: 100%;
 		flex: 1;
+		overflow-x: hidden;
 		overflow-y: auto;
-		padding: 20px 16px 104px;
+		padding: 20px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
 	}
 
 	.mobile-main.focused {
-		padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+		overflow: hidden;
+		padding: 12px max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left));
 	}
 
 	.mobile-bottom-nav {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
+		flex: none;
 		z-index: 30;
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		gap: 2px;
-		padding: 9px 8px calc(9px + env(safe-area-inset-bottom));
+		gap: 4px;
+		padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom))
+			max(12px, env(safe-area-inset-left));
 		border-top: 1px solid #273034;
 		background: rgba(15, 21, 22, 0.96);
 		backdrop-filter: blur(18px);
 	}
 
 	.mobile-bottom-nav a {
+		position: relative;
 		display: flex;
-		min-height: 48px;
+		min-height: 52px;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 4px;
-		border-radius: 12px;
+		border-radius: 14px;
 		color: #8f999d;
-		font-size: 12px;
+		font-size: 11px;
 		font-weight: 600;
 		transition:
 			color 150ms ease,
-			background 150ms ease;
+			background 150ms ease,
+			transform 150ms ease;
+	}
+
+	.mobile-bottom-nav a:active {
+		transform: scale(0.96);
 	}
 
 	.mobile-bottom-nav a :global(svg) {
@@ -178,5 +185,24 @@
 	.mobile-bottom-nav a.active {
 		background: #171e20;
 		color: #c7f43a;
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+	}
+
+	.mobile-bottom-nav a.active::before {
+		position: absolute;
+		top: 4px;
+		left: 50%;
+		width: 18px;
+		height: 2px;
+		border-radius: 999px;
+		background: #c7f43a;
+		content: '';
+		transform: translateX(-50%);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.mobile-bottom-nav a {
+			transition: none;
+		}
 	}
 </style>

@@ -41,6 +41,7 @@
 	let workoutData: RouterOutputs['workouts']['getTodaysWorkoutData'] | 'loading' = $state('loading');
 	let defaultWorkoutData = $state<RouterOutputs['workouts']['getTodaysWorkoutData']>();
 	let userBodyweight: null | number = $state(workoutRunes.workoutData?.userBodyweight ?? null);
+	let userBodyFat: null | number = $state(workoutRunes.workoutData?.userBodyFat ?? null);
 	let targetedMuscleGroups = $derived.by(() => {
 		let result: string[] = [];
 		if (workoutData !== 'loading') {
@@ -59,6 +60,7 @@
 	function applyWorkoutData(nextWorkoutData: RouterOutputs['workouts']['getTodaysWorkoutData']) {
 		workoutData = nextWorkoutData;
 		userBodyweight = nextWorkoutData.userBodyweight;
+		userBodyFat = nextWorkoutData.userBodyFat ?? null;
 		useActiveMesocycle = nextWorkoutData.workoutOfMesocycle !== undefined;
 	}
 
@@ -79,6 +81,7 @@
 			else {
 				workoutData = selection.workoutData;
 				userBodyweight = userBodyweight ?? workoutData.userBodyweight;
+				userBodyFat = userBodyFat ?? workoutData.userBodyFat ?? null;
 				if (workoutData.workoutOfMesocycle !== undefined) useActiveMesocycle = true;
 			}
 		});
@@ -108,7 +111,10 @@
 
 	async function startWorkout(fromDialog = false, mode: 'keepCurrent' | 'overwrite' = 'overwrite') {
 		if (workoutRunes.editingWorkoutId) {
-			if (workoutRunes.workoutData) workoutRunes.workoutData.userBodyweight = userBodyweight;
+			if (workoutRunes.workoutData) {
+				workoutRunes.workoutData.userBodyweight = userBodyweight;
+				workoutRunes.workoutData.userBodyFat = userBodyFat;
+			}
 			await workoutRunes.saveStoresToLocalStorage();
 			await goto('./exercises?editing');
 			return;
@@ -122,6 +128,7 @@
 
 		if (workoutData === 'loading') return;
 		workoutData.userBodyweight = userBodyweight;
+		workoutData.userBodyFat = userBodyFat;
 
 		if (mode === 'overwrite') {
 			if (useActiveMesocycle) workoutRunes.workoutData = workoutData;
@@ -166,6 +173,7 @@
 			draftOwnerUserId: workoutRunes.ownerUserId,
 			workoutData: {
 				userBodyweight,
+				userBodyFat,
 				workoutOfMesocycle: {
 					splitDayIndex: workoutData.workoutOfMesocycle?.splitDayIndex as number,
 					mesocycle: { id: workoutData.workoutOfMesocycle?.mesocycle.id as string },
@@ -204,172 +212,177 @@
 		<Skeleton class="h-[176px] w-full rounded-xl border border-[#2a323b] bg-[#151b22]" />
 		<Skeleton class="mt-auto h-11 w-full rounded-lg" />
 	{:else}
-	{#if workoutData.isLastWorkout}
-		<Card.Root class="mb-1 border-[#2a323b] bg-[#11161d]">
-			<Card.Header>
-				<Card.Title class="text-[#e9eef5]">Last workout for the mesocycle &nbsp;🎉</Card.Title>
-				<Card.Description class="text-[#a2afbf]">
-					If you complete this workout, this mesocycle will be marked as completed and you'll have to start a new one to
-					continue training. If you don't want to go through that hassle, you can edit the duration and extend it now.
-				</Card.Description>
-			</Card.Header>
-			<Card.Footer>
-				<Button class="ml-auto border border-[#2f3844] bg-[#161d25] text-[#dbe3ec]" href={`/mesocycles/${workoutData.workoutOfMesocycle?.mesocycle.id}`}>
-					Edit mesocycle
-				</Button>
-			</Card.Footer>
-		</Card.Root>
-	{/if}
-	{#if workoutRunes.editingWorkoutId === null}
-		<div class="mb-1 flex items-center justify-between gap-2 rounded-xl border border-[#2a323b] bg-[#11161d] p-4 text-[#dbe3ec]">
-			<Label for="use-active-mesocycle">
-				{workoutData.workoutOfMesocycle === undefined ? 'No' : 'Use'} active mesocycle
-			</Label>
-			{#if workoutData.workoutOfMesocycle === undefined}
-				<Switch id="use-active-mesocycle" name="use-active-mesocycle" disabled />
-			{:else}
-				<Switch id="use-active-mesocycle" name="use-active-mesocycle" bind:checked={useActiveMesocycle} />
-			{/if}
-		</div>
-	{/if}
-	{#if !(useActiveMesocycle && workoutData.workoutOfMesocycle?.workoutStatus === 'RestDay')}
-		<form
-			class="mb-1 flex w-full flex-col gap-1.5 rounded-xl border border-[#2a323b] bg-[#11161d] p-4"
-			name="user-bodyweight-form"
-			id="user-bodyweight-form"
-			onsubmit={(e) => {
-				e.preventDefault();
-				startWorkout();
-			}}
-		>
-			<Label class="text-[#dbe3ec]" for="user-bodyweight">Bodyweight (lbs)</Label>
-			<Input
-				class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
-				id="user-bodyweight"
-				placeholder="Type here"
-				type="number"
-				min={1}
-				step={0.01}
-				bind:value={userBodyweight}
-			/>
-			{#if workoutRunes.editingWorkoutId !== null && workoutRunes.workoutData}
-				<div class="grid grid-cols-2 gap-x-2 gap-y-1.5">
-					<Label class="text-[#dbe3ec]" for="start-date">Start date</Label>
-					<Label class="text-[#dbe3ec]" for="end-date">End date</Label>
-					<Input
-						class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
-						id="start-date"
-						type="datetime-local"
-						value={dateToLocalISOString(workoutRunes.workoutData.startedAt as Date)}
-						onchange={(e) => {
-							workoutRunes.workoutData!.startedAt = localISOStringToDate(e.currentTarget.value);
-						}}
-						required
-					/>
-					<Input
-						class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
-						id="end-date"
-						type="datetime-local"
-						min={dateToLocalISOString(workoutRunes.workoutData.startedAt as Date)}
-						value={dateToLocalISOString(workoutRunes.workoutData.endedAt! as Date)}
-						onchange={(e) => {
-							workoutRunes.workoutData!.endedAt = localISOStringToDate(e.currentTarget.value);
-						}}
-						required
-					/>
-				</div>
-			{/if}
-		</form>
-	{/if}
-	{#if skippedWorkoutsOfCycle && skippedWorkoutsOfCycle.length > 0}
-		<Card.Root class="mb-1 border-[#2a323b] bg-[#11161d]">
-			<Card.Header>
-				<Card.Title class="text-[#e9eef5]">Skipped days</Card.Title>
-				<Card.Description class="text-[#a2afbf]">for this cycle</Card.Description>
-			</Card.Header>
-			<Card.Content class="flex flex-wrap gap-1">
-				{#each skippedWorkoutsOfCycle as skippedWorkout}
-					<Button variant="secondary" class="gap-2 border border-[#303844] bg-[#171e27] text-[#dfe6ef]" onclick={() => repeatSkippedWorkout(skippedWorkout.splitDayIndex)}>
-						{skippedWorkout.splitDayName}
-						<RedoIcon />
+		{#if workoutData.isLastWorkout}
+			<Card.Root class="mb-1 border-[#2a323b] bg-[#11161d]">
+				<Card.Header>
+					<Card.Title class="text-[#e9eef5]">Last workout for the mesocycle &nbsp;🎉</Card.Title>
+					<Card.Description class="text-[#a2afbf]">
+						If you complete this workout, this mesocycle will be marked as completed and you'll have to start a new one
+						to continue training. If you don't want to go through that hassle, you can edit the duration and extend it
+						now.
+					</Card.Description>
+				</Card.Header>
+				<Card.Footer>
+					<Button
+						class="ml-auto border border-[#2f3844] bg-[#161d25] text-[#dbe3ec]"
+						href={`/mesocycles/${workoutData.workoutOfMesocycle?.mesocycle.id}`}
+					>
+						Edit mesocycle
 					</Button>
-				{/each}
-			</Card.Content>
-		</Card.Root>
-	{/if}
-	{#if useActiveMesocycle && workoutData.workoutOfMesocycle}
-		{@const workoutStatus = workoutData.workoutOfMesocycle.workoutStatus}
-		{@const splitDayName = workoutData.workoutOfMesocycle.splitDayName}
-		<Card.Root class="border-[#2a323b] bg-[#11161d]">
-			<Card.Header>
-				<Card.Title class={cn({ 'text-primary': splitDayName === '' })}>
-					{splitDayName === '' ? 'Rest' : splitDayName}
-				</Card.Title>
-				<Card.Description class="pb-1 text-[#9fadbf]">
-					Day {workoutData.workoutOfMesocycle.splitDayIndex + 1}, Cycle {workoutData.workoutOfMesocycle.cycleNumber}
-					{#if $page.url.searchParams.get('repeatSkipped')}
-						(Repeating skipped)
-					{/if}
-				</Card.Description>
-				<div class="flex flex-wrap gap-1">
-					{#each targetedMuscleGroups as muscleGroup}
-						<Badge variant="secondary">{convertCamelCaseToNormal(muscleGroup)}</Badge>
+				</Card.Footer>
+			</Card.Root>
+		{/if}
+		{#if workoutRunes.editingWorkoutId === null}
+			<div
+				class="mb-1 flex items-center justify-between gap-2 rounded-xl border border-[#2a323b] bg-[#11161d] p-4 text-[#dbe3ec]"
+			>
+				<Label for="use-active-mesocycle">
+					{workoutData.workoutOfMesocycle === undefined ? 'No' : 'Use'} active mesocycle
+				</Label>
+				{#if workoutData.workoutOfMesocycle === undefined}
+					<Switch id="use-active-mesocycle" name="use-active-mesocycle" disabled />
+				{:else}
+					<Switch id="use-active-mesocycle" name="use-active-mesocycle" bind:checked={useActiveMesocycle} />
+				{/if}
+			</div>
+		{/if}
+		{#if !(useActiveMesocycle && workoutData.workoutOfMesocycle?.workoutStatus === 'RestDay')}
+			<form
+				class="mb-1 flex w-full flex-col gap-1.5 rounded-xl border border-[#2a323b] bg-[#11161d] p-4"
+				name="user-bodyweight-form"
+				id="user-bodyweight-form"
+				onsubmit={(e) => {
+					e.preventDefault();
+					startWorkout();
+				}}
+			>
+				<Label class="text-[#dbe3ec]" for="user-bodyweight">Bodyweight (lbs)</Label>
+				<Input
+					class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
+					id="user-bodyweight"
+					placeholder="Type here"
+					type="number"
+					min={1}
+					step={0.01}
+					bind:value={userBodyweight}
+				/>
+				<Label class="mt-2 text-[#dbe3ec]" for="user-body-fat">Body fat (%)</Label>
+				<Input
+					class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
+					id="user-body-fat"
+					placeholder="Optional"
+					type="number"
+					min={0}
+					max={100}
+					step={0.1}
+					bind:value={userBodyFat}
+				/>
+				{#if workoutRunes.editingWorkoutId !== null && workoutRunes.workoutData}
+					<div class="grid grid-cols-2 gap-x-2 gap-y-1.5">
+						<Label class="text-[#dbe3ec]" for="start-date">Start date</Label>
+						<Label class="text-[#dbe3ec]" for="end-date">End date</Label>
+						<Input
+							class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
+							id="start-date"
+							type="datetime-local"
+							value={dateToLocalISOString(workoutRunes.workoutData.startedAt as Date)}
+							onchange={(e) => {
+								workoutRunes.workoutData!.startedAt = localISOStringToDate(e.currentTarget.value);
+							}}
+							required
+						/>
+						<Input
+							class="border-[#303843] bg-[#10161e] text-[#e8edf4]"
+							id="end-date"
+							type="datetime-local"
+							min={dateToLocalISOString(workoutRunes.workoutData.startedAt as Date)}
+							value={dateToLocalISOString(workoutRunes.workoutData.endedAt! as Date)}
+							onchange={(e) => {
+								workoutRunes.workoutData!.endedAt = localISOStringToDate(e.currentTarget.value);
+							}}
+							required
+						/>
+					</div>
+				{/if}
+			</form>
+		{/if}
+		{#if skippedWorkoutsOfCycle && skippedWorkoutsOfCycle.length > 0}
+			<Card.Root class="mb-1 border-[#2a323b] bg-[#11161d]">
+				<Card.Header>
+					<Card.Title class="text-[#e9eef5]">Skipped days</Card.Title>
+					<Card.Description class="text-[#a2afbf]">for this cycle</Card.Description>
+				</Card.Header>
+				<Card.Content class="flex flex-wrap gap-1">
+					{#each skippedWorkoutsOfCycle as skippedWorkout}
+						<Button
+							variant="secondary"
+							class="gap-2 border border-[#303844] bg-[#171e27] text-[#dfe6ef]"
+							onclick={() => repeatSkippedWorkout(skippedWorkout.splitDayIndex)}
+						>
+							{skippedWorkout.splitDayName}
+							<RedoIcon />
+						</Button>
 					{/each}
-				</div>
-			</Card.Header>
-			<Card.Footer>
-				<Button
-					class="ml-auto w-32 gap-2"
-					disabled={completingWorkout}
-					onclick={() => completeWorkout(workoutStatus === 'RestDay' ? 'RestDay' : 'Skipped')}
-					variant={workoutStatus === 'RestDay' ? 'default' : 'destructive'}
-				>
-					{#if completingWorkout}
-						<LoaderCircle class="animate-spin" />
-					{:else}
-						{workoutStatus === 'RestDay' ? 'Complete' : 'Skip'}
-						{#if workoutStatus === 'RestDay'}
-							<CheckIcon />
-						{:else}
-							<SkipIcon />
+				</Card.Content>
+			</Card.Root>
+		{/if}
+		{#if useActiveMesocycle && workoutData.workoutOfMesocycle}
+			{@const workoutStatus = workoutData.workoutOfMesocycle.workoutStatus}
+			{@const splitDayName = workoutData.workoutOfMesocycle.splitDayName}
+			<Card.Root class="border-[#2a323b] bg-[#11161d]">
+				<Card.Header>
+					<Card.Title class={cn({ 'text-primary': splitDayName === '' })}>
+						{splitDayName === '' ? 'Rest' : splitDayName}
+					</Card.Title>
+					<Card.Description class="pb-1 text-[#9fadbf]">
+						Day {workoutData.workoutOfMesocycle.splitDayIndex + 1}, Cycle {workoutData.workoutOfMesocycle.cycleNumber}
+						{#if $page.url.searchParams.get('repeatSkipped')}
+							(Repeating skipped)
 						{/if}
-					{/if}
-				</Button>
-			</Card.Footer>
-		</Card.Root>
-	{/if}
-	{#if workoutData.workoutOfMesocycle?.workoutStatus !== 'RestDay'}
-		<Button
-			class="workout-start-next mt-auto border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
-			type="submit"
-			form="user-bodyweight-form"
-			disabled={userBodyweight === null || $navigating !== null}
-		>
-			{#if $navigating}
-				<LoaderCircle class="animate-spin" />
-			{:else}
-				Next
-			{/if}
-		</Button>
-	{/if}
+					</Card.Description>
+					<div class="flex flex-wrap gap-1">
+						{#each targetedMuscleGroups as muscleGroup}
+							<Badge variant="secondary">{convertCamelCaseToNormal(muscleGroup)}</Badge>
+						{/each}
+					</div>
+				</Card.Header>
+				<Card.Footer>
+					<Button
+						class="ml-auto w-32 gap-2"
+						disabled={completingWorkout}
+						onclick={() => completeWorkout(workoutStatus === 'RestDay' ? 'RestDay' : 'Skipped')}
+						variant={workoutStatus === 'RestDay' ? 'default' : 'destructive'}
+					>
+						{#if completingWorkout}
+							<LoaderCircle class="animate-spin" />
+						{:else}
+							{workoutStatus === 'RestDay' ? 'Complete' : 'Skip'}
+							{#if workoutStatus === 'RestDay'}
+								<CheckIcon />
+							{:else}
+								<SkipIcon />
+							{/if}
+						{/if}
+					</Button>
+				</Card.Footer>
+			</Card.Root>
+		{/if}
+		{#if workoutData.workoutOfMesocycle?.workoutStatus !== 'RestDay'}
+			<Button
+				class="workout-start-next mt-auto border border-[#8cae2f66] bg-[#c7f73a] text-[#17200d] hover:bg-[#d2f95a]"
+				type="submit"
+				form="user-bodyweight-form"
+				disabled={userBodyweight === null || $navigating !== null}
+			>
+				{#if $navigating}
+					<LoaderCircle class="animate-spin" />
+				{:else}
+					Next
+				{/if}
+			</Button>
+		{/if}
 	{/if}
 </section>
-
-<style>
-	@media (max-width: 1023px) {
-		.workout-start {
-			padding-bottom: calc(52px + env(safe-area-inset-bottom));
-		}
-
-		:global(.workout-start-next) {
-			position: fixed;
-			right: 12px;
-			bottom: calc(12px + env(safe-area-inset-bottom));
-			left: 12px;
-			z-index: 20;
-		}
-	}
-</style>
 
 <ResponsiveDialog title="Warning" bind:open={overwriteWorkoutDialogOpen}>
 	{#snippet description()}
@@ -391,3 +404,19 @@
 	{/snippet}
 	<Button onclick={() => completeWorkout('Skipped', true)} variant="destructive">Skip</Button>
 </ResponsiveDialog>
+
+<style>
+	@media (max-width: 1023px) {
+		.workout-start {
+			padding-bottom: calc(52px + env(safe-area-inset-bottom));
+		}
+
+		:global(.workout-start-next) {
+			position: fixed;
+			right: 12px;
+			bottom: calc(78px + env(safe-area-inset-bottom));
+			left: 12px;
+			z-index: 20;
+		}
+	}
+</style>

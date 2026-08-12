@@ -11,6 +11,8 @@
 	<div class="muted-text-box">
 		{convertCamelCaseToNormal(workout.workoutOfMesocycle?.workoutStatus)}
 	</div>
+{:else if workout.workoutExercises.length === 0}
+	<div class="muted-text-box">No exercises were recorded for this workout.</div>
 {:else}
 	<div class="flex h-px grow flex-col gap-1 overflow-y-auto">
 		{#each workout.workoutExercises as exercise}

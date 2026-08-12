@@ -39,6 +39,35 @@ export function cleanupInProgressMiniSets(miniSets: WorkoutExerciseInProgress['s
 	});
 }
 
+export type WorkoutSetTarget =
+	| { kind: 'set'; exerciseIndex: number; setIndex: number; exerciseName: string }
+	| { kind: 'miniSet'; exerciseIndex: number; setIndex: number; miniSetIndex: number; exerciseName: string };
+
+export function deriveWorkoutProgress(exercises: WorkoutExerciseInProgress[]) {
+	let total = 0;
+	let completed = 0;
+	let next: WorkoutSetTarget | null = null;
+
+	for (const [exerciseIndex, exercise] of exercises.entries()) {
+		for (const [setIndex, set] of exercise.sets.entries()) {
+			if (set.skipped) continue;
+			total += set.miniSets.length + 1;
+			if (set.completed) completed += 1;
+			completed += set.miniSets.filter((miniSet) => miniSet.completed).length;
+
+			if (next) continue;
+			if (!set.completed) next = { kind: 'set', exerciseIndex, setIndex, exerciseName: exercise.name };
+			else {
+				const miniSetIndex = set.miniSets.findIndex((miniSet) => !miniSet.completed);
+				if (miniSetIndex >= 0)
+					next = { kind: 'miniSet', exerciseIndex, setIndex, miniSetIndex, exerciseName: exercise.name };
+			}
+		}
+	}
+
+	return { total, completed, allComplete: completed >= total, next };
+}
+
 export type SetDetails = {
 	reps: number;
 	load: number;
@@ -96,7 +125,8 @@ export function solveBergerFormula(input: BergerInput) {
 			const numerator =
 				(1 + knownValues.overloadPercentage / 100) * (9745640 * oldLoad - 423641) * exponentialMultiplier;
 			const denominator = 9745640 * newLoad - 423641;
-			return 38.1679 * Math.log(numerator / denominator) - newSet.RIR;
+			const estimatedReps = 38.1679 * Math.log(numerator / denominator) - newSet.RIR;
+			return Number.isFinite(estimatedReps) ? Math.max(1, estimatedReps) : 1;
 		}
 
 		case 'OverloadPercentage': {
@@ -313,12 +343,20 @@ export function getEditedManualDeloadMetadata(
 	};
 }
 
+function normalizePositiveReps(value: number | undefined) {
+	return typeof value === 'number' && Number.isFinite(value) ? Math.max(1, value) : 1;
+}
+
 export function normalizePersistedWorkoutExercises(
 	exercises: WorkoutExerciseInProgress[]
 ): WorkoutExerciseInProgress[] {
 	return exercises.map((exercise) => ({
 		...exercise,
-		sets: exercise.sets.map((set) => ({ ...set, plannedReps: set.plannedReps ?? set.reps })),
+		sets: exercise.sets.map((set) => ({
+			...set,
+			reps: set.reps === undefined ? undefined : normalizePositiveReps(set.reps),
+			plannedReps: normalizePositiveReps(set.plannedReps ?? set.reps)
+		})),
 		workStarted:
 			Boolean(exercise.workStarted) ||
 			exercise.sets.some((set) => Boolean(set.completed) || set.miniSets.some((miniSet) => Boolean(miniSet.completed)))

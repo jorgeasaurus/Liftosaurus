@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { commonExercisePerMuscleGroup } from '$lib/common/commonExercises';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Command from '$lib/components/ui/command';
@@ -12,6 +11,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { trpc } from '$lib/trpc/client';
 	import { convertCamelCaseToNormal } from '$lib/utils';
+	import { buildExerciseCatalog, type ExerciseCatalogItem } from '$lib/utils/exerciseCatalog';
 	import { ChangeType, MuscleGroup, ProgressionVariable, RepRangeMode, SetType } from '$lib/utils/prismaEnums';
 	import type { Mesocycle } from '@prisma/client';
 	import { onMount } from 'svelte';
@@ -23,7 +23,6 @@
 	import AddIcon from 'virtual:icons/lucide/plus';
 	import XIcon from 'virtual:icons/lucide/x';
 	import type {
-		ExerciseTemplateWithoutIdsOrIndex,
 		MesocycleExerciseTemplateWithoutIdsOrIndex,
 		SplitExerciseTemplateWithoutIdsOrIndex
 	} from './commonTypes';
@@ -50,34 +49,10 @@
 	type FullExerciseTemplate = NonUndefined<PropsType['editingExercise']>;
 
 	let { ...props }: PropsType = $props();
-	let allGroupedExercises = $state(commonExercisePerMuscleGroup);
+	let allGroupedExercises = $state(buildExerciseCatalog());
 
 	onMount(async () => {
-		const userExercises = (await trpc().workouts.getUserExercises.query('minimal')).map((ex) => ({
-			...ex,
-			isUserExercise: true
-		}));
-		const groupedUserExercises = Object.entries(
-			Object.groupBy(userExercises, (exercise) => exercise.customMuscleGroup ?? exercise.targetMuscleGroup)
-		).map(([muscleGroup, exercises]) => ({
-			muscleGroup: muscleGroup as MuscleGroup,
-			exercises: exercises!.map(({ workoutId, ...rest }) => ({ ...rest })) ?? []
-		}));
-
-		allGroupedExercises = groupedUserExercises.reduce(
-			(acc, userGroup) => {
-				const existingGroupIndex = acc.findIndex((group) => group.muscleGroup === userGroup.muscleGroup);
-
-				if (existingGroupIndex !== -1) {
-					acc[existingGroupIndex].exercises = [...acc[existingGroupIndex].exercises, ...userGroup.exercises];
-				} else {
-					acc.push(userGroup);
-				}
-
-				return acc;
-			},
-			[...allGroupedExercises]
-		);
+		allGroupedExercises = buildExerciseCatalog(await trpc().workouts.getUserExercises.query('minimal'));
 	});
 
 	const extraMesocycleProps: Partial<MesocycleExerciseTemplateWithoutIdsOrIndex> = {
@@ -109,7 +84,7 @@
 	let mode = $derived(props.editingExercise === undefined ? 'Add' : 'Edit');
 	let searching = $state(false);
 	let currentExercise: Partial<FullExerciseTemplate> = $state(structuredClone(defaultExercise));
-	let selectedMuscleGroups = $state<MuscleGroup[]>([]);
+	let selectedMuscleGroups = $state<string[]>([]);
 	let filterOpen = $state(false);
 
 	let filteredExercises = $derived(
@@ -136,9 +111,11 @@
 		}
 	});
 
-	function selectExercise(exercise: ExerciseTemplateWithoutIdsOrIndex) {
+	function selectExercise(exercise: ExerciseCatalogItem) {
+		const { type: _, ...template } = exercise;
 		currentExercise = structuredClone({
-			...exercise,
+			...defaultExercise,
+			...template,
 			...(props.context !== 'exerciseSplit' && structuredClone(extraMesocycleProps))
 		});
 		searching = false;
@@ -177,7 +154,7 @@
 		overridesSheetOpen = false;
 	}
 
-	function toggleMuscleGroup(muscleGroup: MuscleGroup) {
+	function toggleMuscleGroup(muscleGroup: string) {
 		if (selectedMuscleGroups.includes(muscleGroup)) {
 			selectedMuscleGroups = selectedMuscleGroups.filter((g) => g !== muscleGroup);
 		} else {
@@ -188,7 +165,14 @@
 
 <Sheet.Root closeOnOutsideClick={false} onOpenChange={(o) => !o && props.setEditingExercise(undefined)} bind:open>
 	<Sheet.Trigger asChild let:builder>
-		<Button aria-label="add-exercise" builders={[builder]} onclick={resetDrawerState} size="icon" variant="outline">
+		<Button
+			class="h-11 w-11"
+			aria-label="add-exercise"
+			builders={[builder]}
+			onclick={resetDrawerState}
+			size="icon"
+			variant="outline"
+		>
 			<AddIcon />
 		</Button>
 	</Sheet.Trigger>
@@ -262,7 +246,7 @@
 										{#each exercisesForMuscleGroup.exercises as exercise}
 											<Command.Item onSelect={() => selectExercise(exercise)}>
 												{exercise.name}
-												{#if 'isUserExercise' in exercise && exercise.isUserExercise}
+												{#if exercise.type === 'personal'}
 													<span class="text-xs italic text-muted-foreground">&nbsp;(user)</span>
 												{/if}
 											</Command.Item>

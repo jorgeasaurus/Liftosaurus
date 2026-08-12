@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+	buildBodyFatSeries,
 	buildBodyweightSeries,
 	buildRelativePerformanceSeries,
 	buildSevenDayAverageSeries,
@@ -55,6 +56,19 @@ test('bodyweight keeps canonical pounds and sorts measurements chronologically',
 	assert.deepEqual(series, [
 		{ timestamp: new Date('2026-07-01T12:00:00Z').getTime(), value: 190 },
 		{ timestamp: new Date('2026-07-03T12:00:00Z').getTime(), value: 191.5 }
+	]);
+});
+
+test('body fat keeps percentages, omits missing measurements, and sorts chronologically', () => {
+	const series = buildBodyFatSeries([
+		{ startedAt: new Date('2026-07-03T12:00:00Z'), userBodyFat: 18.5 },
+		{ startedAt: new Date('2026-07-02T12:00:00Z'), userBodyFat: null },
+		{ startedAt: new Date('2026-07-01T12:00:00Z'), userBodyFat: 19 }
+	]);
+
+	assert.deepEqual(series, [
+		{ timestamp: new Date('2026-07-01T12:00:00Z').getTime(), value: 19 },
+		{ timestamp: new Date('2026-07-03T12:00:00Z').getTime(), value: 18.5 }
 	]);
 });
 

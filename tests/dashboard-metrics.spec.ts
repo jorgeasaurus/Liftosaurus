@@ -16,6 +16,7 @@ test('dashboard bodyweight charts use pounds and exclude another user data', asy
 		data: {
 			userId: userData.userId,
 			userBodyweight: 191.5,
+			userBodyFat: 18.5,
 			startedAt: new Date('2026-07-01T12:00:00Z'),
 			endedAt: new Date('2026-07-01T13:00:00Z')
 		}
@@ -29,6 +30,7 @@ test('dashboard bodyweight charts use pounds and exclude another user data', asy
 			workouts: {
 				create: {
 					userBodyweight: 999,
+					userBodyFat: 99,
 					startedAt: new Date('2026-07-02T12:00:00Z'),
 					endedAt: new Date('2026-07-02T13:00:00Z')
 				}
@@ -42,11 +44,22 @@ test('dashboard bodyweight charts use pounds and exclude another user data', asy
 	await expect(page.getByRole('img', { name: 'Bodyweight chart in lb' })).toBeVisible();
 	await expect(page.getByRole('table', { name: 'Bodyweight historical data' })).toContainText('191.5 lb');
 	await expect(page.getByRole('main')).not.toContainText('999');
+	await expect(page.getByRole('main')).not.toContainText('99 %');
 
 	await page.getByRole('combobox', { name: 'Dashboard chart' }).click();
 	await page.getByRole('option', { name: 'Bodyweight · 7-day average' }).click();
 	await expect(page.getByText('Latest: 191.5 lb')).toBeVisible();
 	await expect(page.getByRole('img', { name: 'Bodyweight · 7-day average chart in lb' })).toBeVisible();
+
+	await page.getByRole('combobox', { name: 'Dashboard chart' }).click();
+	await page.getByRole('option', { name: 'Body fat', exact: true }).click();
+	await expect(page.getByText('Latest: 18.5 %')).toBeVisible();
+	await expect(page.getByRole('img', { name: 'Body fat chart in %' })).toBeVisible();
+	await expect(page.getByRole('table', { name: 'Body fat historical data' })).toContainText('18.5 %');
+
+	await page.getByRole('combobox', { name: 'Dashboard chart' }).click();
+	await page.getByRole('option', { name: 'Body fat · 7-day average' }).click();
+	await expect(page.getByRole('img', { name: 'Body fat · 7-day average chart in %' })).toBeVisible();
 
 	await page.getByRole('combobox', { name: 'Dashboard chart' }).click();
 	await page.getByRole('option', { name: 'Work volume' }).click();

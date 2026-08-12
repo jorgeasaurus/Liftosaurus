@@ -1,10 +1,28 @@
-import { expect, test } from '../fixtures';
+import { expect, test, type Page } from '../fixtures';
 import { createMesocycle, createTemplateExerciseSplit } from './commonFunctions';
+
+async function fillRequiredVolumeInputs(page: Page) {
+	for (const suffix of ['start-volume', 'max-volume']) {
+		const inputs = page.locator(`input[id$="-${suffix}"]`);
+		for (let index = 0; index < (await inputs.count()); index += 1) {
+			const input = inputs.nth(index);
+			if ((await input.inputValue()) === '') await input.fill(suffix === 'start-volume' ? '10' : '20');
+		}
+	}
+}
+
+async function deleteWorkoutExercise(page: Page, exerciseName: string) {
+	await page.getByTestId(`${exerciseName}-menu-button`).click();
+	await Promise.all([
+		page.waitForEvent('dialog').then((dialog) => dialog.accept()),
+		page.getByRole('menuitem', { name: 'Delete' }).last().click()
+	]);
+}
 
 test.beforeEach(async ({ page }) => {
 	await page.goto('/exercise-splits');
 	await createTemplateExerciseSplit(page);
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 });
 
 test('create a mesocycle', async ({ page }) => {
@@ -27,6 +45,7 @@ test('create a mesocycle', async ({ page }) => {
 	await page.getByRole('option', { name: '2' }).click();
 	await page.getByLabel('Chest-increase-volume-').click();
 	await page.getByLabel('Chest-max-volume').fill('50');
+	await fillRequiredVolumeInputs(page);
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 
@@ -57,7 +76,7 @@ test('delete a mesocycle', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.getByRole('link', { name: 'MesoToDelete Unused' }).click();
 	await page.getByLabel('mesocycle-options').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
+	await page.getByRole('menuitem', { name: 'Delete' }).last().click();
 	await page.getByRole('button', { name: 'Yes, delete' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Mesocycle deleted successfully' })).toBeVisible({
 		timeout: 10000
@@ -125,7 +144,7 @@ test('start and stop a mesocycle', async ({ page }) => {
 		timeout: 10000
 	});
 	await expect(page.getByRole('tabpanel')).toContainText(`MesoName ${new Date().toLocaleDateString('en-US')} Active`);
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await expect(page.getByRole('main')).toContainText("Active MesoName Active All MesoName Active That's all");
 	await page.getByRole('link', { name: 'MesoName Active' }).first().click();
 	await page.getByRole('button', { name: 'Stop mesocycle' }).click();
@@ -135,7 +154,7 @@ test('start and stop a mesocycle', async ({ page }) => {
 	await expect(page.getByRole('tabpanel')).toContainText(
 		`MesoName ${new Date().toLocaleDateString('en-US')} to ${new Date().toLocaleDateString('en-US')} Completed`
 	);
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await expect(page.getByRole('main')).toContainText("Active No active mesocycle All MesoName Completed That's all");
 });
 
@@ -176,12 +195,9 @@ test('disallow exercise split editing after workout added', async ({ page }) => 
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('100');
 	await page.getByRole('button', { name: 'Next' }).click();
-	await page.getByTestId('Pull-ups-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Barbell rows-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
-	await page.getByTestId('Dumbbell bicep curls-menu-button').click();
-	await page.getByRole('menuitem', { name: 'Delete' }).click();
+	await deleteWorkoutExercise(page, 'Pull-ups');
+	await deleteWorkoutExercise(page, 'Barbell rows');
+	await deleteWorkoutExercise(page, 'Dumbbell bicep curls');
 
 	await page.locator('[id="Face\\ pulls-set-1-reps"]').fill('13');
 	await page.locator('[id="Face\\ pulls-set-2-reps"]').fill('11');
@@ -190,13 +206,13 @@ test('disallow exercise split editing after workout added', async ({ page }) => 
 	await page.getByTestId('Face pulls-set-1-action').click();
 	await page.getByTestId('Face pulls-set-2-action').click();
 	await page.getByTestId('Face pulls-set-3-action').click();
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await page.getByRole('button', { name: 'Save' }).click();
 	await page.waitForURL('/workouts');
 
 	const lockedText =
 		"Cannot change the length or rest days of the mesocycle's exercise split after workouts have been added";
-	await page.getByRole('link', { name: 'Mesocycles' }).click();
+	await page.getByRole('link', { name: 'Plans' }).click();
 	await page.getByRole('link', { name: 'MyMeso Active' }).first().click();
 	await expect(page.getByRole('main')).toContainText(new Date().toLocaleDateString('en-US'));
 	await page.getByRole('tab', { name: 'Split' }).click();
@@ -227,7 +243,7 @@ test('extract exercise split from mesocycle', async ({ page }) => {
 	await page.getByPlaceholder('Type here').fill('MyMeso exercise split');
 	await page.getByRole('button', { name: 'Yes, extract' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Exercise split created successfully' })).toBeVisible();
-	await page.getByRole('link', { name: 'Exercise splits' }).click();
+	await page.getByRole('link', { name: 'Library' }).click();
 	await page.getByRole('link', { name: 'MyMeso exercise split 7 days' }).click();
 	await expect(page.getByRole('tabpanel')).toContainText('MyMeso exercise split');
 	const exercisesTab = page.getByRole('tab', { name: 'Exercises' });
@@ -261,17 +277,17 @@ test('complete a mesocycle', async ({ page }) => {
 	await page.getByRole('link', { name: 'Workouts' }).click();
 	await page.getByLabel('create-workout').click();
 	await page.getByPlaceholder('Type here').fill('70');
-	await page.getByRole('button', { name: 'Skip' }).click();
+	await page.getByRole('button', { name: 'Skip' }).press('Enter');
 	await expect(page.getByRole('paragraph').last()).toContainText('Day 2, Cycle 1');
-	await page.getByRole('button', { name: 'Skip' }).click();
+	await page.getByRole('button', { name: 'Skip' }).press('Enter');
 	await expect(page.getByRole('paragraph').last()).toContainText('Day 3, Cycle 1');
-	await page.getByRole('button', { name: 'Skip' }).click();
+	await page.getByRole('button', { name: 'Skip' }).press('Enter');
 	await expect(page.getByRole('paragraph').last()).toContainText('Day 4, Cycle 1');
-	await page.getByRole('button', { name: 'Skip' }).click();
+	await page.getByRole('button', { name: 'Skip' }).press('Enter');
 	await expect(page.getByRole('paragraph').last()).toContainText('Day 5, Cycle 1');
-	await page.getByRole('button', { name: 'Skip' }).click();
+	await page.getByRole('button', { name: 'Skip' }).press('Enter');
 	await expect(page.getByRole('paragraph').last()).toContainText('Day 6, Cycle 1');
-	await page.getByRole('button', { name: 'Skip' }).click();
+	await page.getByRole('button', { name: 'Skip' }).press('Enter');
 	await page.getByRole('button', { name: 'Complete' }).click();
 
 	await page.waitForURL(/\/mesocycles\/[a-zA-Z0-9]+(\?completion)/);

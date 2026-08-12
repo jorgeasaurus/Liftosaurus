@@ -3,7 +3,7 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
+	import CraftedLoadingState from '$lib/components/CraftedLoadingState.svelte';
 	import type { RouterOutputs } from '$lib/trpc/router';
 	import { convertCamelCaseToNormal } from '$lib/utils';
 	import { getRIRForWeek } from '$lib/utils/workoutUtils';
@@ -21,30 +21,27 @@
 	}
 </script>
 
-<Card.Root>
+<Card.Root
+	data-testid="todays-workout-card"
+	class="surface-panel min-w-0 max-w-full overflow-hidden rounded-xl shadow-none lg:shadow-sm"
+>
 	{#await todaysWorkoutData}
-		<Card.Header>
-			<Card.Description>Today's session</Card.Description>
-			<Card.Title><Skeleton class="h-7 w-44" /></Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<Skeleton class="h-24 w-full" />
+		<Card.Content class="p-5 lg:p-6">
+			<span class="section-kicker">Today's session</span>
+			<CraftedLoadingState label="Preparing your workout" />
 		</Card.Content>
-		<Card.Footer>
-			<Skeleton class="ml-auto h-10 w-36" />
-		</Card.Footer>
 	{:then todaysWorkoutData}
 		{@const wm = todaysWorkoutData.workoutOfMesocycle}
 		{#if wm}
 			{#if wm.workoutStatus === 'RestDay'}
-				<Card.Header>
+				<Card.Header class="p-5 pb-4 lg:p-6 lg:pb-4">
 					<Card.Description>{wm.mesocycle.name} · cycle {wm.cycleNumber}</Card.Description>
 					<Card.Title class="flex items-center gap-2.5">
 						<BedIcon class="h-5 w-5 shrink-0 text-primary" />
 						Rest day
 					</Card.Title>
 				</Card.Header>
-				<Card.Content class="text-sm leading-relaxed text-muted-foreground">
+				<Card.Content class="p-5 pt-0 text-sm leading-relaxed text-muted-foreground lg:p-6 lg:pt-0">
 					No session scheduled today. Recovery is where the growth happens — eat well and sleep well.
 				</Card.Content>
 			{:else}
@@ -56,23 +53,30 @@
 						)
 					)
 				)}
-				<Card.Header>
+				<Card.Header class="p-5 pb-4 lg:p-6 lg:pb-4">
 					<Card.Description>{wm.mesocycle.name} · cycle {wm.cycleNumber}</Card.Description>
-					<Card.Title class="flex items-start justify-between gap-3 text-2xl">
-						{wm.splitDayName}
+					<Card.Title class="flex min-w-0 items-start justify-between gap-3 text-[1.75rem] leading-tight">
+						<span class="min-w-0 truncate">{wm.splitDayName}</span>
 						<Badge class="mt-1 shrink-0" variant="secondary">{rir} RIR</Badge>
 					</Card.Title>
 				</Card.Header>
-				<Card.Content class="flex flex-col gap-4">
+				<Card.Content class="flex flex-col gap-4 p-5 pt-0 lg:p-6 lg:pt-0">
 					{#if todaysWorkoutData.workoutExercises.length > 0}
-						<ol class="flex flex-col divide-y text-sm">
+						<ol class="flex min-w-0 max-w-full flex-col text-sm">
 							{#each todaysWorkoutData.workoutExercises as exercise, idx}
-								<li class="flex items-baseline justify-between gap-3 py-2 first:pt-0 last:pb-0">
-									<span class="min-w-0 truncate font-medium">
-										<span class="mr-2 inline-block w-4 text-right tabular-nums text-muted-foreground">{idx + 1}</span>
+								<li
+									class="divided-row grid min-h-11 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-1 py-2.5 first:border-t-0 first:pt-0 last:pb-0 lg:min-h-0 lg:items-baseline"
+								>
+									<span class="min-w-0 truncate text-[0.95rem] font-medium lg:text-sm">
+										<span
+											class="mr-3 inline-flex h-5 w-5 items-center justify-center rounded-md border bg-muted/40 text-[10px] tabular-nums text-muted-foreground lg:mr-2"
+											>{idx + 1}</span
+										>
 										{exercise.name}
 									</span>
-									<span class="shrink-0 text-xs text-muted-foreground">
+									<span
+										class="max-w-[7rem] truncate rounded-full bg-muted/70 px-2 py-1 text-right text-[11px] text-muted-foreground lg:max-w-none"
+									>
 										{convertCamelCaseToNormal(exercise.customMuscleGroup ?? exercise.targetMuscleGroup)}
 									</span>
 								</li>
@@ -80,14 +84,17 @@
 						</ol>
 					{/if}
 					{#if muscleGroups.length > 0}
-						<p class="text-xs text-muted-foreground">
+						<p class="break-words text-sm text-muted-foreground lg:text-xs">
 							{todaysWorkoutData.workoutExercises.length} exercises · {muscleGroups.join(', ')}
 						</p>
 					{/if}
 				</Card.Content>
-				<Card.Footer>
-					<Button class="w-full gap-2 sm:ml-auto sm:w-auto" onclick={createNewWorkout}>
-						<PlayIcon class="h-4 w-4" />
+				<Card.Footer class="p-5 pt-1 lg:p-6 lg:pt-0">
+					<Button
+						class="pressable-control h-12 w-full gap-2 text-base sm:ml-auto sm:w-auto lg:h-10 lg:text-sm"
+						onclick={createNewWorkout}
+					>
+						<PlayIcon class="h-5 w-5 lg:h-4 lg:w-4" />
 						Start workout
 					</Button>
 				</Card.Footer>
