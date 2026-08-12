@@ -57,7 +57,7 @@ const zodMesocycleCreateInput = z
 				z.array(MesocycleExerciseTemplateCreateWithoutMesocycleExerciseSplitDayInputSchema).max(MAX_EXERCISES_PER_DAY)
 			)
 			.max(MAX_MESOCYCLE_DAYS),
-		exerciseSplit: z.strictObject({
+		exerciseSplit: z.object({
 			exerciseSplitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema).max(MAX_MESOCYCLE_DAYS)
 		}),
 		startImmediately: z.boolean()
