@@ -1,11 +1,11 @@
 <script lang="ts">
 	import * as Popover from '$lib/components/ui/popover';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
-	import { arrayAverage } from '$lib/utils';
 	import {
-		cleanupInProgressMiniSets,
 		getComparableWorkoutExercisePairs,
+		getTotalExercisePerformanceChange,
 		solveBergerFormula,
+		type SetDetails,
 		type WorkoutExerciseInProgress
 	} from '$lib/utils/workoutUtils';
 	import DownIcon from 'virtual:icons/lucide/chevron-down';
@@ -38,8 +38,8 @@
 			variableToSolve: 'OverloadPercentage',
 			knownValues: {
 				oldSet: prevSet,
-				newSet: { reps, load, RIR, miniSets: cleanupInProgressMiniSets(miniSets) },
-				newUserBodyweight: workoutRunes.workoutData?.userBodyweight as number,
+				newSet: { reps, load, RIR, miniSets: getCompletedMiniSets(miniSets) },
+				newUserBodyweight: workoutRunes.workoutData?.userBodyweight ?? prevExercise.userBodyweight,
 				oldUserBodyweight: prevExercise.userBodyweight,
 				oldBodyweightFraction: prevExercise.bodyweightFraction,
 				newBodyweightFraction: exercise.bodyweightFraction ?? null
@@ -49,19 +49,41 @@
 		return actualOverload;
 	}
 
-	function getAverageVolumeChangeOfAllSets() {
+	function getTotalPerformanceChange() {
 		if (!prevExercise) return;
-		return arrayAverage(
-			prevExercise.sets.map((_, idx) => getTheoreticalVolumeChange(idx)).filter((v) => v !== undefined)
+		const comparableSetIndexes = prevExercise.sets
+			.map((set, setIndex) => ({ set, setIndex }))
+			.filter(
+				({ set, setIndex }) =>
+					!set.skipped && !exercise.sets[setIndex]?.skipped && isSetCompleted(exercise.sets[setIndex])
+			)
+			.map(({ setIndex }) => setIndex);
+		return getTotalExercisePerformanceChange(
+			comparableSetIndexes.map((setIndex) => prevExercise.sets[setIndex]),
+			comparableSetIndexes.map((setIndex) => ({
+				reps: exercise.sets[setIndex].reps,
+				load: exercise.sets[setIndex].load,
+				RIR: exercise.sets[setIndex].RIR,
+				miniSets: getCompletedMiniSets(exercise.sets[setIndex].miniSets)
+			})) as SetDetails[],
+			prevExercise.userBodyweight,
+			workoutRunes.workoutData?.userBodyweight ?? prevExercise.userBodyweight,
+			prevExercise.bodyweightFraction,
+			exercise.bodyweightFraction ?? null
 		);
 	}
 
 	type InProgressSet = { reps?: number; load?: number; RIR?: number; completed: boolean };
 	type CompletedSet = { reps: number; load: number; RIR: number; completed: boolean };
 
-	function isSetCompleted(miniSet: InProgressSet): miniSet is CompletedSet {
+	function isSetCompleted(miniSet: InProgressSet | undefined): miniSet is CompletedSet {
+		if (!miniSet) return false;
 		const { reps, load, RIR } = miniSet;
 		return reps !== undefined && load !== undefined && RIR !== undefined;
+	}
+
+	function getCompletedMiniSets(miniSets: InProgressSet[]) {
+		return miniSets.filter(isSetCompleted).map(({ reps, load, RIR }) => ({ reps, load, RIR }));
 	}
 
 	function getTheoreticalVolumeChangeOfMiniSet(prev: Omit<CompletedSet, 'completed'>, current: InProgressSet) {
@@ -81,7 +103,7 @@
 		return actualOverload;
 	}
 
-	let totalVolumeChange = $derived(getAverageVolumeChangeOfAllSets());
+	let totalPerformanceChange = $derived(getTotalPerformanceChange());
 </script>
 
 {#if prevExercise}
@@ -102,17 +124,20 @@
 		</span>
 		<span class="text-sm font-medium">Reps</span>
 		<span class="text-sm font-medium">RIR</span>
-		<span class="flex w-full items-center justify-end gap-1 text-sm font-semibold">
-			{#if !isNaN(Number(totalVolumeChange)) && totalVolumeChange !== undefined}
-				{totalVolumeChange.toFixed(2)}%
-				{#if totalVolumeChange < 0}
-					<TrendDownIcon class="justify-self-end" />
-				{:else if totalVolumeChange > 0}
-					<TrendUpIcon class="justify-self-end" />
-				{:else}
-					<Minus class="justify-self-end" />
+		<span class="flex w-full flex-col items-end text-sm font-semibold" title="Total estimated performance change">
+			<span class="text-[10px] uppercase tracking-wide text-muted-foreground">Performance</span>
+			<span class="flex items-center gap-1">
+				{#if !isNaN(Number(totalPerformanceChange)) && totalPerformanceChange !== undefined}
+					{totalPerformanceChange.toFixed(2)}%
+					{#if totalPerformanceChange < 0}
+						<TrendDownIcon class="justify-self-end" />
+					{:else if totalPerformanceChange > 0}
+						<TrendUpIcon class="justify-self-end" />
+					{:else}
+						<Minus class="justify-self-end" />
+					{/if}
 				{/if}
-			{/if}
+			</span>
 		</span>
 		{#each exercise.sets as set, idx}
 			{@const prevSet = prevExercise.sets[idx]}

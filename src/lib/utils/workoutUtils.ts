@@ -165,6 +165,34 @@ export function solveBergerFormula(input: BergerInput) {
 	}
 }
 
+function getEstimatedPerformance(set: SetDetails, userBodyweight: number, bodyweightFraction: number | null) {
+	const estimatedSetPerformance = (performance: Omit<SetDetails, 'miniSets'>) => {
+		const effectiveLoad = performance.load + (bodyweightFraction ?? 0) * userBodyweight;
+		return Math.exp((performance.reps + performance.RIR) / 38.1679) * (9745640 * effectiveLoad - 423641);
+	};
+
+	return estimatedSetPerformance(set) + arraySum(set.miniSets.map((miniSet) => estimatedSetPerformance(miniSet)));
+}
+
+export function getTotalExercisePerformanceChange(
+	oldSets: SetDetails[],
+	newSets: SetDetails[],
+	oldUserBodyweight: number,
+	newUserBodyweight: number,
+	oldBodyweightFraction: number | null,
+	newBodyweightFraction: number | null
+) {
+	if (oldSets.length === 0 || oldSets.length !== newSets.length) return Number.NaN;
+	let oldPerformance = 0;
+	let newPerformance = 0;
+	for (let setIndex = 0; setIndex < oldSets.length; setIndex++) {
+		oldPerformance += getEstimatedPerformance(oldSets[setIndex], oldUserBodyweight, oldBodyweightFraction);
+		newPerformance += getEstimatedPerformance(newSets[setIndex], newUserBodyweight, newBodyweightFraction);
+	}
+	if (!Number.isFinite(oldPerformance) || !Number.isFinite(newPerformance) || oldPerformance <= 0) return Number.NaN;
+	return (newPerformance / oldPerformance - 1) * 100;
+}
+
 export function getWorkoutVolume(workout: Workout) {
 	return arraySum(workout.workoutExercises.map((exercise) => getExerciseVolume(exercise, workout.userBodyweight)));
 }
@@ -591,27 +619,17 @@ function getTotalCyclicSetsPerMuscleGroup(
 
 function increaseLoadOfSets(
 	ex: WorkoutExerciseInProgress,
+	oldUserBodyweight: number,
 	userBodyweight: number,
+	oldBodyweightFraction: number | null,
 	preferredProgressionVariable: 'Reps' | 'Load'
 ) {
-	const sameLoadSetType = ['Straight', 'Myorep', 'MyorepMatch'].includes(ex.setType);
-
 	function getRepRange(setIndex: number) {
 		const isTopSet = ex.setType === 'TopBackoff' && setIndex === 0;
 		return {
 			start: isTopSet && typeof ex.topRepRangeStart === 'number' ? ex.topRepRangeStart : ex.repRangeStart,
 			end: isTopSet && typeof ex.topRepRangeEnd === 'number' ? ex.topRepRangeEnd : ex.repRangeEnd
 		};
-	}
-
-	function canAttemptIncrease(set: WorkoutExerciseInProgress['sets'][number], setIndex: number) {
-		return (
-			!set.skipped &&
-			set.reps !== undefined &&
-			set.load !== undefined &&
-			set.RIR !== undefined &&
-			(preferredProgressionVariable === 'Load' || set.reps > getRepRange(setIndex).end)
-		);
 	}
 
 	function hasProgressionData(set: WorkoutExerciseInProgress['sets'][number]) {
@@ -637,13 +655,14 @@ function increaseLoadOfSets(
 			knownValues: {
 				oldSet: { reps: set.reps, load: set.load, RIR: set.RIR, miniSets: cleanedMiniSets },
 				newSet: { load: newLoad, RIR: set.RIR, miniSets: cleanedMiniSets },
-				oldBodyweightFraction: ex.bodyweightFraction ?? null,
+				oldBodyweightFraction,
 				newBodyweightFraction: ex.bodyweightFraction ?? null,
 				newUserBodyweight: userBodyweight,
-				oldUserBodyweight: userBodyweight,
+				oldUserBodyweight,
 				overloadPercentage: 0
 			}
 		});
+		if (!Number.isFinite(newReps)) return null;
 		const candidate = {
 			...set,
 			reps: Math.round(newReps),
@@ -656,24 +675,26 @@ function increaseLoadOfSets(
 		return candidate.reps < getRepRange(setIndex).start ? null : candidate;
 	}
 
-	if (sameLoadSetType) {
-		if (!ex.sets.some(canAttemptIncrease)) return ex.sets;
-		const candidates: WorkoutExerciseInProgress['sets'] = [];
-		for (const [setIndex, set] of ex.sets.entries()) {
-			if (!hasProgressionData(set)) {
-				candidates.push(set);
-				continue;
-			}
-			const candidate = getCandidate(set, setIndex);
-			if (!candidate) return ex.sets;
-			candidates.push(candidate);
-		}
-		return candidates;
-	}
+	const progressionSets = ex.sets
+		.map((set, setIndex) => ({ set, setIndex }))
+		.filter(({ set }) => hasProgressionData(set));
+	const canIncreaseLoad =
+		preferredProgressionVariable === 'Load' ||
+		progressionSets.reduce((totalReps, { set }) => totalReps + (set.reps ?? 0), 0) >
+			progressionSets.reduce((totalReps, { setIndex }) => totalReps + getRepRange(setIndex).end, 0) - 1;
+	if (progressionSets.length === 0 || !canIncreaseLoad) return ex.sets;
 
-	return ex.sets.map((set, setIndex) =>
-		canAttemptIncrease(set, setIndex) ? (getCandidate(set, setIndex) ?? set) : set
-	);
+	const candidates: WorkoutExerciseInProgress['sets'] = [];
+	for (const [setIndex, set] of ex.sets.entries()) {
+		if (!hasProgressionData(set)) {
+			candidates.push(set);
+			continue;
+		}
+		const candidate = getCandidate(set, setIndex);
+		if (!candidate) return ex.sets;
+		candidates.push(candidate);
+	}
+	return candidates;
 }
 
 export function progressiveOverloadMagic(
@@ -700,6 +721,31 @@ export function progressiveOverloadMagic(
 			topRepRangeEnd: exercise.setType === 'TopBackoff' ? topRange.end : exercise.topRepRangeEnd
 		});
 	});
+	function applyRIRAdjustment(ex: WorkoutExerciseInProgress, sets: WorkoutExerciseInProgress['sets']) {
+		sets.forEach((set, idx) => {
+			const oldRIR = set.RIR ?? currentCycleRIR;
+			set.RIR = currentCycleRIR;
+
+			const lastSetToFailure = ex.lastSetToFailure ?? mesocycle.lastSetToFailure;
+			if (idx === sets.length - 1 && lastSetToFailure) set.RIR = 0;
+
+			const RIRDifference = set.RIR - oldRIR;
+			if (set.reps === undefined) return;
+			if (RIRDifference > 0 && !(ex.forceRIRMatching ?? mesocycle.forceRIRMatching)) return;
+
+			const isTopSet = ex.setType === 'TopBackoff' && idx === 0;
+			const repRangeStart =
+				isTopSet && typeof ex.topRepRangeStart === 'number' ? ex.topRepRangeStart : ex.repRangeStart;
+			const adjustedReps = set.reps - RIRDifference;
+			if (adjustedReps < repRangeStart && !(lastSetToFailure && idx === sets.length - 1)) {
+				const maxRIR = Math.max(set.reps - repRangeStart, 0);
+				set.RIR = maxRIR;
+				set.reps -= maxRIR - oldRIR;
+				return;
+			}
+			set.reps -= RIRDifference;
+		});
+	}
 
 	if (workoutsOfMesocycle.length > 0) {
 		workoutExercises.forEach((ex) => {
@@ -726,41 +772,107 @@ export function progressiveOverloadMagic(
 				performanceChanges,
 				idealTotalOverloadPercentagePerSet
 			);
-			const setPriorities = (dropOffDifferences = getMaxIndexes(dropOffDifferences));
-			let remainingTotalOverload = adjustedTotalOverloadPercentagePerSet * lastPerformance.exercise.sets.length;
+			const eligibleSetIndexes = lastPerformance.exercise.sets
+				.map((set, setIndex) => ({ set, setIndex }))
+				.filter(
+					({ set, setIndex }) =>
+						!set.skipped &&
+						setIndex < ex.sets.length &&
+						Number.isFinite(set.reps) &&
+						Number.isFinite(set.load) &&
+						Number.isFinite(set.RIR)
+				)
+				.map(({ setIndex }) => setIndex);
+			if (eligibleSetIndexes.length === 0) return;
 
-			for (const setIndex of setPriorities) {
+			const getRepRangeEnd = (setIndex: number) =>
+				ex.setType === 'TopBackoff' && setIndex === 0 ? (ex.topRepRangeEnd ?? ex.repRangeEnd) : ex.repRangeEnd;
+			const oldComparableSets = eligibleSetIndexes.map((setIndex) => lastPerformance.exercise.sets[setIndex]);
+			const scoreCandidate = (candidate: WorkoutExerciseInProgress['sets']) => {
+				const adjustedCandidate = candidate.map((set) => ({
+					...set,
+					miniSets: set.miniSets.map((miniSet) => ({ ...miniSet }))
+				}));
+				applyRIRAdjustment(ex, adjustedCandidate);
+				return getTotalExercisePerformanceChange(
+					oldComparableSets,
+					eligibleSetIndexes.map((setIndex) => ({
+						reps: adjustedCandidate[setIndex].reps!,
+						load: adjustedCandidate[setIndex].load!,
+						RIR: adjustedCandidate[setIndex].RIR!,
+						miniSets: cleanupInProgressMiniSets(adjustedCandidate[setIndex].miniSets)
+					})),
+					lastPerformance.oldUserBodyweight,
+					userBodyweight,
+					lastPerformance.exercise.bodyweightFraction,
+					ex.bodyweightFraction ?? null
+				);
+			};
+
+			ex.sets = ex.sets.map((set, setIndex) => {
 				const oldSet = lastPerformance.exercise.sets[setIndex];
-				if (!oldSet) continue;
-
-				const newSet = { ...oldSet, reps: oldSet.reps + 1 };
-				const overloadAchieved = solveBergerFormula({
-					variableToSolve: 'OverloadPercentage',
-					knownValues: {
-						oldSet,
-						newSet,
-						oldUserBodyweight: lastPerformance.oldUserBodyweight,
-						newUserBodyweight: userBodyweight,
-						oldBodyweightFraction: lastPerformance.exercise.bodyweightFraction,
-						newBodyweightFraction: ex.bodyweightFraction ?? null
+				return oldSet ? addExtraSetProperties(oldSet) : set;
+			});
+			const prioritizedSetIndexes = [
+				...getMaxIndexes(dropOffDifferences).filter((setIndex) => eligibleSetIndexes.includes(setIndex)),
+				...eligibleSetIndexes.filter((setIndex) => !getMaxIndexes(dropOffDifferences).includes(setIndex))
+			];
+			const optimizeRepsForTarget = (initialCandidate: WorkoutExerciseInProgress['sets']) => {
+				let candidate = initialCandidate;
+				let change = scoreCandidate(candidate);
+				let error =
+					adjustedTotalOverloadPercentagePerSet > 0 && change <= 0
+						? Number.POSITIVE_INFINITY
+						: Math.abs(adjustedTotalOverloadPercentagePerSet - change);
+				let acceptedRep = true;
+				while (acceptedRep) {
+					acceptedRep = false;
+					for (const setIndex of prioritizedSetIndexes) {
+						const set = candidate[setIndex];
+						if (set.reps === undefined || set.reps >= getRepRangeEnd(setIndex)) continue;
+						const nextCandidate = candidate.map((candidateSet, candidateIndex) =>
+							candidateIndex === setIndex ? { ...candidateSet, reps: candidateSet.reps! + 1 } : candidateSet
+						);
+						const nextChange = scoreCandidate(nextCandidate);
+						const nextError = Math.abs(adjustedTotalOverloadPercentagePerSet - nextChange);
+						const nextIsBetter =
+							adjustedTotalOverloadPercentagePerSet > 0
+								? (change <= 0 && nextChange > change) || (change > 0 && nextChange > 0 && nextError < error)
+								: nextError < error;
+						if (!Number.isFinite(nextChange) || !nextIsBetter) continue;
+						candidate = nextCandidate;
+						change = nextChange;
+						error = nextError;
+						acceptedRep = true;
 					}
-				});
-
-				const previousRemainingTotalOverload = remainingTotalOverload;
-				remainingTotalOverload -= overloadAchieved;
-
-				if (Math.abs(remainingTotalOverload) < previousRemainingTotalOverload) {
-					ex.sets[setIndex] = addExtraSetProperties(newSet);
-				} else {
-					ex.sets[setIndex] = addExtraSetProperties(oldSet);
 				}
-			}
+				return { candidate, change, error };
+			};
+			const repResult = optimizeRepsForTarget(ex.sets);
+			const repCandidate = repResult.candidate;
 
-			ex.sets = increaseLoadOfSets(
+			ex.sets = repCandidate;
+			const rawLoadCandidate = increaseLoadOfSets(
 				ex,
+				lastPerformance.oldUserBodyweight,
 				userBodyweight,
-				ex.preferredProgressionVariable ?? mesocycle.preferredProgressionVariable ?? 'Reps'
+				lastPerformance.exercise.bodyweightFraction,
+				'Load'
 			);
+			const loadResult = optimizeRepsForTarget(rawLoadCandidate);
+			const progressionPreference = ex.preferredProgressionVariable ?? mesocycle.preferredProgressionVariable ?? 'Reps';
+			const oldTotalReps = arraySum(eligibleSetIndexes.map((setIndex) => lastPerformance.exercise.sets[setIndex].reps));
+			const totalRepCeiling = arraySum(eligibleSetIndexes.map((setIndex) => getRepRangeEnd(setIndex)));
+			const canChooseLoad =
+				progressionPreference === 'Load' || oldTotalReps >= totalRepCeiling || repResult.change <= 0;
+			const loadIsBetter =
+				canChooseLoad &&
+				Number.isFinite(loadResult.change) &&
+				loadResult.change > 0 &&
+				(repResult.change <= 0 ||
+					loadResult.error < repResult.error ||
+					(loadResult.error === repResult.error && progressionPreference === 'Load'));
+			ex.sets = loadIsBetter ? loadResult.candidate : repCandidate;
 		});
 	}
 
@@ -824,35 +936,7 @@ export function progressiveOverloadMagic(
 
 	// RIR adjustment
 	workoutExercises.forEach((ex) => {
-		ex.sets.forEach((set, idx) => {
-			const oldRIR = set.RIR ?? currentCycleRIR;
-			set.RIR = currentCycleRIR;
-
-			// Last set to failure
-			const lastSetToFailure = ex.lastSetToFailure ?? mesocycle.lastSetToFailure;
-			if (idx === ex.sets.length - 1 && lastSetToFailure) set.RIR = 0;
-
-			// Adjust reps when RIR changed
-			const RIRDifference = set.RIR - oldRIR;
-			if (set.reps === undefined) return;
-
-			if (RIRDifference > 0 && !(ex.forceRIRMatching ?? mesocycle.forceRIRMatching)) return;
-
-			// For TopBackoff, use topRepRangeStart for first set, regular repRangeStart for others
-			const isTopSet = ex.setType === 'TopBackoff' && idx === 0;
-			const repRangeStart =
-				isTopSet && typeof ex.topRepRangeStart === 'number' ? ex.topRepRangeStart : ex.repRangeStart;
-
-			// If the RIR adjustment we are about to make causes reps to fall outside of lower rep range
-			const adjustedReps = set.reps - RIRDifference;
-			if (adjustedReps < repRangeStart && !(lastSetToFailure && idx === ex.sets.length - 1)) {
-				const maxRIR = Math.max(set.reps - repRangeStart, 0);
-				set.RIR = maxRIR;
-				set.reps -= maxRIR - oldRIR;
-				return;
-			}
-			set.reps -= RIRDifference;
-		});
+		applyRIRAdjustment(ex, ex.sets);
 	});
 
 	// Remove miniSet IDs and un-skip all sets

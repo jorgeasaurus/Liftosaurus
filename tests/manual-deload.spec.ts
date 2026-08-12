@@ -109,7 +109,7 @@ test('saved deload restores template volume and normal progression the following
 	await page.getByRole('button', { name: 'Edit exercise' }).click();
 	await page.getByTestId('Incline press-set-1-action').click();
 	await page.getByTestId('Incline press-set-2-action').click();
-	await page.getByRole('button', { name: 'Finish workout' }).click();
+	await page.getByRole('button', { name: 'Next' }).click();
 	await expect(page.getByText('No comparable normal exercise performances are available.')).toBeVisible();
 	await expect(page.locator('#chart-canvas')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Save' }).click();
@@ -156,7 +156,7 @@ test('reopening a completed set does not re-enable deload', async ({ page, userD
 	await page.getByRole('button', { name: 'Next' }).click();
 	await page.locator('#Bench\\ press-set-1-reps').fill('10');
 	await page.locator('#Bench\\ press-set-1-load').fill('100');
-	await page.locator('#Bench\\ press-RIR').fill('2');
+	await page.locator('#Bench\\ press-set-1-RIR').fill('2');
 	await page.getByTestId('Bench press-set-1-action').click();
 	await page.getByTestId('Bench press-set-1-action').click();
 	await page.getByTestId('Bench press-menu-button').click();
@@ -282,7 +282,6 @@ test('mixed deload history resolves each exercise from its latest normal workout
 	await page.getByPlaceholder('Type here').fill('200');
 	await page.getByRole('button', { name: 'Next' }).click();
 	for (const exerciseName of ['Bench press', 'Cable fly']) {
-		await page.locator(`[id="${exerciseName}-RIR"]`).fill('2');
 		for (let setNumber = 1; setNumber <= 3; setNumber += 1) {
 			await page.locator(`[id="${exerciseName}-set-${setNumber}-reps"]`).fill('10');
 			if (setNumber === 1) {
@@ -290,10 +289,11 @@ test('mixed deload history resolves each exercise from its latest normal workout
 					.locator(`[id="${exerciseName}-set-${setNumber}-load"]`)
 					.fill(exerciseName === 'Bench press' ? '100' : '50');
 			}
+			await page.locator(`[id="${exerciseName}-set-${setNumber}-RIR"]`).fill('2');
 			await page.getByTestId(`${exerciseName}-set-${setNumber}-action`).click();
 		}
 	}
-	await page.getByRole('button', { name: 'Finish workout' }).click();
+	await page.getByRole('button', { name: 'Next' }).click();
 	await expect(
 		page.getByText(
 			'Overall comparison is unavailable because the latest normal exercise baselines come from different workouts.'
@@ -361,6 +361,7 @@ test('mixed deload comparison includes only matched normal exercises', async ({ 
 	await page.getByRole('button', { name: 'Compare to previous workout' }).click();
 	await expect(page.getByText('Manual deloads are excluded from progression comparisons.')).toBeVisible();
 	await expect(page.getByText('No previous normal performance is available to compare.')).toBeVisible();
+	await expect(page.getByText('Performance', { exact: true })).toBeVisible();
 	await page.getByRole('button', { name: 'Compare to previous workout' }).click();
 
 	for (const [exerciseName, setCount, load] of [
@@ -368,16 +369,16 @@ test('mixed deload comparison includes only matched normal exercises', async ({ 
 		['Cable fly', 2, '50'],
 		['Curl', 2, '25']
 	] as const) {
-		await page.locator(`[id="${exerciseName}-RIR"]`).fill('2');
 		for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
 			await page
 				.locator(`[id="${exerciseName}-set-${setNumber}-reps"]`)
 				.fill(exerciseName === 'Bench press' ? '5' : '10');
 			if (setNumber === 1) await page.locator(`[id="${exerciseName}-set-${setNumber}-load"]`).fill(load);
+			await page.locator(`[id="${exerciseName}-set-${setNumber}-RIR"]`).fill('2');
 			await page.getByTestId(`${exerciseName}-set-${setNumber}-action`).click();
 		}
 	}
-	await page.getByRole('button', { name: 'Finish workout' }).click();
+	await page.getByRole('button', { name: 'Next' }).click();
 
 	await expect(page.locator('#chart-canvas')).toBeVisible();
 	await expect(page.getByText('No comparable normal exercise performances are available.')).toHaveCount(0);
