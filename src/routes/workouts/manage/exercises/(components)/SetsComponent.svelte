@@ -430,7 +430,7 @@
 					<Separator class="w-px grow" />
 				</div>
 			{/if}
-			<div class="flex items-center justify-center">
+			<div class="flex items-center justify-center gap-2">
 				{#if idx === 0 || !isSameLoadExercise}
 					{@const hasLoadChanged = set.load !== originalSetLoads[idx] && originalSetLoads[idx] !== undefined}
 					{#if hasLoadChanged}
