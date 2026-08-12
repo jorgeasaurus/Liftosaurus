@@ -7,6 +7,7 @@ export const USER_BACKUP_VERSION = 1;
 const workoutForCsvSelect = Prisma.validator<Prisma.WorkoutSelect>()({
 	id: true,
 	userBodyweight: true,
+	userBodyFat: true,
 	startedAt: true,
 	endedAt: true,
 	note: true,
@@ -63,6 +64,7 @@ const CSV_HEADERS = [
 	'ended_at',
 	'workout_note',
 	'bodyweight_lb',
+	'body_fat_percent',
 	'mesocycle_id',
 	'split_day_index',
 	'workout_status',
@@ -110,6 +112,7 @@ export function buildWorkoutSetsCsv(workouts: WorkoutForCsv[]): string {
 					workout.endedAt,
 					workout.note,
 					workout.userBodyweight,
+					workout.userBodyFat,
 					workout.workoutOfMesocycle?.mesocycleId ?? null,
 					workout.workoutOfMesocycle?.splitDayIndex ?? null,
 					workout.workoutOfMesocycle?.workoutStatus ?? null,

@@ -16,6 +16,7 @@ type DashboardExercise = {
 export type DashboardWorkout = {
 	startedAt: Date;
 	userBodyweight: number;
+	userBodyFat?: number | null;
 	workoutExercises: DashboardExercise[];
 };
 
@@ -29,6 +30,18 @@ export function buildBodyweightSeries(
 ): DashboardMetricPoint[] {
 	return workouts
 		.map((workout) => ({ timestamp: workout.startedAt.getTime(), value: workout.userBodyweight }))
+		.toSorted((a, b) => a.timestamp - b.timestamp);
+}
+
+export function buildBodyFatSeries(
+	workouts: Pick<DashboardWorkout, 'startedAt' | 'userBodyFat'>[]
+): DashboardMetricPoint[] {
+	return workouts
+		.flatMap((workout) =>
+			typeof workout.userBodyFat === 'number'
+				? [{ timestamp: workout.startedAt.getTime(), value: workout.userBodyFat }]
+				: []
+		)
 		.toSorted((a, b) => a.timestamp - b.timestamp);
 }
 

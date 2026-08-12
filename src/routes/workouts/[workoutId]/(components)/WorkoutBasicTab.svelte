@@ -125,6 +125,12 @@
 			<span class="text-sm text-muted-foreground">User bodyweight (lbs)</span>
 			<span class="font-semibold">{workout.userBodyweight}</span>
 		</div>
+		{#if workout.userBodyFat !== null}
+			<div class="flex flex-col">
+				<span class="text-sm text-muted-foreground">Body fat (%)</span>
+				<span class="font-semibold">{workout.userBodyFat}</span>
+			</div>
+		{/if}
 		{#if workout.note}
 			<div class="flex flex-col">
 				<span class="text-sm text-muted-foreground">Workout note</span>
