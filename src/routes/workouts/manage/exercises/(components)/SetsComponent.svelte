@@ -430,7 +430,7 @@
 					<Separator class="w-px grow" />
 				</div>
 			{/if}
-			<div class="flex items-center">
+			<div class="flex items-center justify-center gap-2">
 				{#if idx === 0 || !isSameLoadExercise}
 					{@const hasLoadChanged = set.load !== originalSetLoads[idx] && originalSetLoads[idx] !== undefined}
 					{#if hasLoadChanged}
@@ -445,7 +445,7 @@
 					{/if}
 				{/if}
 				<Button
-					class="ml-auto h-9 w-9"
+					class="h-9 w-9"
 					data-testid="{exercise.name}-set-{idx + 1}-action"
 					disabled={!set.completed && !set.skipped && !hasValidRIR(set.RIR)}
 					size="icon"
