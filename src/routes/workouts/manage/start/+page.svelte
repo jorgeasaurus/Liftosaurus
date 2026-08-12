@@ -357,15 +357,9 @@
 
 <style>
 	@media (max-width: 1023px) {
-		.workout-start {
-			padding-bottom: calc(52px + env(safe-area-inset-bottom));
-		}
-
 		:global(.workout-start-next) {
-			position: fixed;
-			right: 12px;
-			bottom: calc(12px + env(safe-area-inset-bottom));
-			left: 12px;
+			position: sticky;
+			bottom: 0;
 			z-index: 20;
 		}
 	}

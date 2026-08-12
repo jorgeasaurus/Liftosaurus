@@ -4,7 +4,7 @@ import { expect, test } from './fixtures';
 
 const muscleGroups: MuscleGroup[] = ['Calves', 'Quads', 'Hamstrings', 'Biceps', 'Triceps', 'Glutes'];
 
-test('next button is fully visible when the mobile workout start page opens', async ({ page, userData }) => {
+test('mobile workout actions stay above navigation and incomplete set edits persist', async ({ page, userData }) => {
 	await prisma.mesocycle.create({
 		data: {
 			name: 'Mobile workout start',
@@ -55,4 +55,48 @@ test('next button is fully visible when the mobile workout start page opens', as
 	const buttonBounds = await nextButton.boundingBox();
 	expect(buttonBounds).not.toBeNull();
 	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(viewport!.height);
+
+	const navigation = page.getByRole('navigation', { name: 'Primary navigation' });
+	await expect(navigation).toBeVisible();
+	const navigationBounds = await navigation.boundingBox();
+	expect(navigationBounds).not.toBeNull();
+	expect(buttonBounds!.y + buttonBounds!.height).toBeLessThanOrEqual(navigationBounds!.y);
+	await expect(navigation.getByRole('link', { name: 'Workout', exact: true })).toHaveAttribute('aria-current', 'page');
+
+	await page.getByLabel('Bodyweight (lbs)').fill('195');
+	await nextButton.click();
+	await expect(page).toHaveURL(/\/workouts\/manage\/exercises/);
+	await expect(page.getByTestId('next-set-guidance')).toContainText('Calves exercise');
+
+	const loadInput = page.locator('input[id$="-set-1-load"]').first();
+	const repsInput = page.locator('input[id$="-set-1-reps"]').first();
+	const rirInput = page.locator('input[id$="-set-1-RIR"]').first();
+	await loadInput.fill('80');
+	await repsInput.fill('10');
+	await rirInput.evaluate((input: HTMLInputElement) => {
+		input.value = '2';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	});
+	await navigation.getByRole('link', { name: 'History', exact: true }).click();
+	await expect(page).toHaveURL('/workouts');
+	await page.goto('/workouts/manage/exercises');
+	await expect(page.locator('input[id$="-set-1-load"]').first()).toHaveValue('80');
+	await expect(page.locator('input[id$="-set-1-reps"]').first()).toHaveValue('10');
+	await expect(page.locator('input[id$="-set-1-RIR"]').first()).toHaveValue('2');
+
+	const previousButtonBounds = await page.getByRole('link', { name: 'Previous' }).boundingBox();
+	const workoutNavigationBounds = await navigation.boundingBox();
+	expect(previousButtonBounds).not.toBeNull();
+	expect(workoutNavigationBounds).not.toBeNull();
+	expect(previousButtonBounds!.y + previousButtonBounds!.height).toBeLessThanOrEqual(workoutNavigationBounds!.y);
+
+	const setActionBounds = await page.getByTestId('Calves exercise-set-1-action').boundingBox();
+	expect(setActionBounds).not.toBeNull();
+	expect(setActionBounds!.height).toBeGreaterThanOrEqual(44);
+	expect(setActionBounds!.width).toBeGreaterThanOrEqual(44);
+
+	await page.reload();
+	await expect(page.locator('input[id$="-set-1-load"]').first()).toHaveValue('80');
+	await expect(page.locator('input[id$="-set-1-reps"]').first()).toHaveValue('10');
+	await expect(page.locator('input[id$="-set-1-RIR"]').first()).toHaveValue('2');
 });

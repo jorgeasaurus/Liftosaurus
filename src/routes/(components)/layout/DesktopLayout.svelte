@@ -28,7 +28,7 @@
 </script>
 
 <header
-	class="flex h-screen w-[240px] shrink-0 flex-col border-r border-[#273034] bg-[#111719] px-4 py-5 text-[#f3f6f2]"
+	class="flex h-[100dvh] w-[240px] shrink-0 flex-col border-r border-[#273034] bg-[#111719] px-4 py-5 text-[#f3f6f2]"
 >
 	<a class="mb-6 flex items-center gap-2 rounded-lg px-2 py-2" href="/dashboard">
 		<BrandIcon class="h-5 w-5 text-[#c7f73a]" />
@@ -88,6 +88,6 @@
 		{/if}
 	</div>
 </header>
-<main class="flex h-screen w-full flex-col overflow-y-auto bg-[#090d0e] p-6 text-[#f3f6f2]">
+<main class="flex h-[100dvh] w-full flex-col overflow-y-auto bg-[#090d0e] p-6 text-[#f3f6f2]">
 	{@render children()}
 </main>

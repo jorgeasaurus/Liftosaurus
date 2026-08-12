@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, onNavigate } from '$app/navigation';
 	import InfoPopover from '$lib/components/InfoPopover.svelte';
 	import AddEditExerciseDrawer from '$lib/components/mesocycleAndExerciseSplit/AddEditExerciseDrawer.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Progress from '$lib/components/ui/progress/progress.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import { arraySum } from '$lib/utils.js';
+	import { deriveWorkoutProgress } from '$lib/utils/workoutUtils.js';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import ReorderIcon from 'virtual:icons/lucide/git-compare-arrows';
@@ -36,31 +36,13 @@
 		})) ?? []
 	);
 
-	let totalSets = $derived(
-		workoutExercises
-			? arraySum(
-					workoutExercises.map((e) => arraySum(e.sets.filter((s) => !s.skipped).map((s) => s.miniSets.length + 1)))
-				)
-			: null
-	);
-	let completedSets = $derived(
-		workoutExercises
-			? arraySum(
-					workoutExercises.map((e) =>
-						arraySum(
-							e.sets
-								.filter((s) => !s.skipped)
-								.map((s) => s.miniSets.filter((ms) => ms.completed).length + (s.completed ? 1 : 0))
-						)
-					)
-				)
-			: null
-	);
+	let progress = $derived(workoutExercises ? deriveWorkoutProgress(workoutExercises) : null);
+	let totalSets = $derived(progress?.total ?? null);
+	let completedSets = $derived(progress?.completed ?? null);
+	let allSetsComplete = $derived(progress?.allComplete ?? false);
+	let nextSet = $derived(progress?.next ?? null);
 
-	// totalSets === 0 (all skipped / no sets) is treated as complete so Next is available
-	let allSetsComplete = $derived(
-		totalSets !== null && completedSets !== null && completedSets >= totalSets
-	);
+	onNavigate(() => workoutRunes.saveStoresToLocalStorage());
 
 	onMount(async () => {
 		if (workoutRunes.workoutData === null) {
@@ -103,10 +85,17 @@
 	}
 </script>
 
+<svelte:window
+	onpagehide={() => void workoutRunes.saveStoresToLocalStorage()}
+	onvisibilitychange={() => {
+		if (document.visibilityState === 'hidden') void workoutRunes.saveStoresToLocalStorage();
+	}}
+/>
+
 <section class="mx-auto flex h-full w-full max-w-[1240px] flex-col gap-2">
 	{#if workoutData !== null}
 		<div class="flex items-start gap-2">
-			<div class="mr-auto min-w-0 flex flex-col">
+			<div class="mr-auto flex min-w-0 flex-col">
 				{#if workoutData.workoutOfMesocycle !== undefined}
 					<span class="truncate text-base font-semibold tracking-tight text-[#e9eef5]">
 						{workoutData.workoutOfMesocycle.splitDayName}
@@ -136,7 +125,7 @@
 					title="Reorder exercises"
 					disabled={comparing}
 					onclick={() => (reordering = !reordering)}
-					class="h-8 w-8 border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
+					class="h-11 w-11 border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
 					size="icon"
 					variant="outline"
 				>
@@ -151,7 +140,7 @@
 					title="Compare to previous workout"
 					disabled={reordering || workoutRunes.editingWorkoutId !== null}
 					onclick={() => (comparing = !comparing)}
-					class="h-8 w-8 border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
+					class="h-11 w-11 border-[#303844] bg-[#171e27] text-[#dfe6ef] hover:bg-[#1b2430]"
 					size="icon"
 					variant="outline"
 				>
@@ -196,9 +185,16 @@
 				</span>
 			</div>
 			{#if !allSetsComplete && totalSets > 0}
-				<p class="text-[11px] leading-tight text-[#8fa0b3]">
-					{totalSets - completedSets} set{totalSets - completedSets === 1 ? '' : 's'} left · finish to continue
-				</p>
+				<div
+					aria-live="polite"
+					class="flex items-center justify-between gap-3 rounded-lg border border-[#384425] bg-[#182014] px-2.5 py-2"
+					data-testid="next-set-guidance"
+				>
+					<span class="min-w-0 truncate text-xs font-semibold text-[#dff58e]">Up next · {nextSet?.exerciseName}</span>
+					<span class="shrink-0 text-[11px] tabular-nums text-[#a8ba7a]">
+						{nextSet?.kind === 'miniSet' ? `Mini ${nextSet.miniSetIndex + 1}` : `Set ${(nextSet?.setIndex ?? 0) + 1}`}
+					</span>
+				</div>
 			{/if}
 		{:else}
 			<Skeleton class="h-1.5 w-full bg-[#252f3a]" />
@@ -215,6 +211,7 @@
 	{:else}
 		<div class="flex min-h-0 grow flex-col gap-2 overflow-y-auto pb-1">
 			<DndComponent
+				activeTarget={nextSet}
 				{comparing}
 				{reordering}
 				onFinalize={workoutRunes.saveStoresToLocalStorage}

@@ -39,6 +39,35 @@ export function cleanupInProgressMiniSets(miniSets: WorkoutExerciseInProgress['s
 	});
 }
 
+export type WorkoutSetTarget =
+	| { kind: 'set'; exerciseIndex: number; setIndex: number; exerciseName: string }
+	| { kind: 'miniSet'; exerciseIndex: number; setIndex: number; miniSetIndex: number; exerciseName: string };
+
+export function deriveWorkoutProgress(exercises: WorkoutExerciseInProgress[]) {
+	let total = 0;
+	let completed = 0;
+	let next: WorkoutSetTarget | null = null;
+
+	for (const [exerciseIndex, exercise] of exercises.entries()) {
+		for (const [setIndex, set] of exercise.sets.entries()) {
+			if (set.skipped) continue;
+			total += set.miniSets.length + 1;
+			if (set.completed) completed += 1;
+			completed += set.miniSets.filter((miniSet) => miniSet.completed).length;
+
+			if (next) continue;
+			if (!set.completed) next = { kind: 'set', exerciseIndex, setIndex, exerciseName: exercise.name };
+			else {
+				const miniSetIndex = set.miniSets.findIndex((miniSet) => !miniSet.completed);
+				if (miniSetIndex >= 0)
+					next = { kind: 'miniSet', exerciseIndex, setIndex, miniSetIndex, exerciseName: exercise.name };
+			}
+		}
+	}
+
+	return { total, completed, allComplete: completed >= total, next };
+}
+
 export type SetDetails = {
 	reps: number;
 	load: number;

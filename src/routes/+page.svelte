@@ -95,7 +95,7 @@
 <style>
 	:global(body:has(.landing-page)) {
 		display: block;
-		overflow-x: hidden;
+		overflow: hidden auto;
 		background: #101713;
 	}
 	.landing-page {

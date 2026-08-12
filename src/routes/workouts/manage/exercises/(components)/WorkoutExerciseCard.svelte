@@ -15,8 +15,10 @@
 	import { workoutRunes } from '../../workoutRunes.svelte';
 	import CompareComponent from './CompareComponent.svelte';
 	import SetsComponent from './SetsComponent.svelte';
+	import type { WorkoutSetTarget } from '$lib/utils/workoutUtils';
 
 	type PropsType = {
+		activeTarget?: WorkoutSetTarget | null;
 		readOnly?: boolean;
 		idx: number;
 		reordering?: boolean;
@@ -24,7 +26,14 @@
 		exercise: WorkoutExerciseInProgress;
 	};
 
-	let { readOnly, idx, reordering = false, comparing = false, exercise = $bindable() }: PropsType = $props();
+	let {
+		readOnly,
+		idx,
+		reordering = false,
+		comparing = false,
+		activeTarget,
+		exercise = $bindable()
+	}: PropsType = $props();
 
 	let originalSetLoads = $state(exercise.sets.map((set) => set.load));
 	let isContextMenuOpen = $state(false);
@@ -57,9 +66,14 @@
 	}
 </script>
 
-<div class="flex flex-col gap-1.5 rounded-xl border border-[#252c34] bg-[#11161d] p-2.5">
+<div
+	class="flex flex-col gap-1.5 rounded-xl border bg-[#11161d] p-2.5 transition-colors"
+	class:border-[#6f882b]={activeTarget}
+	class:bg-[#121a13]={activeTarget}
+	class:border-[#252c34]={!activeTarget}
+>
 	<div class="flex items-start gap-2">
-		<div class="mr-auto min-w-0 flex flex-col gap-0.5">
+		<div class="mr-auto flex min-w-0 flex-col gap-0.5">
 			<span
 				class="inline-flex w-fit items-center rounded-md bg-[#1a2330] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9db0c7]"
 			>
@@ -67,10 +81,17 @@
 			</span>
 			<span class="truncate text-[15px] font-semibold leading-tight text-[#e9eef5]">{exercise.name}</span>
 			<span class="text-xs leading-tight text-[#8fa0b3]">
-				{exercise.sets.length} {convertCamelCaseToNormal(exercise.setType)}
+				{exercise.sets.length}
+				{convertCamelCaseToNormal(exercise.setType)}
 			</span>
 		</div>
 		<div class="flex shrink-0 items-center gap-1">
+			{#if activeTarget}
+				<span
+					class="rounded-md bg-[#263317] px-1.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#dff58e]"
+					>Next</span
+				>
+			{/if}
 			{#if exercise.bodyweightFraction !== null}
 				<Badge class="h-5 px-1.5 text-[10px]" variant="outline">BW</Badge>
 			{/if}
@@ -79,7 +100,7 @@
 			{/if}
 			{#if !readOnly}
 				{#if reordering}
-					<div role="button" tabindex="0" use:dragHandle>
+					<div class="grid h-11 w-11 place-items-center" role="button" tabindex="0" use:dragHandle>
 						<GripVertical class="h-4 w-4 text-[#9dadbe]" />
 					</div>
 				{:else}
@@ -88,7 +109,7 @@
 							<button
 								use:builder.action
 								{...builder}
-								class="rounded-md p-1 text-[#9dadbe] hover:bg-[#1b2430] hover:text-[#e9eef5]"
+								class="grid h-11 w-11 place-items-center rounded-lg text-[#9dadbe] hover:bg-[#1b2430] hover:text-[#e9eef5]"
 								data-testid="{exercise.name}-menu-button"
 								aria-label="Exercise options"
 							>
@@ -142,7 +163,7 @@
 		{#if comparing}
 			<CompareComponent {exercise} />
 		{:else}
-			<SetsComponent bind:originalSetLoads bind:exercise />
+			<SetsComponent {activeTarget} bind:originalSetLoads bind:exercise />
 		{/if}
 	{/if}
 </div>

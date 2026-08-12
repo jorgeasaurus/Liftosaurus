@@ -43,6 +43,7 @@ function createWorkoutRunes() {
 	let draftRecords = emptyWorkoutDraftRecords();
 	let storageReady = Promise.resolve();
 	let mutationTail = Promise.resolve();
+	let scheduledSave: ReturnType<typeof setTimeout> | undefined;
 	let initializedUserId: string | null = null;
 	let storageKeys: WorkoutDraftStorageKeys | null = null;
 	let sessionEpoch = 0;
@@ -68,6 +69,8 @@ function createWorkoutRunes() {
 		draftRecords = emptyWorkoutDraftRecords();
 		storageReady = Promise.resolve();
 		mutationTail = Promise.resolve();
+		if (scheduledSave) clearTimeout(scheduledSave);
+		scheduledSave = undefined;
 		editingExerciseIndex = undefined;
 		editingExercise = undefined;
 		exerciseHistorySheetOpen = false;
@@ -218,7 +221,17 @@ function createWorkoutRunes() {
 	}
 
 	function saveStoresToLocalStorage() {
+		if (scheduledSave) clearTimeout(scheduledSave);
+		scheduledSave = undefined;
 		return persistCurrentDraft();
+	}
+
+	function scheduleStoresToLocalStorage() {
+		if (scheduledSave) clearTimeout(scheduledSave);
+		scheduledSave = setTimeout(() => {
+			scheduledSave = undefined;
+			void persistCurrentDraft();
+		}, 100);
 	}
 
 	function restoreActiveDraft() {
@@ -523,6 +536,7 @@ function createWorkoutRunes() {
 			exerciseWarmUpDialogExercise = value;
 		},
 		saveStoresToLocalStorage,
+		scheduleStoresToLocalStorage,
 		resetStores,
 		addExercise,
 		setEditingExercise,

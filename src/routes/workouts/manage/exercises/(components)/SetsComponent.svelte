@@ -3,13 +3,14 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Separator } from '$lib/components/ui/separator';
-	import { arraySum, floorToNearestMultiple } from '$lib/utils';
+	import { arraySum, cn, floorToNearestMultiple } from '$lib/utils';
 	import {
 		cleanupInProgressMiniSets,
 		getPreviousBodyweightFraction,
 		markWorkoutExerciseStarted,
 		solveBergerFormula,
-		type WorkoutExerciseInProgress
+		type WorkoutExerciseInProgress,
+		type WorkoutSetTarget
 	} from '$lib/utils/workoutUtils';
 	import CheckIcon from 'virtual:icons/lucide/check';
 	import ArrowDownIcon from 'virtual:icons/lucide/chevron-down';
@@ -24,11 +25,12 @@
 	import { workoutRunes } from '../../workoutRunes.svelte';
 
 	type PropsType = {
+		activeTarget?: WorkoutSetTarget | null;
 		exercise: WorkoutExerciseInProgress;
 		originalSetLoads: (number | undefined)[];
 	};
 	type WorkoutExerciseSet = WorkoutExerciseInProgress['sets'][number];
-	let { exercise = $bindable(), originalSetLoads = $bindable() }: PropsType = $props();
+	let { exercise = $bindable(), originalSetLoads = $bindable(), activeTarget }: PropsType = $props();
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
 	let lastSharedLoad = $state(exercise.sets[0]?.load);
@@ -43,6 +45,15 @@
 		workoutRunes.previousWorkoutData?.exercises.find((previousExercise) => previousExercise.name === exercise.name)
 			?.userBodyweight
 	);
+
+	const isActiveSet = (setIndex: number) => activeTarget?.kind === 'set' && activeTarget.setIndex === setIndex;
+	const isActiveMiniSet = (setIndex: number, miniSetIndex: number) =>
+		activeTarget?.kind === 'miniSet' &&
+		activeTarget.setIndex === setIndex &&
+		activeTarget.miniSetIndex === miniSetIndex;
+
+	const scheduleDraftSave = () => workoutRunes.scheduleStoresToLocalStorage();
+	const flushDraftSave = () => void workoutRunes.saveStoresToLocalStorage();
 
 	async function completeSet(e: SubmitEvent, set: WorkoutExerciseSet, idx: number) {
 		e.preventDefault();
@@ -70,7 +81,7 @@
 		return !parentSet.miniSets[miniSetIndex - 1].completed;
 	}
 
-	function addMiniSet(setIndex: number) {
+	async function addMiniSet(setIndex: number) {
 		let load: undefined | number;
 		if (exercise.setType === 'MyorepMatch') load = exercise.sets[0].load;
 		if (exercise.setType === 'MyorepMatchDown') load = exercise.sets[setIndex].load;
@@ -80,6 +91,12 @@
 			load,
 			RIR: undefined
 		});
+		await workoutRunes.saveStoresToLocalStorage();
+	}
+
+	async function removeMiniSet(setIndex: number) {
+		exercise.sets[setIndex].miniSets.pop();
+		await workoutRunes.saveStoresToLocalStorage();
 	}
 
 	async function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
@@ -254,7 +271,7 @@
 			{/if}
 			{#if !set.skipped}
 				<Input
-					class="h-9 px-2 text-center"
+					class={cn('h-11 px-2 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
 					id="{exercise.name}-set-{idx + 1}-load"
 					disabled={set.completed || set.skipped}
 					min={exercise.bodyweightFraction ? undefined : 0.25}
@@ -264,10 +281,12 @@
 					type="number"
 					inputmode="decimal"
 					bind:value={set.load}
+					oninput={scheduleDraftSave}
+					onblur={flushDraftSave}
 				/>
 				<div class="relative">
 					<Input
-						class="h-9 px-7 text-center"
+						class={cn('h-11 px-7 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
 						id="{exercise.name}-set-{idx + 1}-reps"
 						disabled={set.completed || set.skipped}
 						min={1}
@@ -275,6 +294,8 @@
 						type="number"
 						inputmode="numeric"
 						bind:value={set.reps}
+						oninput={scheduleDraftSave}
+						onblur={flushDraftSave}
 					/>
 					{#if repTargetDelta !== undefined}
 						{@const repTargetLabel = getRepTargetLabel(repTargetDelta)}
@@ -299,13 +320,15 @@
 					{/if}
 				</div>
 				<Input
-					class="h-9 px-2 text-center"
+					class={cn('h-11 px-2 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
 					id="{exercise.name}-set-{idx + 1}-RIR"
 					disabled={set.completed || set.skipped}
 					required
 					type="number"
 					inputmode="numeric"
 					bind:value={set.RIR}
+					oninput={scheduleDraftSave}
+					onblur={flushDraftSave}
 				/>
 			{:else}
 				<div class="col-span-3 flex items-center gap-2">
@@ -319,9 +342,12 @@
 					{@const hasLoadChanged = set.load !== originalSetLoads[idx] && originalSetLoads[idx] !== undefined}
 					{#if hasLoadChanged}
 						<Button
-							class="h-7 w-7 p-1"
+							class="h-9 w-9 p-1"
 							data-testid="{exercise.name}-set-{idx + 1}-adjust-reps"
-							onclick={() => adjustLoads(idx)}
+							onclick={async () => {
+								adjustLoads(idx);
+								await workoutRunes.saveStoresToLocalStorage();
+							}}
 							variant="outline"
 						>
 							<TargetIcon />
@@ -329,7 +355,7 @@
 					{/if}
 				{/if}
 				<Button
-					class="ml-auto h-9 w-9"
+					class={cn('ml-auto h-11 w-11', isActiveSet(idx) && 'ring-2 ring-[#a5c63a66]')}
 					data-testid="{exercise.name}-set-{idx + 1}-action"
 					size="icon"
 					type="submit"
@@ -354,7 +380,7 @@
 						<span class="text-xs text-muted-foreground">skipped</span>
 						<Separator class="w-px grow" />
 					</div>
-					<Button class="h-9 w-9 place-self-end" disabled size="icon" variant="secondary">
+					<Button class="h-11 w-11 place-self-end" disabled size="icon" variant="secondary">
 						<CheckIcon />
 					</Button>
 				{:else}
@@ -364,7 +390,10 @@
 						{:else}
 							{@const expectedLoad = getMiniSetLoad(idx, miniIdx)}
 							<Input
-								class="h-9 px-2 text-center"
+								class={cn(
+									'h-11 px-2 text-center',
+									isActiveMiniSet(idx, miniIdx) && 'border-[#78942d] ring-1 ring-[#78942d66]'
+								)}
 								id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-load"
 								disabled={miniSet.completed}
 								min={exercise.bodyweightFraction ? undefined : 0}
@@ -374,10 +403,15 @@
 								type="number"
 								inputmode="decimal"
 								bind:value={miniSet.load}
+								oninput={scheduleDraftSave}
+								onblur={flushDraftSave}
 							/>
 						{/if}
 						<Input
-							class="h-9 px-2 text-center"
+							class={cn(
+								'h-11 px-2 text-center',
+								isActiveMiniSet(idx, miniIdx) && 'border-[#78942d] ring-1 ring-[#78942d66]'
+							)}
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-reps"
 							disabled={miniSet.completed}
 							min={1}
@@ -385,18 +419,25 @@
 							type="number"
 							inputmode="numeric"
 							bind:value={miniSet.reps}
+							oninput={scheduleDraftSave}
+							onblur={flushDraftSave}
 						/>
 						<Input
-							class="h-9 px-2 text-center"
+							class={cn(
+								'h-11 px-2 text-center',
+								isActiveMiniSet(idx, miniIdx) && 'border-[#78942d] ring-1 ring-[#78942d66]'
+							)}
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-RIR"
 							disabled={miniSet.completed}
 							required
 							type="number"
 							inputmode="numeric"
 							bind:value={miniSet.RIR}
+							oninput={scheduleDraftSave}
+							onblur={flushDraftSave}
 						/>
 						<Button
-							class="h-9 w-9 place-self-end"
+							class={cn('h-11 w-11 place-self-end', isActiveMiniSet(idx, miniIdx) && 'ring-2 ring-[#a5c63a66]')}
 							data-testid="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-action"
 							disabled={miniSetButtonDisabled}
 							size="icon"
@@ -414,7 +455,7 @@
 			{/each}
 			<Button
 				aria-label="add-mini-set-to-set-{idx + 1}-of-{exercise.name}"
-				class="h-8"
+				class="h-11"
 				onclick={() => addMiniSet(idx)}
 				variant="secondary"
 			>
@@ -422,9 +463,9 @@
 			</Button>
 			<Button
 				aria-label="remove-mini-set-from-set-{idx + 1}-of-{exercise.name}"
-				class="h-8"
+				class="h-11"
 				disabled={set.miniSets.length === 0}
-				onclick={() => set.miniSets.pop()}
+				onclick={() => removeMiniSet(idx)}
 				variant="secondary"
 			>
 				<RemoveIcon />
