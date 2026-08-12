@@ -8,11 +8,22 @@ import {
 import type { ExerciseSplit, ExerciseSplitDay, Prisma } from '@prisma/client';
 import { createId } from '@paralleldrive/cuid2';
 
-const zodExerciseSplitInput = z.strictObject({
-	splitName: z.string(),
-	splitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema),
-	splitExercises: z.array(z.array(ExerciseTemplateCreateWithoutExerciseSplitDayInputSchema))
-});
+const MAX_SPLIT_DAYS = 31;
+const MAX_EXERCISES_PER_DAY = 50;
+
+const zodExerciseSplitInput = z
+	.strictObject({
+		splitName: z.string().max(200),
+		splitDays: z.array(ExerciseSplitDayCreateWithoutExerciseSplitInputSchema).max(MAX_SPLIT_DAYS),
+		splitExercises: z
+			.array(z.array(ExerciseTemplateCreateWithoutExerciseSplitDayInputSchema).max(MAX_EXERCISES_PER_DAY))
+			.max(MAX_SPLIT_DAYS)
+	})
+	.superRefine((input, ctx) => {
+		if (input.splitDays.length !== input.splitExercises.length) {
+			ctx.addIssue({ code: 'custom', message: 'Every split day must have an exercise list' });
+		}
+	});
 
 const createOrEditExerciseSplit = async (
 	input: z.infer<typeof zodExerciseSplitInput>,
