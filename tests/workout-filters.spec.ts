@@ -1,6 +1,8 @@
 import { prisma } from '../src/lib/prisma';
 import { expect, test } from './fixtures';
 
+test.use({ locale: 'en-US' });
+
 test('workout status filters preserve distinct none-selected and all-selected states', async ({ page, userData }) => {
 	await prisma.workout.create({
 		data: {
