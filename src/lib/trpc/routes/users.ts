@@ -314,6 +314,9 @@ export const users = t.router({
 				data: workouts.map((workout, workoutIdx) => {
 					const prismaWorkout: Workout = {
 						id: workoutIds[workoutIdx],
+						completionId: null,
+						completionFingerprint: null,
+						mesocycleCompleted: false,
 						userId: ctx.userId,
 						startedAt: new Date(workout.startTimestamp),
 						endedAt: new Date(workout.startTimestamp + 1000 * 60 * input.duration),

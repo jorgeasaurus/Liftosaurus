@@ -8,6 +8,7 @@ import {
 	type ManualDeloadTarget
 } from '$lib/utils/workoutUtils';
 import type { Prisma } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 import type { FullWorkoutWithMesoData } from '../[workoutId]/+page.server';
 import {
 	applyWorkoutDraftStorageEvent,
@@ -29,8 +30,19 @@ import {
 export type { PreviousWorkoutData } from './workoutDraftStorage';
 
 type SessionBinding = { userId: string; epoch: number; keys: WorkoutDraftStorageKeys };
+type CompletionToken = { completionId: string; serializedDraft: string };
 
 class StaleWorkoutSessionError extends Error {}
+
+function persistedDraftHasCompletionId(raw: string | null) {
+	if (!raw) return false;
+	try {
+		const record = JSON.parse(raw) as { draft?: { workoutData?: { completionId?: unknown } } };
+		return typeof record.draft?.workoutData?.completionId === 'string';
+	} catch {
+		return false;
+	}
+}
 
 function createWorkoutRunes() {
 	let workoutData: WorkoutData | null = $state(null);
@@ -93,6 +105,7 @@ function createWorkoutRunes() {
 		persistenceUnavailable = !workoutDraftPersistenceAvailable();
 
 		const saved = loadWorkoutDraftStorage(localStorage, sessionStorage, binding.keys);
+		const loadedActiveCompletionId = saved.records.active.draft?.workoutData.completionId;
 		draftRecords = saved.records;
 		if (saved.storage.mode === 'edit' && draftRecords.edit.draft) {
 			({ workoutData, workoutExercises } = draftRecords.edit.draft);
@@ -100,13 +113,37 @@ function createWorkoutRunes() {
 			editingWorkoutId = draftRecords.edit.draft.workoutId;
 		} else if (draftRecords.active.draft) {
 			({ workoutData, workoutExercises, previousWorkoutData } = draftRecords.active.draft);
+			ensureCompletionId();
 		}
 		if (!persistenceUnavailable) {
 			storageReady = migrateWorkoutDraftStorage(localStorage, sessionStorage, saved, binding.keys, undefined, () =>
 				isCurrent(binding)
 			)
+				.then(async (migrated) => {
+					const active = migrated.records.active;
+					if (!active.draft?.workoutData.completionId || persistedDraftHasCompletionId(active.raw)) return migrated;
+					const upgraded = await saveActiveWorkoutDraft(
+						localStorage,
+						active,
+						active.draft,
+						binding.keys,
+						undefined,
+						() => isCurrent(binding)
+					);
+					return { ...migrated, records: { ...migrated.records, active: upgraded.record } };
+				})
 				.then((migrated) => {
 					if (!isCurrent(binding)) return;
+					const migratedCompletionId = migrated.records.active.draft?.workoutData.completionId;
+					const currentWorkoutData = workoutData;
+					if (
+						editingWorkoutId === null &&
+						currentWorkoutData !== null &&
+						currentWorkoutData.completionId === loadedActiveCompletionId &&
+						migratedCompletionId
+					) {
+						currentWorkoutData.completionId = migratedCompletionId;
+					}
 					if (saved.status === 'migrated' && migrated.status === 'migrated') {
 						if (draftRecords.active === saved.records.active)
 							Object.assign(saved.records.active, migrated.records.active);
@@ -234,11 +271,34 @@ function createWorkoutRunes() {
 		}, 100);
 	}
 
+	function captureCompletionToken(): CompletionToken | null {
+		const draft = currentDraft();
+		if (!draft) return null;
+		return {
+			completionId: draft.workoutData.completionId,
+			serializedDraft: JSON.stringify($state.snapshot(draft))
+		};
+	}
+
+	function markWorkoutStarted() {
+		if (!workoutData || workoutExercises?.some((exercise) => exercise.workStarted)) return;
+		workoutData.startedAt = new Date();
+	}
+
+	async function convertCurrentWorkoutToFree() {
+		if (!workoutData) return;
+		workoutData.workoutOfMesocycle = undefined;
+		workoutData.isLastWorkout = false;
+		workoutData.completionId = createId();
+		await persistCurrentDraft();
+	}
+
 	function restoreActiveDraft() {
 		workoutData = draftRecords.active.draft?.workoutData ?? null;
 		workoutExercises = draftRecords.active.draft?.workoutExercises ?? null;
 		previousWorkoutData = draftRecords.active.draft?.previousWorkoutData ?? null;
 		editingWorkoutId = null;
+		ensureCompletionId();
 	}
 
 	function restoreEditDraft() {
@@ -253,6 +313,16 @@ function createWorkoutRunes() {
 		workoutData = editDraft.workoutData;
 		workoutExercises = editDraft.workoutExercises;
 		previousWorkoutData = null;
+	}
+
+	function switchToActiveDraft() {
+		restoreActiveDraft();
+		const binding = currentBinding();
+		if (binding && globalThis.sessionStorage) setWorkoutDraftMode(sessionStorage, binding.keys, 'active');
+	}
+
+	function ensureCompletionId() {
+		if (editingWorkoutId === null && workoutData && !workoutData.completionId) workoutData.completionId = createId();
 	}
 
 	function cancelEdit(): Promise<string | null> {
@@ -310,6 +380,24 @@ function createWorkoutRunes() {
 			return;
 		}
 
+		workoutData = null;
+		workoutExercises = null;
+		previousWorkoutData = null;
+		await persistCurrentDraft();
+	}
+
+	async function finalizeCompletion(token: CompletionToken) {
+		if (editingWorkoutId !== null) {
+			await cancelEdit();
+			return;
+		}
+		if (workoutData?.completionId !== token.completionId) return;
+		const draft = currentDraft();
+		if (draft && JSON.stringify($state.snapshot(draft)) !== token.serializedDraft) {
+			workoutData.completionId = createId();
+			await persistCurrentDraft();
+			return;
+		}
 		workoutData = null;
 		workoutExercises = null;
 		previousWorkoutData = null;
@@ -480,6 +568,7 @@ function createWorkoutRunes() {
 		},
 		set workoutData(value) {
 			workoutData = value;
+			ensureCompletionId();
 		},
 		get workoutExercises() {
 			return workoutExercises;
@@ -537,7 +626,12 @@ function createWorkoutRunes() {
 		},
 		saveStoresToLocalStorage,
 		scheduleStoresToLocalStorage,
+		captureCompletionToken,
+		markWorkoutStarted,
+		convertCurrentWorkoutToFree,
 		resetStores,
+		finalizeCompletion,
+		switchToActiveDraft,
 		addExercise,
 		setEditingExercise,
 		editExercise,

@@ -25,7 +25,7 @@ test('mobile navigation exposes workout-first destinations and preserves viewpor
 	await expect(navigation).toBeVisible();
 
 	const expectedLinks = [
-		['Workout', '/dashboard'],
+		['Workout', '/workout'],
 		['History', '/workouts'],
 		['Plans', '/plans'],
 		['Exercises', '/exercises'],
@@ -41,7 +41,11 @@ test('mobile navigation exposes workout-first destinations and preserves viewpor
 		expect(bounds!.width).toBeGreaterThanOrEqual(44);
 	}
 
-	await expect(navigation.getByRole('link', { name: 'Workout', exact: true })).toHaveAttribute('aria-current', 'page');
+	await navigation.getByRole('link', { name: 'Workout', exact: true }).click();
+	await expect(page).toHaveURL('/workout');
+	await expect(
+		page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Workout', exact: true })
+	).toHaveAttribute('aria-current', 'page');
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(
 		true
 	);

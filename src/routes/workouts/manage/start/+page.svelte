@@ -14,6 +14,7 @@
 	import type { RouterOutputs } from '$lib/trpc/router.js';
 	import { cn, convertCamelCaseToNormal } from '$lib/utils.js';
 	import type { WorkoutStatus } from '@prisma/client';
+	import { TRPCClientError } from '@trpc/client';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import CheckIcon from 'virtual:icons/lucide/check';
@@ -169,29 +170,56 @@
 		}
 
 		completingWorkout = true;
-		const { message, mesocycleCompleted } = await trpc().workouts.create.mutate({
-			draftOwnerUserId: workoutRunes.ownerUserId,
-			workoutData: {
-				userBodyweight,
-				userBodyFat,
-				workoutOfMesocycle: {
-					splitDayIndex: workoutData.workoutOfMesocycle?.splitDayIndex as number,
-					mesocycle: { id: workoutData.workoutOfMesocycle?.mesocycle.id as string },
-					workoutStatus
-				}
-			},
-			workoutExercises: [],
-			workoutExercisesSets: [],
-			workoutExercisesMiniSets: []
-		});
-		toast.success(message);
-		skipWorkoutWithWorkoutExercisesDialogOpen = false;
-		await workoutRunes.resetStores();
-		await invalidate('workouts:start');
-		completingWorkout = false;
+		try {
+			workoutRunes.workoutData = workoutData;
+			const intentToken = workoutRunes.captureCompletionToken();
+			if (!intentToken) throw new Error('Could not prepare workout completion');
+			await workoutRunes.saveStoresToLocalStorage();
+			if (intentToken.serializedDraft !== workoutRunes.captureCompletionToken()?.serializedDraft) {
+				throw new Error('Workout changed before it could be completed');
+			}
+			const submittedWorkout = workoutRunes.workoutData;
+			if (!submittedWorkout?.workoutOfMesocycle || typeof submittedWorkout.userBodyweight !== 'number') {
+				throw new Error('Workout changed before it could be completed');
+			}
+			const completionToken = workoutRunes.captureCompletionToken();
+			if (!completionToken) throw new Error('Could not prepare workout completion');
+			const { message, mesocycleCompleted } = await trpc().workouts.create.mutate({
+				draftOwnerUserId: workoutRunes.ownerUserId,
+				workoutData: {
+					completionId: submittedWorkout.completionId,
+					userBodyweight: submittedWorkout.userBodyweight,
+					userBodyFat: submittedWorkout.userBodyFat,
+					workoutOfMesocycle: {
+						splitDayIndex: submittedWorkout.workoutOfMesocycle.splitDayIndex,
+						mesocycle: { id: submittedWorkout.workoutOfMesocycle.mesocycle.id },
+						cycleNumber: submittedWorkout.workoutOfMesocycle.cycleNumber,
+						workoutStatus
+					}
+				},
+				workoutExercises: [],
+				workoutExercisesSets: [],
+				workoutExercisesMiniSets: []
+			});
+			toast.success(message);
+			skipWorkoutWithWorkoutExercisesDialogOpen = false;
+			await workoutRunes.finalizeCompletion(completionToken);
+			await invalidate('workouts:start');
 
-		if (mesocycleCompleted) {
-			await goto(`/mesocycles/${workoutData.workoutOfMesocycle?.mesocycle.id}?completion`);
+			if (mesocycleCompleted) {
+				await goto(`/mesocycles/${submittedWorkout.workoutOfMesocycle.mesocycle.id}?completion`);
+			}
+		} catch (error) {
+			if (error instanceof TRPCClientError && error.data?.code === 'CONFLICT') {
+				await workoutRunes.resetStores();
+				await invalidate('workouts:start');
+				toast.info('That plan day was handled elsewhere. Showing your current workout.');
+				await goto('/workout');
+				return;
+			}
+			toast.error(error instanceof Error ? error.message : 'Could not complete workout');
+		} finally {
+			completingWorkout = false;
 		}
 	}
 </script>

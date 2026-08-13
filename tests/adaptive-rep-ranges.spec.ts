@@ -53,9 +53,10 @@ function workoutInput({
 	return {
 		draftOwnerUserId: userId,
 		workoutData: {
+			completionId: createId(),
 			startedAt: new Date(),
 			userBodyweight: 190,
-			workoutOfMesocycle: { mesocycle: { id: mesocycleId }, splitDayIndex: 0, workoutStatus: null }
+			workoutOfMesocycle: { mesocycle: { id: mesocycleId }, splitDayIndex: 0, cycleNumber: 1, workoutStatus: null }
 		},
 		workoutExercises: [exercise(templateId, setType)],
 		workoutExercisesSets: [sets],

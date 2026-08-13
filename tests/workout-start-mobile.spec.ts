@@ -83,12 +83,9 @@ test('mobile workout actions stay above navigation and incomplete set edits pers
 	});
 	await navigation.getByRole('link', { name: 'History', exact: true }).click();
 	await expect(page).toHaveURL('/workouts');
-	await expect(navigation.getByRole('link', { name: 'Workout', exact: true })).toHaveAttribute(
-		'href',
-		'/workouts/manage/exercises?keepCurrent'
-	);
+	await expect(navigation.getByRole('link', { name: 'Workout', exact: true })).toHaveAttribute('href', '/workout');
 	await navigation.getByRole('link', { name: 'Workout', exact: true }).click();
-	await expect(page).toHaveURL('/workouts/manage/exercises?keepCurrent');
+	await expect(page).toHaveURL('/workouts/manage/exercises?keepCurrent&current');
 	await expect(page.locator('input[id$="-set-1-load"]').first()).toHaveValue('80');
 	await expect(page.locator('input[id$="-set-1-reps"]').first()).toHaveValue('10');
 	await expect(page.getByLabel('RIR').first()).toHaveValue('2');

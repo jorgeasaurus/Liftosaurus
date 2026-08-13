@@ -11,17 +11,21 @@ model WorkoutOfMesocycle {
 }
 
 model Workout {
-  id                 String              @id @default(cuid()) /// @zod.string.cuid2()
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workoutOfMesocycle WorkoutOfMesocycle?
-  userBodyweight     Float
-  userBodyFat        Float?
-  startedAt          DateTime
-  endedAt            DateTime
-  workoutExercises   WorkoutExercise[]
-  userId             String
-  note               String?
+  id                    String              @id @default(cuid()) /// @zod.string.cuid2()
+  completionId          String?
+  completionFingerprint String?
+  mesocycleCompleted    Boolean             @default(false)
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutOfMesocycle    WorkoutOfMesocycle?
+  userBodyweight        Float
+  userBodyFat           Float?
+  startedAt             DateTime
+  endedAt               DateTime
+  workoutExercises      WorkoutExercise[]
+  userId                String
+  note                  String?
 
+  @@unique([userId, completionId])
   @@index([userId, startedAt, id])
 }
 

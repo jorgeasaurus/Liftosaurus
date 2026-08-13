@@ -32,7 +32,7 @@ test('editing cannot overwrite, transfer, or delete another user workout', async
 	await assert.rejects(
 		caller.workouts.create({
 			draftOwnerUserId: victimUserId,
-			workoutData: { userBodyweight: 999, note: 'stale other-user draft' },
+			workoutData: { completionId: createId(), userBodyweight: 999, note: 'stale other-user draft' },
 			workoutExercises: [],
 			workoutExercisesSets: [],
 			workoutExercisesMiniSets: []
@@ -48,6 +48,7 @@ test('editing cannot overwrite, transfer, or delete another user workout', async
 			data: {
 				draftOwnerUserId: userData.userId,
 				workoutData: {
+					completionId: createId(),
 					startedAt: new Date('2026-07-01T12:00:00Z'),
 					userBodyweight: 999,
 					note: 'attacker overwrite'

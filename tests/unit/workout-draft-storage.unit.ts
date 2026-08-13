@@ -78,6 +78,7 @@ const NEWER_HISTORICAL_WORKOUT_ID = createId();
 
 function workoutData(startedAt: string, userBodyweight: number) {
 	return {
+		completionId: createId(),
 		startedAt,
 		endedAt: null,
 		userBodyweight,
