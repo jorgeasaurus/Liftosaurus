@@ -34,6 +34,7 @@
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
 	let lastSharedLoad = $state(exercise.sets[0]?.load);
+	let clearedRepInputs = $state<Set<string>>(new Set());
 	let hasEditableRIRTargets = $derived(
 		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
 	);
@@ -245,6 +246,21 @@
 		return 0;
 	}
 
+	function updateReps(event: Event, inputKey: string, setReps: (reps: number | undefined) => void) {
+		const value = (event.currentTarget as HTMLInputElement).value;
+		if (value === '') {
+			clearedRepInputs = new Set(clearedRepInputs).add(inputKey);
+			setReps(undefined);
+			return;
+		}
+		if (/^[1-9]\d*$/.test(value)) {
+			const nextClearedRepInputs = new Set(clearedRepInputs);
+			nextClearedRepInputs.delete(inputKey);
+			clearedRepInputs = nextClearedRepInputs;
+			setReps(Number(value));
+		}
+	}
+
 	function adjustLoads(setIdx: number) {
 		let extraOverloadAchieved = 0;
 		const exerciseSet = exercise.sets[setIdx];
@@ -381,7 +397,12 @@
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
 		{@const expectedReps = getExpectedReps(set)}
-		{@const displayedReps = set.completed ? set.reps : (set.reps ?? expectedReps)}
+		{@const setInputKey = `set-${idx}`}
+		{@const displayedReps = clearedRepInputs.has(setInputKey)
+			? undefined
+			: set.completed
+				? set.reps
+				: (set.reps ?? expectedReps)}
 		{@const repTargetDelta = getRepTargetDelta(set, idx)}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
@@ -416,14 +437,13 @@
 						class={cn('h-11 px-7 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
 						id="{exercise.name}-set-{idx + 1}-reps"
 						disabled={set.completed || set.skipped}
-						min={1}
+						pattern="[1-9][0-9]*"
 						required
-						type="number"
+						type="text"
 						inputmode="numeric"
 						value={displayedReps}
 						oninput={(event) => {
-							const value = Number((event.currentTarget as HTMLInputElement).value);
-							set.reps = Number.isFinite(value) && value > 0 ? value : undefined;
+							updateReps(event, setInputKey, (reps) => (set.reps = reps));
 							scheduleDraftSave();
 						}}
 						onblur={flushDraftSave}
@@ -475,7 +495,7 @@
 					{/if}
 				{/if}
 				<Button
-					class={cn('ml-auto h-11 w-11', isActiveSet(idx) && 'ring-2 ring-[#a5c63a66]')}
+					class={cn('h-11 w-11', isActiveSet(idx) && 'ring-2 ring-[#a5c63a66]')}
 					data-testid="{exercise.name}-set-{idx + 1}-action"
 					disabled={!set.completed && !set.skipped && !hasValidRIR(set.RIR)}
 					size="icon"
@@ -495,6 +515,7 @@
 		{#if (idx > 0 && (exercise.setType === 'MyorepMatch' || exercise.setType === 'MyorepMatchDown')) || exercise.setType === 'Drop'}
 			{#each set.miniSets as miniSet, miniIdx}
 				{@const miniSetButtonDisabled = shouldMiniSetBeDisabled(idx, miniIdx)}
+				{@const miniSetInputKey = `set-${idx}-mini-set-${miniIdx}`}
 				{#if set.skipped}
 					<div class="col-span-3 flex items-center gap-2">
 						<Separator class="w-px grow" />
@@ -535,12 +556,15 @@
 							)}
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-reps"
 							disabled={miniSet.completed}
-							min={1}
+							pattern="[1-9][0-9]*"
 							required
-							type="number"
+							type="text"
 							inputmode="numeric"
-							bind:value={miniSet.reps}
-							oninput={scheduleDraftSave}
+							value={clearedRepInputs.has(miniSetInputKey) ? '' : (miniSet.reps ?? '')}
+							oninput={(event) => {
+								updateReps(event, miniSetInputKey, (reps) => (miniSet.reps = reps));
+								scheduleDraftSave();
+							}}
 							onblur={flushDraftSave}
 						/>
 						<Button
