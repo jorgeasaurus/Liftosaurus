@@ -197,7 +197,11 @@ const createWorkoutSchema = z
 		confirmAdaptiveRepRangeOutliers: z.boolean().optional()
 	})
 	.superRefine((input, ctx) => {
-		if (input.workoutData.completionId && input.workoutData.workoutOfMesocycle?.cycleNumber === undefined) {
+		if (
+			input.workoutData.completionId &&
+			input.workoutData.workoutOfMesocycle &&
+			input.workoutData.workoutOfMesocycle.cycleNumber === undefined
+		) {
 			ctx.addIssue({
 				code: 'custom',
 				message: 'Current mesocycle submissions require a cycle number',
