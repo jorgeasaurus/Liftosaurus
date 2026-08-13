@@ -76,13 +76,48 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	await expect(page.getByText('Rep targets')).toBeVisible();
 	await page.getByLabel('Show rep targets').click();
 	await expect(page.getByText('Dumbbell lateral raise:')).toBeVisible();
+	await page.keyboard.press('Escape');
 	const laterLoad = page.locator(`[id="${exerciseName}-set-2-load"]`);
 	const laterReps = page.locator(`[id="${exerciseName}-set-2-reps"]`);
+	const logHeading = page.getByText('Log', { exact: true });
+	const firstLogButton = page.getByTestId(`${exerciseName}-set-1-action`);
 	await expect(laterLoad).toBeEditable();
-	const [loadBounds, repBounds] = await Promise.all([laterLoad.boundingBox(), laterReps.boundingBox()]);
+	const [loadBounds, repBounds, logHeadingBounds, logButtonBounds] = await Promise.all([
+		laterLoad.boundingBox(),
+		laterReps.boundingBox(),
+		logHeading.boundingBox(),
+		firstLogButton.boundingBox()
+	]);
 	expect(loadBounds).not.toBeNull();
 	expect(repBounds).not.toBeNull();
+	expect(logHeadingBounds).not.toBeNull();
+	expect(logButtonBounds).not.toBeNull();
 	expect(loadBounds!.x).toBeLessThan(repBounds!.x);
+	expect(logButtonBounds!.x + logButtonBounds!.width / 2).toBeCloseTo(
+		logHeadingBounds!.x + logHeadingBounds!.width / 2,
+		0
+	);
+	await laterReps.focus();
+	await expect(laterReps).toBeFocused();
+	await page.keyboard.press('Backspace');
+	await expect(laterReps).toHaveValue('2');
+	await page.keyboard.press('Backspace');
+	await expect(laterReps).toHaveValue('');
+	await page.getByTestId(`${exerciseName}-set-1-action`).click();
+	await page.waitForFunction((activeKey) => {
+		const draft = JSON.parse(localStorage.getItem(activeKey) ?? '{}').draft;
+		return draft?.workoutExercises?.[0]?.sets?.[0]?.completed === true;
+	}, keys.active);
+	expect(
+		await page.evaluate((activeKey) => {
+			const draft = JSON.parse(localStorage.getItem(activeKey) ?? '{}').draft;
+			return Object.hasOwn(draft.workoutExercises[0].sets[1], 'reps');
+		}, keys.active)
+	).toBe(false);
+	await page.getByTestId(`${exerciseName}-set-1-action`).click();
+	await laterReps.pressSequentially('30');
+	await expect(laterReps).toHaveValue('30');
+	await laterReps.fill('22');
 	await laterLoad.fill('35');
 	await page.locator(`[id="${exerciseName}-set-1-load"]`).fill('45');
 	await page.getByTestId(`${exerciseName}-set-1-action`).click();
