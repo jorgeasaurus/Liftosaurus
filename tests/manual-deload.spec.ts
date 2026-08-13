@@ -298,7 +298,9 @@ test('mixed deload history resolves each exercise from its latest normal workout
 		page.getByText('The chart is unavailable because these exercise baselines come from different workouts.')
 	).toBeVisible();
 	await expect(page.getByRole('row', { name: /Bench press/ })).toBeVisible();
-	await expect(page.getByRole('row', { name: /Cable fly/ })).toContainText(/600.*1,950.*\+225\.0%/);
+	await expect(page.getByRole('row', { name: /Cable fly/ })).toContainText(
+		/600.*1(?:[\s,.\u00a0\u202f])?950.*\+225\.0%/
+	);
 });
 
 test('mixed deload comparison includes only matched normal exercises', async ({ page, userData }) => {
