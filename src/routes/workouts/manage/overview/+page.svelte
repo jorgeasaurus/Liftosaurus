@@ -146,7 +146,7 @@
 
 	function requestAdaptiveApproval(
 		createData: RouterInputs['workouts']['create'],
-		outliers: { name: string; targets: string[] }[] = []
+		outliers: { name: string; targets: string[] }[]
 	) {
 		adaptiveApproval = { createData, outliers };
 		savingWorkout = false;
@@ -163,7 +163,7 @@
 					error.message === ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED &&
 					!createData.confirmAdaptiveRepRangeOutliers
 				) {
-					requestAdaptiveApproval(createData);
+					requestAdaptiveApproval(createData, getAdaptiveOutlierExercises());
 					return;
 				}
 				throw error;
