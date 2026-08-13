@@ -8,7 +8,6 @@
 	import { dateToCalendarDate } from '$lib/utils';
 	import type { WorkoutStatus } from '@prisma/client';
 	import type { DateRange, Selected } from 'bits-ui';
-	import { onMount } from 'svelte';
 	import FilterIcon from 'virtual:icons/lucide/filter';
 	import DateRangePicker from './DateRangePicker.svelte';
 
@@ -26,11 +25,13 @@
 	let open = $state(false);
 	let selectedDateRange: DateRange = $state({ start: undefined, end: undefined });
 	let selectedMesocycles: Selected<string | null>[] = $state([]);
-	let selectedWorkoutStatuses: Map<WorkoutStatus | null, boolean> = new Map([
-		[null, true],
-		['Skipped', true],
-		['RestDay', true]
-	]);
+	let selectedWorkoutStatuses: Map<WorkoutStatus | null, boolean> = $state(
+		new Map([
+			[null, true],
+			['Skipped', true],
+			['RestDay', true]
+		])
+	);
 	let selectedWorkoutStatusFilterCount = $derived(currentFilters.selectedWorkoutStatuses?.length ?? 0);
 	let activeFilterCount = $derived(
 		Number(Boolean(currentFilters.startDate || currentFilters.endDate)) +
@@ -41,7 +42,14 @@
 			)
 	);
 
-	onMount(() => {
+	function resetFilterDraft() {
+		selectedDateRange = { start: undefined, end: undefined };
+		selectedMesocycles = [];
+		selectedWorkoutStatuses = new Map([
+			[null, true],
+			['Skipped', true],
+			['RestDay', true]
+		]);
 		if (currentFilters.startDate) {
 			selectedDateRange.start = dateToCalendarDate(new Date(currentFilters.startDate));
 		}
@@ -62,7 +70,12 @@
 				selectedWorkoutStatuses.set(workoutStatus, true);
 			});
 		}
-	});
+	}
+
+	function handleOpenChange(nextOpen: boolean) {
+		open = nextOpen;
+		if (nextOpen) resetFilterDraft();
+	}
 
 	function applyFilters() {
 		const workoutStatuses = Array.from(selectedWorkoutStatuses.entries())
@@ -77,11 +90,11 @@
 	}
 </script>
 
-<Popover.Root bind:open>
+<Popover.Root {open} onOpenChange={handleOpenChange}>
 	<Popover.Trigger asChild let:builder>
 		<Button
 			class="pressable-control h-11 grow justify-between gap-2 rounded-xl px-3"
-			aria-label="search"
+			aria-label="Filter workouts"
 			builders={[builder]}
 			variant="secondary"
 		>

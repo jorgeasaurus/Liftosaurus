@@ -251,6 +251,36 @@ test('pending adaptive outliers require explicit confirmation and keep a rejecte
 	});
 });
 
+test('adaptive outlier approval can be reviewed, cancelled, and confirmed in the workout UI', async ({
+	page,
+	userData
+}) => {
+	const mesocycle = await createAdaptiveMesocycle(userData.userId, 'Straight');
+
+	await page.goto('/workouts/manage/start');
+	await page.getByPlaceholder('Type here').fill('190');
+	await page.getByRole('button', { name: 'Next' }).click();
+	await page.locator('#Push-up-RIR').fill('3');
+	await page.locator('#Push-up-set-1-reps').fill('31');
+	await page.locator('#Push-up-set-1-load').fill('0');
+	await page.getByTestId('Push-up-set-1-action').click();
+	await page.locator('#Push-up-set-2-reps').fill('10');
+	await page.getByTestId('Push-up-set-2-action').click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+	const approval = page.getByRole('dialog', { name: 'Use an adaptive target outside 5–30 reps?' });
+	await expect(approval).toContainText('Push-up');
+	await expect(approval).toContainText('31 standard reps');
+	await approval.getByRole('button', { name: 'Back' }).click();
+	await expect(approval).toHaveCount(0);
+	expect(await prisma.workoutOfMesocycle.count({ where: { mesocycleId: mesocycle.id } })).toBe(0);
+
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await approval.getByRole('button', { name: 'Save and use target' }).click();
+	await expect.poll(() => prisma.workoutOfMesocycle.count({ where: { mesocycleId: mesocycle.id } })).toBe(1);
+});
+
 test('switching a fixed template to adaptive learns from the workout in the same save', async ({ userData }) => {
 	const caller = createCaller({ userId: userData.userId, event: null as never });
 	const mesocycle = await createAdaptiveMesocycle(userData.userId, 'Straight');

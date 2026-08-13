@@ -16,6 +16,12 @@
 	import { workoutRunes } from '../workoutRunes.svelte';
 	import WorkoutComparisonChart from './(components)/WorkoutComparisonChart.svelte';
 	import Quotes from '$lib/components/settings/Quotes.svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import AlertTriangleIcon from 'virtual:icons/lucide/triangle-alert';
+	import {
+		ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED,
+		getPendingAdaptiveRepRangeConfirmation
+	} from '$lib/utils/adaptiveRepRanges';
 
 	let { data } = $props();
 
@@ -23,10 +29,43 @@
 		data.userSettings.motivationalQuotesEnabled && data.userSettings.quotesDisplayModes.includes('POST_WORKOUT');
 
 	let savingWorkout = $state(false);
+	type AdaptiveApproval = {
+		createData: RouterInputs['workouts']['create'];
+		outliers: { name: string; targets: string[] }[];
+	};
+	let adaptiveApproval: AdaptiveApproval | null = $state(null);
 	let workoutExercises = $derived(workoutRunes.workoutExercises ?? []);
-	const adaptiveOutlierMessage = 'Confirm adaptive working sets outside the 5–30 rep range before saving';
-	const adaptiveOutlierPrompt =
-		'This will establish an adaptive target outside the recommended 5–30 rep range. Continue?';
+
+	function getAdaptiveOutlierExercises() {
+		const mesocycleMode = workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.repRangeMode ?? 'Fixed';
+		return (workoutRunes.workoutExercises ?? []).flatMap((exercise) => {
+			if ((exercise.repRangeMode ?? mesocycleMode) !== 'Adaptive') return [];
+			const targets: string[] = [];
+			const sets = exercise.sets.flatMap((set, setIndex) =>
+				set.reps === undefined || set.RIR === undefined
+					? []
+					: [{ setIndex, reps: set.reps, RIR: set.RIR, skipped: set.skipped }]
+			);
+			const standard = getPendingAdaptiveRepRangeConfirmation({
+				mode: 'Adaptive',
+				established: exercise.repRangeStart !== 5 || exercise.repRangeEnd !== 30,
+				setType: exercise.setType,
+				sets
+			});
+			if (standard) targets.push(`${standard.reps} standard reps`);
+			if (exercise.setType === 'TopBackoff') {
+				const top = getPendingAdaptiveRepRangeConfirmation({
+					mode: 'Adaptive',
+					established: exercise.topRepRangeStart !== 5 || exercise.topRepRangeEnd !== 30,
+					setType: exercise.setType,
+					category: 'top',
+					sets
+				});
+				if (top) targets.push(`${top.reps} top-set reps`);
+			}
+			return targets.length ? [{ name: exercise.name, targets }] : [];
+		});
+	}
 
 	function preProcessSetData() {
 		if (workoutRunes.workoutData === null || workoutRunes.workoutExercises === null) return;
@@ -105,6 +144,62 @@
 		return { ...result, mesocycleCompleted: undefined };
 	}
 
+	function requestAdaptiveApproval(
+		createData: RouterInputs['workouts']['create'],
+		outliers: { name: string; targets: string[] }[] = []
+	) {
+		adaptiveApproval = { createData, outliers };
+		savingWorkout = false;
+	}
+
+	async function completeWorkoutSave(createData: RouterInputs['workouts']['create']) {
+		try {
+			let result;
+			try {
+				result = await persistWorkout(createData);
+			} catch (error) {
+				if (
+					error instanceof TRPCClientError &&
+					error.message === ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED &&
+					!createData.confirmAdaptiveRepRangeOutliers
+				) {
+					requestAdaptiveApproval(createData);
+					return;
+				}
+				throw error;
+			}
+			toast.success(result.message);
+			await invalidate('workouts:all');
+			const completedMesocycleId = result.mesocycleCompleted
+				? workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.id
+				: undefined;
+
+			if (completedMesocycleId) await goto(`/mesocycles/${completedMesocycleId}?completion`);
+			else await goto('/workouts');
+
+			await workoutRunes.resetStores();
+			// Prevent a stale, unfinished mesocycle split edit from surviving a workout that changed the split.
+			mesocycleExerciseSplitRunes.resetStores();
+		} catch (error) {
+			if (error instanceof TRPCClientError) toast.error(error.message);
+		} finally {
+			savingWorkout = false;
+		}
+	}
+
+	async function approveAdaptiveOutliers() {
+		if (!adaptiveApproval) return;
+		const { createData } = adaptiveApproval;
+		createData.confirmAdaptiveRepRangeOutliers = true;
+		adaptiveApproval = null;
+		savingWorkout = true;
+		await completeWorkoutSave(createData);
+	}
+
+	function cancelAdaptiveApproval() {
+		adaptiveApproval = null;
+	}
+
 	async function saveWorkout() {
 		let createData;
 		try {
@@ -121,64 +216,13 @@
 			savingWorkout = false;
 			return;
 		}
-		const mesocycleMode = workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.repRangeMode ?? 'Fixed';
-		const hasPendingAdaptiveOutlier = workoutRunes.workoutExercises?.some((exercise) => {
-			if ((exercise.repRangeMode ?? mesocycleMode) !== 'Adaptive') return false;
-			const isOutlier = (reps: number | undefined) => reps !== undefined && (reps < 5 || reps > 30);
-			const firstStandardSet = exercise.sets.find(
-				(set, setIndex) => !set.skipped && (exercise.setType !== 'TopBackoff' || setIndex > 0)
-			);
-			const standardNeedsConfirmation =
-				exercise.repRangeStart === 5 && exercise.repRangeEnd === 30 && isOutlier(firstStandardSet?.reps);
-			if (exercise.setType !== 'TopBackoff') return standardNeedsConfirmation;
-
-			const firstTopSet = exercise.sets.find((set, setIndex) => !set.skipped && setIndex === 0);
-			return (
-				standardNeedsConfirmation ||
-				(exercise.topRepRangeStart === 5 && exercise.topRepRangeEnd === 30 && isOutlier(firstTopSet?.reps))
-			);
-		});
-		if (hasPendingAdaptiveOutlier && !window.confirm(adaptiveOutlierPrompt)) {
-			savingWorkout = false;
+		const outliers = getAdaptiveOutlierExercises();
+		if (outliers.length) {
+			requestAdaptiveApproval(createData, outliers);
 			return;
 		}
-		createData.confirmAdaptiveRepRangeOutliers = Boolean(hasPendingAdaptiveOutlier);
-
-		try {
-			let result;
-			try {
-				result = await persistWorkout(createData);
-			} catch (error) {
-				if (
-					!(error instanceof TRPCClientError) ||
-					!error.message.includes(adaptiveOutlierMessage) ||
-					createData.confirmAdaptiveRepRangeOutliers ||
-					!window.confirm(adaptiveOutlierPrompt)
-				) {
-					throw error;
-				}
-				createData.confirmAdaptiveRepRangeOutliers = true;
-				result = await persistWorkout(createData);
-			}
-			toast.success(result.message);
-			await invalidate('workouts:all');
-			const completedMesocycleId = result.mesocycleCompleted
-				? workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.id
-				: undefined;
-
-			if (completedMesocycleId) {
-				await goto(`/mesocycles/${completedMesocycleId}?completion`);
-			} else {
-				await goto('/workouts');
-			}
-
-			await workoutRunes.resetStores();
-			// Prevent a stale, unfinished mesocycle split edit from surviving a workout that changed the split.
-			mesocycleExerciseSplitRunes.resetStores();
-		} catch (error) {
-			if (error instanceof TRPCClientError) toast.error(error.message);
-		}
-		savingWorkout = false;
+		createData.confirmAdaptiveRepRangeOutliers = false;
+		await completeWorkoutSave(createData);
 	}
 </script>
 
@@ -229,3 +273,37 @@
 		{/if}
 	</Button>
 </div>
+
+<Dialog.Root
+	open={adaptiveApproval !== null}
+	onOpenChange={(open) => {
+		if (!open) adaptiveApproval = null;
+	}}
+>
+	<Dialog.Content class="surface-panel sm:max-w-md">
+		<Dialog.Header>
+			<div class="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+				<AlertTriangleIcon class="h-5 w-5" />
+			</div>
+			<Dialog.Title>Use an adaptive target outside 5–30 reps?</Dialog.Title>
+			<Dialog.Description>
+				Saving will establish this result as a future progression target. Confirm that the completed reps are
+				intentional.
+			</Dialog.Description>
+		</Dialog.Header>
+		{#if adaptiveApproval?.outliers.length}
+			<div class="rounded-xl border bg-muted/35">
+				{#each adaptiveApproval.outliers as exercise}
+					<div class="divided-row flex items-center justify-between gap-3 px-3 py-2.5 first:border-t-0">
+						<span class="min-w-0 truncate text-sm font-semibold">{exercise.name}</span>
+						<span class="shrink-0 text-xs tabular-nums text-muted-foreground">{exercise.targets.join(', ')}</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
+		<Dialog.Footer class="gap-2 sm:gap-2">
+			<Button variant="secondary" onclick={cancelAdaptiveApproval}>Back</Button>
+			<Button onclick={approveAdaptiveOutliers}>Save and use target</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

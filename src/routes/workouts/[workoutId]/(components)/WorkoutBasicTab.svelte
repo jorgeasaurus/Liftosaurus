@@ -15,12 +15,12 @@
 	import { invalidate, goto } from '$app/navigation';
 	import { TRPCClientError } from '@trpc/client';
 	import { workoutRunes } from '../../manage/workoutRunes.svelte';
+	import { ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED } from '$lib/utils/adaptiveRepRanges';
 
 	type PropsType = { workout: FullWorkoutWithMesoData };
 	let { workout }: PropsType = $props();
 	let deleteConfirmDrawerOpen = $state(false);
 	let callingDeleteEndpoint = $state(false);
-	const adaptiveOutlierMessage = 'Confirm adaptive working sets outside the 5–30 rep range before saving';
 
 	function getMinuteDifference(date1: Date, date2: Date): number {
 		const msInMinute = 60 * 1000;
@@ -46,7 +46,7 @@
 			} catch (error) {
 				if (
 					!(error instanceof TRPCClientError) ||
-					!error.message.includes(adaptiveOutlierMessage) ||
+					error.message !== ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED ||
 					!window.confirm(
 						'Deleting this workout will establish an adaptive target outside the recommended 5–30 rep range. Continue?'
 					)
