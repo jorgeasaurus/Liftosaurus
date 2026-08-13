@@ -1,6 +1,7 @@
 import type { RouterOutputs } from '$lib/trpc/router';
 import { normalizePersistedWorkoutExercises, type WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
 import type { Prisma } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 import {
 	MesocycleSchema,
 	MuscleGroupSchema,
@@ -55,6 +56,7 @@ export type WorkoutEditDraft = {
 
 type WorkoutForEditDraft = {
 	id: string;
+	completionId?: string | null;
 	startedAt: Date;
 	endedAt: Date;
 	userBodyweight: number;
@@ -104,6 +106,7 @@ export function createWorkoutEditDraft(workout: WorkoutForEditDraft): WorkoutEdi
 	return {
 		workoutId: workout.id,
 		workoutData: {
+			completionId: workout.completionId ?? createId(),
 			startedAt: workout.startedAt,
 			endedAt: workout.endedAt,
 			userBodyweight: workout.userBodyweight,
@@ -268,6 +271,7 @@ const persistedMesocycleSchema = MesocycleSchema.extend({
 
 const workoutDataSchema: z.ZodType<WorkoutData, z.ZodTypeDef, unknown> = z
 	.object({
+		completionId: z.string().cuid2().default(createId),
 		startedAt: z.date(),
 		endedAt: z.date().nullable(),
 		userBodyweight: z.number().nullable(),

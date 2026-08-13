@@ -7,9 +7,9 @@ import {
 test('allows a later straight-set load to be overridden and persists it', async ({ page, userData }) => {
 	const exerciseName = 'Dumbbell lateral raise';
 	const keys = workoutDraftStorageKeys(userData.userId);
-	const sets = [25, 22, 15, 20].map((reps) => ({
-		reps,
-		plannedReps: reps,
+	const sets = [25, 22, 15, 20].map((plannedReps, index) => ({
+		reps: index === 1 ? undefined : plannedReps,
+		plannedReps,
 		load: 40,
 		RIR: 1,
 		completed: false,
@@ -79,6 +79,7 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	await page.keyboard.press('Escape');
 	const laterLoad = page.locator(`[id="${exerciseName}-set-2-load"]`);
 	const laterReps = page.locator(`[id="${exerciseName}-set-2-reps"]`);
+	const laterLogButton = page.getByTestId(`${exerciseName}-set-2-action`);
 	const logHeading = page.getByText('Log', { exact: true });
 	const firstLogButton = page.getByTestId(`${exerciseName}-set-1-action`);
 	await expect(laterLoad).toBeEditable();
@@ -96,12 +97,9 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	const logHeadingCenter = logHeadingBounds!.x + logHeadingBounds!.width / 2;
 	const logButtonCenter = logButtonBounds!.x + logButtonBounds!.width / 2;
 	expect(Math.abs(logButtonCenter - logHeadingCenter)).toBeLessThanOrEqual(2);
-	await laterReps.focus();
-	await expect(laterReps).toBeFocused();
-	await page.keyboard.press('Backspace');
-	await expect(laterReps).toHaveValue('2');
-	await page.keyboard.press('Backspace');
 	await expect(laterReps).toHaveValue('');
+	await expect(laterReps).toHaveAttribute('placeholder', '22');
+	await expect(laterLogButton).toBeDisabled();
 	await page.getByTestId(`${exerciseName}-set-1-action`).click();
 	await page.waitForFunction((activeKey) => {
 		const draft = JSON.parse(localStorage.getItem(activeKey) ?? '{}').draft;

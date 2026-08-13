@@ -16,15 +16,18 @@
 	let { children }: { children: Snippet } = $props();
 
 	const navLinks = [
-		{ label: 'Today', href: '/dashboard', icon: HomeIcon },
-		{ label: 'Workouts', href: '/workouts', icon: WorkoutsIcon },
+		{ label: 'Workout', href: '/workout', icon: HomeIcon },
+		{ label: 'History', href: '/workouts', icon: WorkoutsIcon },
 		{ label: 'Progress', href: '/exercise-stats', icon: ProgressIcon },
 		{ label: 'Plans', href: '/mesocycles', icon: PlansIcon },
 		{ label: 'Library', href: '/exercise-splits', icon: LibraryIcon }
 	] as const;
 
+	const isWithin = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 	const isActive = (href: string) =>
-		href === '/dashboard' ? $page.url.pathname.startsWith('/dashboard') : $page.url.pathname.startsWith(href);
+		href === '/workout'
+			? isWithin($page.url.pathname, '/workout') || isWithin($page.url.pathname, '/workouts/manage')
+			: isWithin($page.url.pathname, href);
 </script>
 
 <header

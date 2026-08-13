@@ -18,10 +18,10 @@
 	import AtTargetIcon from 'virtual:icons/lucide/equal';
 	import AboveTargetIcon from 'virtual:icons/lucide/arrow-up';
 	import RemoveIcon from 'virtual:icons/lucide/minus';
-	import EditIcon from 'virtual:icons/lucide/pencil';
 	import AddIcon from 'virtual:icons/lucide/plus';
 	import TargetIcon from 'virtual:icons/lucide/target';
 	import UndoIcon from 'virtual:icons/lucide/undo';
+	import WorkoutNumberInput from './WorkoutNumberInput.svelte';
 	import { workoutRunes } from '../../workoutRunes.svelte';
 
 	type PropsType = {
@@ -34,7 +34,6 @@
 
 	let isSameLoadExercise = $derived(['Straight', 'Myorep', 'MyorepMatch'].includes(exercise.setType));
 	let lastSharedLoad = $state(exercise.sets[0]?.load);
-	let clearedRepInputs = $state<Set<string>>(new Set());
 	let hasEditableRIRTargets = $derived(
 		exercise.sets.some((set) => !set.skipped && (!set.completed || set.miniSets.some((miniSet) => !miniSet.completed)))
 	);
@@ -71,11 +70,34 @@
 		activeTarget.setIndex === setIndex &&
 		activeTarget.miniSetIndex === miniSetIndex;
 
-	const scheduleDraftSave = () => workoutRunes.scheduleStoresToLocalStorage();
+	function markExerciseStarted() {
+		workoutRunes.markWorkoutStarted();
+		markWorkoutExerciseStarted(exercise);
+	}
+	const scheduleDraftSave = () => {
+		markExerciseStarted();
+		workoutRunes.scheduleStoresToLocalStorage();
+	};
 	const flushDraftSave = () => void workoutRunes.saveStoresToLocalStorage();
 
 	function hasValidRIR(RIR: number | undefined): RIR is number {
 		return RIR !== undefined && Number.isInteger(RIR) && RIR >= 0;
+	}
+
+	function canLogPerformance(
+		performance: { load?: number; reps?: number; RIR?: number },
+		loadMinimum = exercise.bodyweightFraction ? 0 : 0.25
+	) {
+		return (
+			typeof performance.load === 'number' &&
+			Number.isFinite(performance.load) &&
+			performance.load >= loadMinimum &&
+			Math.abs(performance.load / 0.25 - Math.round(performance.load / 0.25)) <= 1e-8 &&
+			typeof performance.reps === 'number' &&
+			Number.isInteger(performance.reps) &&
+			performance.reps >= 1 &&
+			hasValidRIR(performance.RIR)
+		);
 	}
 
 	async function completeSet(e: SubmitEvent, set: WorkoutExerciseSet, idx: number) {
@@ -85,17 +107,22 @@
 			await workoutRunes.saveStoresToLocalStorage();
 			return;
 		}
-		if (!set.completed && !hasValidRIR(set.RIR)) return;
-		if (!set.completed) markWorkoutExerciseStarted(exercise);
-		set.completed = !set.completed;
+		if (set.completed || !canLogPerformance(set)) return;
+		markExerciseStarted();
+		set.completed = true;
 		if (isSameLoadExercise && idx === 0) {
 			exercise.sets.forEach((otherSet, otherSetIdx) => {
-				if (otherSetIdx > 0 && (otherSet.load === undefined || otherSet.load === lastSharedLoad))
+				if (otherSetIdx > 0 && !otherSet.completed && (otherSet.load === undefined || otherSet.load === lastSharedLoad))
 					otherSet.load = set.load;
 			});
 			lastSharedLoad = set.load;
 		}
 
+		await workoutRunes.saveStoresToLocalStorage();
+	}
+
+	async function reopenSet(set: WorkoutExerciseSet) {
+		set.completed = false;
 		await workoutRunes.saveStoresToLocalStorage();
 	}
 
@@ -126,9 +153,15 @@
 	async function completeMiniSet(e: SubmitEvent, set: WorkoutExerciseSet, miniSetIndex: number) {
 		e.preventDefault();
 		if (exercise.setType === 'MyorepMatchDown') set.miniSets[miniSetIndex].load = set.load;
-		if (!set.miniSets[miniSetIndex].completed && !hasValidRIR(set.miniSets[miniSetIndex].RIR)) return;
-		if (!set.miniSets[miniSetIndex].completed) markWorkoutExerciseStarted(exercise);
-		set.miniSets[miniSetIndex].completed = !set.miniSets[miniSetIndex].completed;
+		const miniSet = set.miniSets[miniSetIndex];
+		if (miniSet.completed || !canLogPerformance(miniSet, 0)) return;
+		markExerciseStarted();
+		miniSet.completed = true;
+		await workoutRunes.saveStoresToLocalStorage();
+	}
+
+	async function reopenMiniSet(set: WorkoutExerciseSet, miniSetIndex: number) {
+		set.miniSets[miniSetIndex].completed = false;
 		await workoutRunes.saveStoresToLocalStorage();
 	}
 
@@ -170,14 +203,27 @@
 		}
 	}
 
-	function updateSetLoad(set: WorkoutExerciseSet, value: string) {
-		if (value.trim() === '') {
-			set.load = undefined;
-			return;
+	function commitSetLoad(set: WorkoutExerciseSet, load: number | undefined, setIndex: number) {
+		const previousLoad = set.load;
+		set.load = load;
+		if (
+			typeof load === 'number' &&
+			set.completed &&
+			(exercise.setType === 'MyorepMatch' || exercise.setType === 'MyorepMatchDown')
+		) {
+			set.miniSets.forEach((miniSet) => (miniSet.load = load));
 		}
-		const load = Number(value);
-		const allowsZeroLoad = Boolean(exercise.bodyweightFraction);
-		set.load = Number.isFinite(load) && (load > 0 || (allowsZeroLoad && load === 0)) ? load : undefined;
+		if (typeof load === 'number' && set.completed && isSameLoadExercise && setIndex === 0) {
+			exercise.sets.forEach((otherSet, otherSetIndex) => {
+				if (otherSetIndex > 0 && !otherSet.completed && otherSet.load === previousLoad) {
+					otherSet.load = load;
+					if (exercise.setType === 'MyorepMatch') {
+						otherSet.miniSets.forEach((miniSet) => (miniSet.load = load));
+					}
+				}
+			});
+			lastSharedLoad = load;
+		}
 		if (set.completed || set.load === undefined || typeof set.plannedReps !== 'number' || typeof set.RIR !== 'number')
 			return;
 
@@ -244,21 +290,6 @@
 		if (set.reps < rangeStart) return set.reps - rangeStart;
 		if (set.reps > rangeEnd) return set.reps - rangeEnd;
 		return 0;
-	}
-
-	function updateReps(event: Event, inputKey: string, setReps: (reps: number | undefined) => void) {
-		const value = (event.currentTarget as HTMLInputElement).value;
-		if (value === '') {
-			clearedRepInputs = new Set(clearedRepInputs).add(inputKey);
-			setReps(undefined);
-			return;
-		}
-		if (/^[1-9]\d*$/.test(value)) {
-			const nextClearedRepInputs = new Set(clearedRepInputs);
-			nextClearedRepInputs.delete(inputKey);
-			clearedRepInputs = nextClearedRepInputs;
-			setReps(Number(value));
-		}
 	}
 
 	function adjustLoads(setIdx: number) {
@@ -397,12 +428,6 @@
 	<span class="text-center text-[11px] font-semibold uppercase tracking-wide text-[#8fa0b3]">Log</span>
 	{#each exercise.sets as set, idx}
 		{@const expectedReps = getExpectedReps(set)}
-		{@const setInputKey = `set-${idx}`}
-		{@const displayedReps = clearedRepInputs.has(setInputKey)
-			? undefined
-			: set.completed
-				? set.reps
-				: (set.reps ?? expectedReps)}
 		{@const repTargetDelta = getRepTargetDelta(set, idx)}
 		<form class="contents" onsubmit={(e) => completeSet(e, set, idx)}>
 			{#if exercise.setType === 'TopBackoff' && idx === 1}
@@ -415,38 +440,45 @@
 				</div>
 			{/if}
 			{#if !set.skipped}
-				<Input
+				<WorkoutNumberInput
+					aria-label={`Set ${idx + 1} weight`}
 					class={cn('h-11 px-2 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
 					id="{exercise.name}-set-{idx + 1}-load"
-					disabled={set.completed || set.skipped}
-					min={exercise.bodyweightFraction ? undefined : 0.25}
+					disabled={set.skipped}
+					min={exercise.bodyweightFraction ? 0 : 0.25}
 					placeholder={getNextLoad(idx)}
 					required
 					step={0.25}
 					type="number"
 					inputmode="decimal"
 					value={set.load}
-					oninput={(event) => {
-						updateSetLoad(set, (event.currentTarget as HTMLInputElement).value);
+					completed={set.completed}
+					oncommit={(load) => {
+						commitSetLoad(set, load, idx);
 						scheduleDraftSave();
 					}}
-					onblur={flushDraftSave}
+					onflush={flushDraftSave}
 				/>
 				<div class="relative">
-					<Input
+					<WorkoutNumberInput
+						aria-label={`Set ${idx + 1} reps`}
 						class={cn('h-11 px-7 text-center', isActiveSet(idx) && 'border-[#78942d] ring-1 ring-[#78942d66]')}
 						id="{exercise.name}-set-{idx + 1}-reps"
-						disabled={set.completed || set.skipped}
+						disabled={set.skipped}
 						pattern="[1-9][0-9]*"
 						required
 						type="text"
 						inputmode="numeric"
-						value={displayedReps}
-						oninput={(event) => {
-							updateReps(event, setInputKey, (reps) => (set.reps = reps));
+						value={set.reps}
+						placeholder={expectedReps?.toString()}
+						completed={set.completed}
+						integer
+						min={1}
+						oncommit={(reps) => {
+							set.reps = reps;
 							scheduleDraftSave();
 						}}
-						onblur={flushDraftSave}
+						onflush={flushDraftSave}
 					/>
 					{#if repTargetDelta !== undefined}
 						{@const repTargetLabel = getRepTargetLabel(repTargetDelta)}
@@ -479,7 +511,8 @@
 			{/if}
 			<div class="flex items-center justify-center gap-2">
 				{#if idx === 0 || !isSameLoadExercise}
-					{@const hasLoadChanged = set.load !== originalSetLoads[idx] && originalSetLoads[idx] !== undefined}
+					{@const hasLoadChanged =
+						!set.completed && set.load !== originalSetLoads[idx] && originalSetLoads[idx] !== undefined}
 					{#if hasLoadChanged}
 						<Button
 							class="h-9 w-9 p-1"
@@ -495,11 +528,13 @@
 					{/if}
 				{/if}
 				<Button
+					aria-label={set.completed ? `Undo set ${idx + 1}` : `Log set ${idx + 1}`}
 					class={cn('h-11 w-11', isActiveSet(idx) && 'ring-2 ring-[#a5c63a66]')}
 					data-testid="{exercise.name}-set-{idx + 1}-action"
-					disabled={!set.completed && !set.skipped && !hasValidRIR(set.RIR)}
+					disabled={!set.completed && !set.skipped && !canLogPerformance(set)}
 					size="icon"
-					type="submit"
+					type={set.completed ? 'button' : 'submit'}
+					onclick={set.completed ? () => reopenSet(set) : undefined}
 					variant={set.completed ? 'outline' : 'default'}
 				>
 					{#if set.skipped}
@@ -507,7 +542,7 @@
 					{:else if !set.completed}
 						<CheckIcon />
 					{:else}
-						<EditIcon />
+						<UndoIcon />
 					{/if}
 				</Button>
 			</div>
@@ -515,7 +550,6 @@
 		{#if (idx > 0 && (exercise.setType === 'MyorepMatch' || exercise.setType === 'MyorepMatchDown')) || exercise.setType === 'Drop'}
 			{#each set.miniSets as miniSet, miniIdx}
 				{@const miniSetButtonDisabled = shouldMiniSetBeDisabled(idx, miniIdx)}
-				{@const miniSetInputKey = `set-${idx}-mini-set-${miniIdx}`}
 				{#if set.skipped}
 					<div class="col-span-3 flex items-center gap-2">
 						<Separator class="w-px grow" />
@@ -531,54 +565,63 @@
 							<span></span>
 						{:else}
 							{@const expectedLoad = getMiniSetLoad(idx, miniIdx)}
-							<Input
+							<WorkoutNumberInput
+								aria-label={`Set ${idx + 1} mini-set ${miniIdx + 1} weight`}
 								class={cn(
 									'h-11 px-2 text-center',
 									isActiveMiniSet(idx, miniIdx) && 'border-[#78942d] ring-1 ring-[#78942d66]'
 								)}
 								id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-load"
-								disabled={miniSet.completed}
-								min={exercise.bodyweightFraction ? undefined : 0}
+								min={0}
 								placeholder={expectedLoad === undefined ? expectedLoad : expectedLoad.toString()}
 								required
 								step={0.25}
 								type="number"
 								inputmode="decimal"
-								bind:value={miniSet.load}
-								oninput={scheduleDraftSave}
-								onblur={flushDraftSave}
+								value={miniSet.load}
+								completed={miniSet.completed}
+								oncommit={(load) => {
+									miniSet.load = load;
+									scheduleDraftSave();
+								}}
+								onflush={flushDraftSave}
 							/>
 						{/if}
-						<Input
+						<WorkoutNumberInput
+							aria-label={`Set ${idx + 1} mini-set ${miniIdx + 1} reps`}
 							class={cn(
 								'h-11 px-2 text-center',
 								isActiveMiniSet(idx, miniIdx) && 'border-[#78942d] ring-1 ring-[#78942d66]'
 							)}
 							id="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-reps"
-							disabled={miniSet.completed}
 							pattern="[1-9][0-9]*"
 							required
 							type="text"
 							inputmode="numeric"
-							value={clearedRepInputs.has(miniSetInputKey) ? '' : (miniSet.reps ?? '')}
-							oninput={(event) => {
-								updateReps(event, miniSetInputKey, (reps) => (miniSet.reps = reps));
+							value={miniSet.reps}
+							completed={miniSet.completed}
+							integer
+							min={1}
+							oncommit={(reps) => {
+								miniSet.reps = reps;
 								scheduleDraftSave();
 							}}
-							onblur={flushDraftSave}
+							onflush={flushDraftSave}
 						/>
 						<Button
+							aria-label={miniSet.completed ? `Undo mini-set ${miniIdx + 1}` : `Log mini-set ${miniIdx + 1}`}
 							class={cn('h-11 w-11 place-self-end', isActiveMiniSet(idx, miniIdx) && 'ring-2 ring-[#a5c63a66]')}
 							data-testid="{exercise.name}-set-{idx + 1}-mini-set-{miniIdx + 1}-action"
-							disabled={miniSetButtonDisabled || (!miniSet.completed && !hasValidRIR(miniSet.RIR))}
+							disabled={miniSetButtonDisabled || (!miniSet.completed && !canLogPerformance(miniSet, 0))}
 							size="icon"
-							type="submit"
+							type={miniSet.completed ? 'button' : 'submit'}
+							onclick={miniSet.completed ? () => reopenMiniSet(set, miniIdx) : undefined}
 							variant={miniSet.completed ? 'outline' : 'default'}
 						>
 							{#if !miniSet.completed}
 								<CheckIcon />
 							{:else}
-								<EditIcon />
+								<UndoIcon />
 							{/if}
 						</Button>
 					</form>

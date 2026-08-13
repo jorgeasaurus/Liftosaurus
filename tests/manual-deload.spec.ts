@@ -172,6 +172,7 @@ test('legacy local storage keeps deload disabled after reopening a completed set
 				storageKey,
 				JSON.stringify({
 					workoutData: {
+						completionId: createId(),
 						startedAt: '2026-07-08T12:00:00.000Z',
 						endedAt: null,
 						userBodyweight: 190,
@@ -415,7 +416,7 @@ test('a user cannot replace another users workout while saving a deload', async 
 			endedAt: '2026-07-02',
 			data: {
 				draftOwnerUserId: userData.userId,
-				workoutData: { startedAt: '2026-07-02T12:00:00.000Z', userBodyweight: 999 },
+				workoutData: { completionId: createId(), startedAt: '2026-07-02T12:00:00.000Z', userBodyweight: 999 },
 				workoutExercises: [],
 				workoutExercisesSets: [],
 				workoutExercisesMiniSets: []
@@ -471,9 +472,15 @@ test('template name collisions reject the workout and preserve the current mesoc
 		client.workouts.create.mutate({
 			draftOwnerUserId: userData.userId,
 			workoutData: {
+				completionId: createId(),
 				startedAt: '2026-07-08T12:00:00.000Z',
 				userBodyweight: 190,
-				workoutOfMesocycle: { mesocycle: { id: mesocycle.id }, splitDayIndex: 0, workoutStatus: null }
+				workoutOfMesocycle: {
+					mesocycle: { id: mesocycle.id },
+					splitDayIndex: 0,
+					cycleNumber: 1,
+					workoutStatus: null
+				}
 			},
 			workoutExercises: [
 				{ ...workoutExercise(), name: 'Incline press', exerciseIndex: 0, isDeload: true },
@@ -492,9 +499,15 @@ test('template name collisions reject the workout and preserve the current mesoc
 		client.workouts.create.mutate({
 			draftOwnerUserId: userData.userId,
 			workoutData: {
+				completionId: createId(),
 				startedAt: '2026-07-08T12:00:00.000Z',
 				userBodyweight: 190,
-				workoutOfMesocycle: { mesocycle: { id: mesocycle.id }, splitDayIndex: 0, workoutStatus: null }
+				workoutOfMesocycle: {
+					mesocycle: { id: mesocycle.id },
+					splitDayIndex: 0,
+					cycleNumber: 1,
+					workoutStatus: null
+				}
 			},
 			workoutExercises: [
 				{ ...workoutExercise(), name: 'Incline press', exerciseIndex: 0, isDeload: true },
@@ -512,9 +525,15 @@ test('template name collisions reject the workout and preserve the current mesoc
 		client.workouts.create.mutate({
 			draftOwnerUserId: userData.userId,
 			workoutData: {
+				completionId: createId(),
 				startedAt: '2026-07-08T12:00:00.000Z',
 				userBodyweight: 190,
-				workoutOfMesocycle: { mesocycle: { id: mesocycle.id }, splitDayIndex: 0, workoutStatus: null }
+				workoutOfMesocycle: {
+					mesocycle: { id: mesocycle.id },
+					splitDayIndex: 0,
+					cycleNumber: 1,
+					workoutStatus: null
+				}
 			},
 			workoutExercises: [
 				{ ...workoutExercise(), name: 'Incline press', exerciseIndex: 0, isDeload: true },
@@ -575,9 +594,15 @@ test('reordered deload keeps its stable source template in contiguous workout or
 	await client.workouts.create.mutate({
 		draftOwnerUserId: userData.userId,
 		workoutData: {
+			completionId: createId(),
 			startedAt: '2026-07-08T12:00:00.000Z',
 			userBodyweight: 190,
-			workoutOfMesocycle: { mesocycle: { id: mesocycle.id }, splitDayIndex: 0, workoutStatus: null }
+			workoutOfMesocycle: {
+				mesocycle: { id: mesocycle.id },
+				splitDayIndex: 0,
+				cycleNumber: 1,
+				workoutStatus: null
+			}
 		},
 		workoutExercises: [
 			{ ...workoutExercise(), name: 'Cable fly', exerciseIndex: 0, isDeload: false },

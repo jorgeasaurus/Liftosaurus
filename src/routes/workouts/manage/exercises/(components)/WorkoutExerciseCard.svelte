@@ -2,7 +2,11 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { convertCamelCaseToNormal } from '$lib/utils';
-	import type { ManualDeloadTarget, WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
+	import {
+		markWorkoutExerciseStarted,
+		type ManualDeloadTarget,
+		type WorkoutExerciseInProgress
+	} from '$lib/utils/workoutUtils';
 	import { dragHandle } from 'svelte-dnd-action';
 	import GripVertical from 'virtual:icons/lucide/grip-vertical';
 	import MenuIcon from 'virtual:icons/lucide/menu';
@@ -45,6 +49,8 @@
 	);
 
 	async function skipSetsLeft() {
+		workoutRunes.markWorkoutStarted();
+		markWorkoutExerciseStarted(exercise);
 		exercise.sets.forEach((set) => {
 			if (set.completed) return;
 			set.skipped = true;

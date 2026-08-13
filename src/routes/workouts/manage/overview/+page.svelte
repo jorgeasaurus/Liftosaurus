@@ -7,7 +7,6 @@
 	import H3 from '$lib/components/ui/typography/H3.svelte';
 	import { trpc } from '$lib/trpc/client';
 	import type { RouterInputs } from '$lib/trpc/router';
-	import type { WorkoutExerciseInProgress } from '$lib/utils/workoutUtils';
 	import { TRPCClientError } from '@trpc/client';
 	import { toast } from 'svelte-sonner';
 	import LoaderCircle from 'virtual:icons/lucide/loader-circle';
@@ -18,10 +17,7 @@
 	import Quotes from '$lib/components/settings/Quotes.svelte';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import AlertTriangleIcon from 'virtual:icons/lucide/triangle-alert';
-	import {
-		ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED,
-		getPendingAdaptiveRepRangeConfirmation
-	} from '$lib/utils/adaptiveRepRanges';
+	import { buildWorkoutCreateInput, getAdaptiveOutliers, needsAdaptiveApproval } from '../workoutCompletion';
 
 	let { data } = $props();
 
@@ -32,106 +28,24 @@
 	type AdaptiveApproval = {
 		createData: RouterInputs['workouts']['create'];
 		outliers: { name: string; targets: string[] }[];
+		token: ReturnType<typeof workoutRunes.captureCompletionToken>;
 	};
 	let adaptiveApproval: AdaptiveApproval | null = $state(null);
 	let workoutExercises = $derived(workoutRunes.workoutExercises ?? []);
 
-	function getAdaptiveOutlierExercises() {
-		const mesocycleMode = workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.repRangeMode ?? 'Fixed';
-		return (workoutRunes.workoutExercises ?? []).flatMap((exercise) => {
-			if ((exercise.repRangeMode ?? mesocycleMode) !== 'Adaptive') return [];
-			const targets: string[] = [];
-			const sets = exercise.sets.flatMap((set, setIndex) =>
-				set.reps === undefined || set.RIR === undefined
-					? []
-					: [{ setIndex, reps: set.reps, RIR: set.RIR, skipped: set.skipped }]
-			);
-			const standard = getPendingAdaptiveRepRangeConfirmation({
-				mode: 'Adaptive',
-				established: exercise.repRangeStart !== 5 || exercise.repRangeEnd !== 30,
-				setType: exercise.setType,
-				sets
-			});
-			if (standard) targets.push(`${standard.reps} standard reps`);
-			if (exercise.setType === 'TopBackoff') {
-				const top = getPendingAdaptiveRepRangeConfirmation({
-					mode: 'Adaptive',
-					established: exercise.topRepRangeStart !== 5 || exercise.topRepRangeEnd !== 30,
-					setType: exercise.setType,
-					category: 'top',
-					sets
-				});
-				if (top) targets.push(`${top.reps} top-set reps`);
-			}
-			return targets.length ? [{ name: exercise.name, targets }] : [];
-		});
-	}
-
 	function preProcessSetData() {
 		if (workoutRunes.workoutData === null || workoutRunes.workoutExercises === null) return;
 		if (workoutRunes.ownerUserId === null) return;
-		savingWorkout = true;
-		const workoutExercisesSets = workoutRunes.workoutExercises.map((ex) => {
-			return ex.sets.map((_set, idx) => {
-				const { completed, plannedReps: _plannedReps, ...set } = _set;
-				if (set.skipped) [set.reps, set.load, set.RIR] = [0, 0, 0];
-				return { ...set, setIndex: idx };
-			});
-		});
-		const workoutExercisesMiniSets = workoutExercisesSets.map((sets) => sets.map((set) => set.miniSets));
-
 		if (typeof workoutRunes.workoutData?.userBodyweight !== 'number') {
 			toast.error('Invalid user bodyweight at start page');
 			return;
 		}
-		const userBodyweight = workoutRunes.workoutData.userBodyweight;
-
-		const createData: RouterInputs['workouts']['create'] = {
-			draftOwnerUserId: workoutRunes.ownerUserId,
-			workoutData: { ...workoutRunes.workoutData, userBodyweight, note: workoutRunes.workoutData.note ?? undefined },
-			workoutExercises: workoutRunes.workoutExercises.map((ex, idx) => {
-				const { sets, manualDeloadMetadata, workStarted, ...exercise } = ex;
-				return { ...exercise, exerciseIndex: idx };
-			}),
-			manualDeloadMetadata: workoutRunes.workoutExercises.map((exercise) =>
-				exercise.isDeload ? (exercise.manualDeloadMetadata ?? null) : null
-			),
-			workoutExercisesSets: workoutExercisesSets.map((sets) =>
-				sets.map((set) => {
-					const { miniSets, ...rest } = set;
-					if (rest.reps === undefined || rest.load === undefined || rest.RIR === undefined) {
-						throw new Error('Rep, Load, or RIR is undefined');
-					}
-					return {
-						...rest,
-						reps: rest.reps as number,
-						load: rest.load as number,
-						RIR: rest.RIR as number
-					};
-				})
-			),
-			workoutExercisesMiniSets: workoutExercisesMiniSets.map((sets, exerciseIndex) =>
-				sets.map((miniSets, setIndex) =>
-					miniSets.map((_miniSet, miniSetIndex) => {
-						const exercises = workoutRunes.workoutExercises as WorkoutExerciseInProgress[];
-						const { completed, ...miniSet } = _miniSet;
-						if (exercises[exerciseIndex].sets[setIndex].skipped) [miniSet.reps, miniSet.load, miniSet.RIR] = [0, 0, 0];
-
-						if (miniSet.reps === undefined || miniSet.load === undefined || miniSet.RIR === undefined) {
-							throw new Error('Rep, Load, or RIR is undefined');
-						}
-						return {
-							...miniSet,
-							reps: miniSet.reps as number,
-							load: miniSet.load as number,
-							RIR: miniSet.RIR as number,
-							miniSetIndex
-						};
-					})
-				)
-			)
-		};
-		return createData;
+		savingWorkout = true;
+		return buildWorkoutCreateInput({
+			ownerUserId: workoutRunes.ownerUserId,
+			workoutData: workoutRunes.workoutData,
+			workoutExercises: workoutRunes.workoutExercises
+		});
 	}
 
 	async function persistWorkout(createData: RouterInputs['workouts']['create']) {
@@ -148,22 +62,40 @@
 		createData: RouterInputs['workouts']['create'],
 		outliers: { name: string; targets: string[] }[]
 	) {
-		adaptiveApproval = { createData, outliers };
+		adaptiveApproval = { createData, outliers, token: workoutRunes.captureCompletionToken() };
 		savingWorkout = false;
 	}
 
-	async function completeWorkoutSave(createData: RouterInputs['workouts']['create']) {
+	async function completeWorkoutSave(
+		createData: RouterInputs['workouts']['create'],
+		outliers: AdaptiveApproval['outliers'],
+		reviewedToken = workoutRunes.captureCompletionToken()
+	) {
 		try {
+			const editing = workoutRunes.editingWorkoutId !== null;
+			let completionToken: ReturnType<typeof workoutRunes.captureCompletionToken> = null;
+			if (!editing) {
+				await workoutRunes.saveStoresToLocalStorage();
+				if (reviewedToken?.serializedDraft !== workoutRunes.captureCompletionToken()?.serializedDraft) {
+					toast.info('Workout changed. Review the updated results before saving.');
+					return;
+				}
+				const refreshedData = preProcessSetData();
+				if (!refreshedData) return;
+				refreshedData.confirmAdaptiveRepRangeOutliers = createData.confirmAdaptiveRepRangeOutliers;
+				createData = refreshedData;
+				if (workoutRunes.workoutData && workoutRunes.workoutExercises) {
+					outliers = getAdaptiveOutliers(workoutRunes.workoutData, workoutRunes.workoutExercises);
+				}
+				completionToken = workoutRunes.captureCompletionToken();
+				if (!completionToken) return;
+			}
 			let result;
 			try {
 				result = await persistWorkout(createData);
 			} catch (error) {
-				if (
-					error instanceof TRPCClientError &&
-					error.message === ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED &&
-					!createData.confirmAdaptiveRepRangeOutliers
-				) {
-					requestAdaptiveApproval(createData, getAdaptiveOutlierExercises());
+				if (needsAdaptiveApproval(error, createData)) {
+					requestAdaptiveApproval(createData, outliers);
 					return;
 				}
 				throw error;
@@ -173,14 +105,23 @@
 			const completedMesocycleId = result.mesocycleCompleted
 				? workoutRunes.workoutData?.workoutOfMesocycle?.mesocycle.id
 				: undefined;
-
+			if (completionToken) await workoutRunes.finalizeCompletion(completionToken);
+			else await workoutRunes.resetStores();
 			if (completedMesocycleId) await goto(`/mesocycles/${completedMesocycleId}?completion`);
 			else await goto('/workouts');
-
-			await workoutRunes.resetStores();
 			// Prevent a stale, unfinished mesocycle split edit from surviving a workout that changed the split.
 			mesocycleExerciseSplitRunes.resetStores();
 		} catch (error) {
+			if (
+				error instanceof TRPCClientError &&
+				error.data?.code === 'CONFLICT' &&
+				workoutRunes.editingWorkoutId === null
+			) {
+				await workoutRunes.convertCurrentWorkoutToFree();
+				toast.info('Your plan advanced elsewhere. This work was kept as a free workout; review and save again.');
+				await goto('/workouts/manage/exercises?keepCurrent');
+				return;
+			}
 			if (error instanceof TRPCClientError) toast.error(error.message);
 		} finally {
 			savingWorkout = false;
@@ -189,11 +130,16 @@
 
 	async function approveAdaptiveOutliers() {
 		if (!adaptiveApproval) return;
-		const { createData } = adaptiveApproval;
+		const { createData, outliers, token } = adaptiveApproval;
+		if (token && token.serializedDraft !== workoutRunes.captureCompletionToken()?.serializedDraft) {
+			adaptiveApproval = null;
+			toast.info('Workout changed. Review the updated results before saving.');
+			return;
+		}
 		createData.confirmAdaptiveRepRangeOutliers = true;
 		adaptiveApproval = null;
 		savingWorkout = true;
-		await completeWorkoutSave(createData);
+		await completeWorkoutSave(createData, outliers, token);
 	}
 
 	function cancelAdaptiveApproval() {
@@ -216,13 +162,16 @@
 			savingWorkout = false;
 			return;
 		}
-		const outliers = getAdaptiveOutlierExercises();
+		const outliers =
+			workoutRunes.workoutData && workoutRunes.workoutExercises
+				? getAdaptiveOutliers(workoutRunes.workoutData, workoutRunes.workoutExercises)
+				: [];
 		if (outliers.length) {
 			requestAdaptiveApproval(createData, outliers);
 			return;
 		}
 		createData.confirmAdaptiveRepRangeOutliers = false;
-		await completeWorkoutSave(createData);
+		await completeWorkoutSave(createData, outliers);
 	}
 </script>
 

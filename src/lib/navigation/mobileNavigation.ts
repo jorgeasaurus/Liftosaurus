@@ -1,5 +1,5 @@
 export const mobileSections = [
-	{ id: 'workout', label: 'Workout', href: '/dashboard', paths: ['/dashboard', '/workouts/manage'] },
+	{ id: 'workout', label: 'Workout', href: '/workout', paths: ['/workout', '/workouts/manage'] },
 	{ id: 'history', label: 'History', href: '/workouts', paths: ['/workouts'] },
 	{ id: 'plans', label: 'Plans', href: '/plans', paths: ['/plans', '/mesocycles', '/exercise-splits'] },
 	{ id: 'exercises', label: 'Exercises', href: '/exercises', paths: ['/exercises', '/exercise-stats'] },

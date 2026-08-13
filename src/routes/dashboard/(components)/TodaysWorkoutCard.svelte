@@ -19,6 +19,10 @@
 	async function createNewWorkout() {
 		if (await workoutRunes.beginNewWorkout()) await goto('/workouts/manage/start');
 	}
+
+	async function openCurrentWorkout() {
+		await goto('/workout');
+	}
 </script>
 
 <Card.Root
@@ -44,6 +48,11 @@
 				<Card.Content class="p-5 pt-0 text-sm leading-relaxed text-muted-foreground lg:p-6 lg:pt-0">
 					No session scheduled today. Recovery is where the growth happens — eat well and sleep well.
 				</Card.Content>
+				<Card.Footer class="p-5 pt-1 lg:p-6 lg:pt-0">
+					<Button class="w-full sm:ml-auto sm:w-auto" onclick={openCurrentWorkout} variant="secondary">
+						View current day
+					</Button>
+				</Card.Footer>
 			{:else}
 				{@const rir = getRIRForWeek(wm.mesocycle.RIRProgression, wm.cycleNumber)}
 				{@const muscleGroups = Array.from(
@@ -92,10 +101,10 @@
 				<Card.Footer class="p-5 pt-1 lg:p-6 lg:pt-0">
 					<Button
 						class="pressable-control h-12 w-full gap-2 text-base sm:ml-auto sm:w-auto lg:h-10 lg:text-sm"
-						onclick={createNewWorkout}
+						onclick={openCurrentWorkout}
 					>
 						<PlayIcon class="h-5 w-5 lg:h-4 lg:w-4" />
-						Start workout
+						Open workout
 					</Button>
 				</Card.Footer>
 			{/if}
