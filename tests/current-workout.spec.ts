@@ -215,6 +215,22 @@ test('concurrent retries finish the same draft only once', async ({ userData }) 
 	await expect(prisma.workout.count({ where: { userId: userData.userId, completionId } })).resolves.toBe(1);
 });
 
+test('free workouts accept completion IDs without mesocycle cycle metadata', async ({ userData }) => {
+	const caller = createCaller({ userId: userData.userId, event: null as never });
+	const completionId = createId();
+
+	await expect(
+		caller.workouts.create({
+			draftOwnerUserId: userData.userId,
+			workoutData: { completionId, userBodyweight: 190 },
+			workoutExercises: [],
+			workoutExercisesSets: [],
+			workoutExercisesMiniSets: []
+		})
+	).resolves.toMatchObject({ message: 'Workout created successfully' });
+	await expect(prisma.workout.count({ where: { userId: userData.userId, completionId } })).resolves.toBe(1);
+});
+
 test('reusing a completion ID with different workout data is rejected', async ({ userData }) => {
 	const caller = createCaller({ userId: userData.userId, event: null as never });
 	const completionId = createId();
