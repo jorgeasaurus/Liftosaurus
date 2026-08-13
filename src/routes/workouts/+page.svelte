@@ -172,7 +172,7 @@
 			</Button>
 		</div>
 
-		<div class="flex gap-1.5 overflow-x-auto pb-1" aria-label="Quick workout filters">
+		<div class="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Quick workout filters">
 			{#each workoutStatusFilters as filter}
 				<button
 					type="button"

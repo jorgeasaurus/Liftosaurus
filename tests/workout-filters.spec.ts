@@ -82,6 +82,7 @@ test('quick workout filters update status without clearing other filters', async
 	});
 
 	await page.goto('/workouts?startDate=2026-08-01');
+	await expect(page.getByRole('group', { name: 'Quick workout filters' })).toBeVisible();
 	await page.getByRole('button', { name: 'Normal', exact: true }).click();
 
 	await expect(page).toHaveURL(/startDate=2026-08-01/);
