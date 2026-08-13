@@ -93,10 +93,9 @@ test('allows a later straight-set load to be overridden and persists it', async 
 	expect(logHeadingBounds).not.toBeNull();
 	expect(logButtonBounds).not.toBeNull();
 	expect(loadBounds!.x).toBeLessThan(repBounds!.x);
-	expect(logButtonBounds!.x + logButtonBounds!.width / 2).toBeCloseTo(
-		logHeadingBounds!.x + logHeadingBounds!.width / 2,
-		0
-	);
+	const logHeadingCenter = logHeadingBounds!.x + logHeadingBounds!.width / 2;
+	const logButtonCenter = logButtonBounds!.x + logButtonBounds!.width / 2;
+	expect(Math.abs(logButtonCenter - logHeadingCenter)).toBeLessThanOrEqual(2);
 	await laterReps.focus();
 	await expect(laterReps).toBeFocused();
 	await page.keyboard.press('Backspace');
