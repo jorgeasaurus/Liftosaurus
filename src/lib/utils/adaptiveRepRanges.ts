@@ -66,6 +66,10 @@ export function matchesAdaptivePerformanceIdentity(
 
 export type ResolvedRepRange = AdaptiveRepRange & { status: 'fixed' | 'pending' | 'established' };
 
+export type PendingAdaptiveRepRangeConfirmation = { category: 'standard' | 'top'; reps: number };
+export const ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED =
+	'Confirm adaptive working sets outside the 5–30 rep range before saving';
+
 function rangeFromPerformance({ reps, RIR }: WorkingSet): AdaptiveRepRange {
 	const normalizedReps = Math.min(30, Math.max(5, reps + RIR - 3));
 	return {
@@ -107,11 +111,28 @@ export function needsAdaptiveRepRangeConfirmation({
 	category?: 'standard' | 'top';
 	sets: WorkingSet[];
 }) {
-	if (mode !== 'Adaptive' || established) return false;
+	return Boolean(getPendingAdaptiveRepRangeConfirmation({ mode, established, setType, category, sets }));
+}
+
+export function getPendingAdaptiveRepRangeConfirmation({
+	mode,
+	established,
+	setType,
+	category = 'standard',
+	sets
+}: {
+	mode: 'Fixed' | 'Adaptive';
+	established: boolean;
+	setType: string;
+	category?: 'standard' | 'top';
+	sets: WorkingSet[];
+}): PendingAdaptiveRepRangeConfirmation | null {
+	if (mode !== 'Adaptive' || established) return null;
 	const firstEligibleSet = sets.find(
 		(set) => !set.skipped && (category === 'top' ? set.setIndex === 0 : setType !== 'TopBackoff' || set.setIndex > 0)
 	);
-	return Boolean(firstEligibleSet && (firstEligibleSet.reps < 5 || firstEligibleSet.reps > 30));
+	if (!firstEligibleSet || (firstEligibleSet.reps >= 5 && firstEligibleSet.reps <= 30)) return null;
+	return { category, reps: firstEligibleSet.reps };
 }
 
 export function reconcileAdaptiveRepRanges(

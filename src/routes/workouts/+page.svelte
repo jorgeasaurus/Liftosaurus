@@ -15,17 +15,39 @@
 	import { workoutRunes } from './manage/workoutRunes.svelte.js';
 	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
 	import ChevronRightIcon from 'virtual:icons/lucide/chevron-right';
+	import { cn } from '$lib/utils';
+
+	const workoutStatusFilters = [
+		{ label: 'All', value: undefined },
+		{ label: 'Normal', value: [null] },
+		{ label: 'Skipped', value: ['Skipped'] },
+		{ label: 'Rest', value: ['RestDay'] }
+	] satisfies { label: string; value: (WorkoutStatus | null)[] | undefined }[];
 
 	let { data } = $props();
 	let workouts: RouterOutputs['workouts']['load'] = $state([]);
+	let filterGeneration = $state(0);
+	let requestedFilterKey = $page.url.search;
+	let lastPageFilterKey = $page.url.search;
 	let currentFilters = $derived(getCurrentFilters());
 
-	function getCurrentFilters() {
+	$effect(() => {
+		const currentFilterKey = $page.url.search;
+		if (currentFilterKey === lastPageFilterKey) return;
+
+		lastPageFilterKey = currentFilterKey;
+		if (currentFilterKey === requestedFilterKey) return;
+		requestedFilterKey = currentFilterKey;
+		filterGeneration += 1;
+		workouts = [];
+	});
+
+	function getCurrentFilters(searchParams = $page.url.searchParams) {
 		const currentFilters: Exclude<RouterInputs['workouts']['load']['filters'], undefined> = {};
-		const startDate = $page.url.searchParams.get('startDate');
-		const endDate = $page.url.searchParams.get('endDate');
-		const selectedMesocycles = $page.url.searchParams.get('selectedMesocycles');
-		const selectedWorkoutStatuses = $page.url.searchParams.get('selectedWorkoutStatuses');
+		const startDate = searchParams.get('startDate');
+		const endDate = searchParams.get('endDate');
+		const selectedMesocycles = searchParams.get('selectedMesocycles');
+		const selectedWorkoutStatuses = searchParams.get('selectedWorkoutStatuses');
 
 		if (startDate) {
 			currentFilters.startDate = new Date(startDate);
@@ -44,12 +66,15 @@
 	}
 
 	async function loadMore(infiniteEvent: InfiniteLoadingEvents['infinite']) {
+		const generation = filterGeneration;
+		const filterKey = requestedFilterKey;
 		const lastWorkout = workouts.at(-1);
 
 		const newWorkouts = await trpc().workouts.load.query({
 			cursorId: lastWorkout?.id,
-			filters: getCurrentFilters()
+			filters: getCurrentFilters(new URLSearchParams(filterKey))
 		});
+		if (filterGeneration !== generation || requestedFilterKey !== filterKey) return;
 
 		if (newWorkouts.length === 0) {
 			infiniteEvent.detail.complete();
@@ -90,15 +115,32 @@
 			newURL.searchParams.delete('selectedMesocycles');
 		}
 
-		if (selectedWorkoutStatus !== undefined) {
-			newURL.searchParams.set('selectedWorkoutStatuses', JSON.stringify(selectedWorkoutStatus));
-		} else {
-			newURL.searchParams.delete('selectedWorkoutStatuses');
-		}
+		setWorkoutStatusSearchParam(newURL, selectedWorkoutStatus);
+		commitFilterURL(newURL);
+	}
 
+	function setWorkoutStatusFilter(selectedWorkoutStatuses: (WorkoutStatus | null)[] | undefined) {
+		const newURL = new URL($page.url);
+		setWorkoutStatusSearchParam(newURL, selectedWorkoutStatuses);
+		commitFilterURL(newURL);
+	}
+
+	function setWorkoutStatusSearchParam(url: URL, selectedWorkoutStatuses: (WorkoutStatus | null)[] | undefined) {
+		if (selectedWorkoutStatuses === undefined) url.searchParams.delete('selectedWorkoutStatuses');
+		else url.searchParams.set('selectedWorkoutStatuses', JSON.stringify(selectedWorkoutStatuses));
+	}
+
+	function commitFilterURL(newURL: URL) {
 		if (newURL.toString() === $page.url.toString()) return;
+		requestedFilterKey = newURL.search;
+		filterGeneration += 1;
 		workouts = [];
 		goto(newURL);
+	}
+
+	function isWorkoutStatusFilterActive(value: (WorkoutStatus | null)[] | undefined) {
+		const selected = currentFilters.selectedWorkoutStatuses;
+		return value === undefined ? selected === undefined : selected?.length === 1 && selected[0] === value[0];
 	}
 </script>
 
@@ -128,6 +170,24 @@
 			>
 				<AddIcon class="h-4 w-4" />
 			</Button>
+		</div>
+
+		<div class="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Quick workout filters">
+			{#each workoutStatusFilters as filter}
+				<button
+					type="button"
+					aria-pressed={isWorkoutStatusFilterActive(filter.value)}
+					class={cn(
+						'pressable-control min-h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors',
+						isWorkoutStatusFilterActive(filter.value)
+							? 'border-primary/50 bg-primary text-primary-foreground'
+							: 'border-border bg-muted/35 text-muted-foreground hover:bg-muted hover:text-foreground'
+					)}
+					onclick={() => setWorkoutStatusFilter(filter.value)}
+				>
+					{filter.label}
+				</button>
+			{/each}
 		</div>
 
 		<div class="flex h-px grow flex-col overflow-y-auto pr-1">
@@ -161,7 +221,9 @@
 					/>
 				</Button>
 			{/each}
-			<DefaultInfiniteLoader {loadMore} identifier={currentFilters} entityPlural="workouts" />
+			{#key $page.url.search}
+				<DefaultInfiniteLoader {loadMore} identifier={$page.url.search} entityPlural="workouts" />
+			{/key}
 		</div>
 	</div>
 </section>

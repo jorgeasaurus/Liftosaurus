@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	learnAdaptiveRepRanges,
+	getPendingAdaptiveRepRangeConfirmation,
 	matchesAdaptivePerformanceIdentity,
 	needsAdaptiveRepRangeConfirmation,
 	reconcileAdaptiveRepRanges,
@@ -61,6 +62,10 @@ test('only pending adaptive parent performances outside 5-30 require confirmatio
 	assert.equal(
 		needsAdaptiveRepRangeConfirmation({ mode: 'Adaptive', established: false, setType: 'Straight', sets }),
 		true
+	);
+	assert.deepEqual(
+		getPendingAdaptiveRepRangeConfirmation({ mode: 'Adaptive', established: false, setType: 'Straight', sets }),
+		{ category: 'standard', reps: 31 }
 	);
 	assert.equal(
 		needsAdaptiveRepRangeConfirmation({ mode: 'Adaptive', established: true, setType: 'Straight', sets }),

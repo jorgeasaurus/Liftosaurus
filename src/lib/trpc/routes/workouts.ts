@@ -4,6 +4,7 @@ import { t } from '$lib/trpc/t';
 import { runSerializableTransaction } from '$lib/trpc/transaction';
 import { createWorkoutGraph, syncWorkoutExerciseTemplates } from '$lib/trpc/workoutCompletion';
 import { arraySum } from '$lib/utils';
+import { ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED } from '$lib/utils/adaptiveRepRanges';
 import {
 	buildBodyFatSeries,
 	buildBodyweightSeries,
@@ -425,7 +426,7 @@ export const workouts = t.router({
 					if (adaptiveResult.confirmationRequired && !confirmAdaptiveRepRangeOutliers) {
 						throw new TRPCError({
 							code: 'BAD_REQUEST',
-							message: 'Confirm adaptive working sets outside the 5–30 rep range before saving'
+							message: ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED
 						});
 					}
 				}
@@ -761,7 +762,7 @@ export const workouts = t.router({
 				if (adaptiveResult.confirmationRequired && !input.confirmAdaptiveRepRangeOutliers) {
 					throw new TRPCError({
 						code: 'BAD_REQUEST',
-						message: 'Confirm adaptive working sets outside the 5–30 rep range before saving'
+						message: ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED
 					});
 				}
 			}
@@ -900,7 +901,7 @@ export const workouts = t.router({
 					if (adaptiveResult.confirmationRequired && !input.data.confirmAdaptiveRepRangeOutliers) {
 						throw new TRPCError({
 							code: 'BAD_REQUEST',
-							message: 'Confirm adaptive working sets outside the 5–30 rep range before saving'
+							message: ADAPTIVE_REP_RANGE_CONFIRMATION_REQUIRED
 						});
 					}
 				}

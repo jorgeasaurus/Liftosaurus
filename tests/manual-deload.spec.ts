@@ -282,6 +282,7 @@ test('mixed deload history resolves each exercise from its latest normal workout
 	await page.getByPlaceholder('Type here').fill('200');
 	await page.getByRole('button', { name: 'Next' }).click();
 	for (const exerciseName of ['Bench press', 'Cable fly']) {
+		await page.locator(`[id="${exerciseName}-RIR"]`).fill('2');
 		for (let setNumber = 1; setNumber <= 3; setNumber += 1) {
 			await page.locator(`[id="${exerciseName}-set-${setNumber}-reps"]`).fill('10');
 			if (setNumber === 1) {
@@ -289,16 +290,17 @@ test('mixed deload history resolves each exercise from its latest normal workout
 					.locator(`[id="${exerciseName}-set-${setNumber}-load"]`)
 					.fill(exerciseName === 'Bench press' ? '100' : '50');
 			}
-			await page.locator(`[id="${exerciseName}-set-${setNumber}-RIR"]`).fill('2');
 			await page.getByTestId(`${exerciseName}-set-${setNumber}-action`).click();
 		}
 	}
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 	await expect(
-		page.getByText(
-			'Overall comparison is unavailable because the latest normal exercise baselines come from different workouts.'
-		)
+		page.getByText('The chart is unavailable because these exercise baselines come from different workouts.')
 	).toBeVisible();
+	await expect(page.getByRole('row', { name: /Bench press/ })).toBeVisible();
+	await expect(page.getByRole('row', { name: /Cable fly/ })).toContainText(
+		/600.*1(?:[\s,.\u00a0\u202f])?950.*\+225\.0%/
+	);
 });
 
 test('mixed deload comparison includes only matched normal exercises', async ({ page, userData }) => {
@@ -369,24 +371,23 @@ test('mixed deload comparison includes only matched normal exercises', async ({ 
 		['Cable fly', 2, '50'],
 		['Curl', 2, '25']
 	] as const) {
+		await page.locator(`[id="${exerciseName}-RIR"]`).fill('2');
 		for (let setNumber = 1; setNumber <= setCount; setNumber += 1) {
 			await page
 				.locator(`[id="${exerciseName}-set-${setNumber}-reps"]`)
 				.fill(exerciseName === 'Bench press' ? '5' : '10');
 			if (setNumber === 1) await page.locator(`[id="${exerciseName}-set-${setNumber}-load"]`).fill(load);
-			await page.locator(`[id="${exerciseName}-set-${setNumber}-RIR"]`).fill('2');
 			await page.getByTestId(`${exerciseName}-set-${setNumber}-action`).click();
 		}
 	}
-	await page.getByRole('button', { name: 'Next' }).click();
+	await page.getByRole('button', { name: 'Finish workout' }).click();
 
 	await expect(page.locator('#chart-canvas')).toBeVisible();
 	await expect(page.getByText('No comparable normal exercise performances are available.')).toHaveCount(0);
 	await expect(
-		page.getByText(
-			'Overall comparison is unavailable because the latest normal exercise baselines come from different workouts.'
-		)
+		page.getByText('The chart is unavailable because these exercise baselines come from different workouts.')
 	).toHaveCount(0);
+	await expect(page.getByRole('row', { name: /Cable fly/ })).toBeVisible();
 });
 
 test('a user cannot replace another users workout while saving a deload', async ({ page, userData }) => {
