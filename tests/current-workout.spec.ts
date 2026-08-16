@@ -195,6 +195,134 @@ test('Workout prepares the next planned session with the latest measurements', a
 		.toEqual([188, 17.25]);
 });
 
+test('Workout advances from a completed Thursday session to Friday', async ({ page, userData }) => {
+	await prisma.workout.create({
+		data: {
+			userId: userData.userId,
+			userBodyweight: 187,
+			startedAt: new Date('2026-08-13T12:00:00.000Z'),
+			endedAt: new Date('2026-08-13T13:00:00.000Z')
+		}
+	});
+	const mesocycle = await prisma.mesocycle.create({
+		data: {
+			name: 'Thursday Friday plan',
+			userId: userData.userId,
+			RIRProgression: [1],
+			startDate: new Date('2026-08-13T00:00:00.000Z'),
+			startOverloadPercentage: 2,
+			lastSetToFailure: false,
+			forceRIRMatching: false,
+			mesocycleExerciseSplitDays: {
+				create: [
+					{
+						name: 'Thursday',
+						dayIndex: 0,
+						isRestDay: false,
+						mesocycleSplitDayExercises: {
+							create: plannedExercise('Thursday press', 'Chest')
+						}
+					},
+					{
+						name: 'Friday',
+						dayIndex: 1,
+						isRestDay: false,
+						mesocycleSplitDayExercises: {
+							create: plannedExercise('Friday row', 'Traps')
+						}
+					}
+				]
+			}
+		}
+	});
+
+	const caller = createCaller({ userId: userData.userId, event: null as never });
+	const thursdayData = await caller.workouts.getTodaysWorkoutData();
+	await prisma.workout.create({
+		data: {
+			userId: userData.userId,
+			userBodyweight: 187,
+			startedAt: new Date('2026-08-14T12:00:00.000Z'),
+			endedAt: new Date('2026-08-14T13:00:00.000Z'),
+			workoutOfMesocycle: { create: { mesocycleId: mesocycle.id, splitDayIndex: 0, workoutStatus: null } }
+		}
+	});
+	await expect(caller.workouts.getTodaysWorkoutData()).resolves.toMatchObject({
+		workoutOfMesocycle: { splitDayName: 'Friday', splitDayIndex: 1 }
+	});
+
+	const keys = workoutDraftStorageKeys(userData.userId);
+	await page.goto('/');
+	await page.evaluate(
+		({ keys, thursdayData, version }) => {
+			localStorage.setItem(
+				keys.active,
+				JSON.stringify({
+					version,
+					draft: {
+						workoutData: thursdayData,
+						workoutExercises: [
+							{
+								name: 'Thursday press',
+								targetMuscleGroup: 'Chest',
+								customMuscleGroup: null,
+								bodyweightFraction: null,
+								setType: 'Straight',
+								changeType: null,
+								changeAmount: null,
+								repRangeStart: 5,
+								repRangeEnd: 12,
+								note: null,
+								overloadPercentage: null,
+								lastSetToFailure: null,
+								forceRIRMatching: null,
+								minimumWeightChange: 5,
+								topRepRangeStart: null,
+								topRepRangeEnd: null,
+								isDeload: false,
+								workStarted: true,
+								sets: [{ load: 100, reps: 10, RIR: 2, completed: true, skipped: false, miniSets: [] }]
+							}
+						],
+						previousWorkoutData: null
+					}
+				})
+			);
+			sessionStorage.setItem(keys.mode, 'active');
+		},
+		{ keys, thursdayData, version: WORKOUT_DRAFT_RECORD_VERSION }
+	);
+	await page.reload();
+
+	await page.goto('/workout');
+	await expect(page).toHaveURL('/workouts/manage/exercises?keepCurrent&current', { timeout: 30_000 });
+	await expect(page.getByText('Friday', { exact: true })).toBeVisible();
+	await expect(page.getByText('Friday row', { exact: true })).toBeVisible();
+	await expect(page.getByText('Thursday press', { exact: true })).toHaveCount(0);
+});
+
+function plannedExercise(name: string, targetMuscleGroup: 'Chest' | 'Traps') {
+	return {
+		name,
+		exerciseIndex: 0,
+		targetMuscleGroup,
+		bodyweightFraction: null,
+		setType: 'Straight' as const,
+		sets: 1,
+		changeType: null,
+		changeAmount: null,
+		repRangeStart: 5,
+		repRangeEnd: 12,
+		note: null,
+		overloadPercentage: null,
+		lastSetToFailure: null,
+		forceRIRMatching: null,
+		minimumWeightChange: 5,
+		topRepRangeStart: null,
+		topRepRangeEnd: null
+	};
+}
+
 test('concurrent retries finish the same draft only once', async ({ userData }) => {
 	const caller = createCaller({ userId: userData.userId, event: null as never });
 	const completionId = createId();

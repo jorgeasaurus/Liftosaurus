@@ -48,6 +48,19 @@
 		userBodyFat = workout.userBodyFat ?? null;
 	}
 
+	function isSamePlannedWorkout(left: CurrentWorkoutData, right: CurrentWorkoutData) {
+		const leftPlan = left.workoutOfMesocycle;
+		const rightPlan = right.workoutOfMesocycle;
+		return (
+			leftPlan !== undefined &&
+			rightPlan !== undefined &&
+			leftPlan.mesocycle.id === rightPlan.mesocycle.id &&
+			leftPlan.splitDayIndex === rightPlan.splitDayIndex &&
+			leftPlan.cycleNumber === rightPlan.cycleNumber &&
+			leftPlan.workoutStatus === rightPlan.workoutStatus
+		);
+	}
+
 	async function openLogger() {
 		await goto('/workouts/manage/exercises?keepCurrent&current', { replaceState: true });
 	}
@@ -89,38 +102,42 @@
 
 			while (mounted && generation === resolutionGeneration) {
 				const storageRevision = workoutRunes.externalStorageRevision;
-				const restoredWorkout = workoutRunes.workoutData;
+				let selectedWorkout = workoutRunes.workoutData;
+				let restored = selectedWorkout !== null;
 
-				if (restoredWorkout) {
-					if (restoredWorkout.workoutOfMesocycle?.workoutStatus === 'RestDay') {
-						selectWorkout(restoredWorkout);
-						await workoutRunes.saveStoresToLocalStorage();
-						if (!isCurrentResolution(generation, storageRevision)) continue;
-						status = measurementsAreValid() ? 'rest' : 'measurements';
-						return;
-					}
-					if (workoutRunes.workoutExercises !== null) {
-						await openLogger();
-						return;
-					}
-					selectWorkout(restoredWorkout);
-				} else {
+				if (selectedWorkout?.workoutOfMesocycle) {
 					const serverWorkout = await data.workoutData;
-					if (!isCurrentResolution(generation, storageRevision) || workoutRunes.workoutData !== null) continue;
-					selectWorkout(serverWorkout);
-					if (!serverWorkout.workoutOfMesocycle) {
-						status = 'noPlan';
-						return;
-					}
-					if (serverWorkout.workoutOfMesocycle.workoutStatus === 'RestDay') {
-						workoutRunes.workoutData = serverWorkout;
-						workoutRunes.workoutExercises = [];
-						workoutRunes.previousWorkoutData = null;
-						await workoutRunes.saveStoresToLocalStorage();
+					if (!isCurrentResolution(generation, storageRevision)) continue;
+					if (!isSamePlannedWorkout(selectedWorkout, serverWorkout)) {
+						await workoutRunes.resetStores();
 						if (!isCurrentResolution(generation, storageRevision)) continue;
-						status = measurementsAreValid() ? 'rest' : 'measurements';
-						return;
+						selectedWorkout = serverWorkout;
+						restored = false;
 					}
+				}
+
+				if (!selectedWorkout) {
+					selectedWorkout = await data.workoutData;
+					if (!isCurrentResolution(generation, storageRevision) || workoutRunes.workoutData !== null) continue;
+				}
+
+				selectWorkout(selectedWorkout);
+				if (!restored && !selectedWorkout.workoutOfMesocycle) {
+					status = 'noPlan';
+					return;
+				}
+				if (selectedWorkout.workoutOfMesocycle?.workoutStatus === 'RestDay') {
+					workoutRunes.workoutData = selectedWorkout;
+					workoutRunes.workoutExercises = [];
+					workoutRunes.previousWorkoutData = null;
+					await workoutRunes.saveStoresToLocalStorage();
+					if (!isCurrentResolution(generation, storageRevision)) continue;
+					status = measurementsAreValid() ? 'rest' : 'measurements';
+					return;
+				}
+				if (restored && workoutRunes.workoutExercises !== null) {
+					await openLogger();
+					return;
 				}
 
 				const result = await hydrateSelectedWorkout(generation, storageRevision);
