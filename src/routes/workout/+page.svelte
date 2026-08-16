@@ -106,7 +106,7 @@
 				let restored = selectedWorkout !== null;
 
 				if (selectedWorkout?.workoutOfMesocycle) {
-					const serverWorkout = await trpc().workouts.getTodaysWorkoutData.query();
+					const serverWorkout = await data.workoutData;
 					if (!isCurrentResolution(generation, storageRevision)) continue;
 					if (!isSamePlannedWorkout(selectedWorkout, serverWorkout)) {
 						await workoutRunes.resetStores();
