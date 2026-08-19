@@ -10,7 +10,13 @@ import { sequence } from '@sveltejs/kit/hooks';
 const { handle: authHandle } = SvelteKitAuth({
 	adapter: PrismaAdapter(prisma),
 	basePath: '/auth',
-	providers: [github],
+	providers: [
+		github({
+			// GitHub returns RFC 9207 iss=https://github.com/login/oauth on the callback.
+			// Without this, oauth4webapi expects https://authjs.dev and rejects sign-in.
+			issuer: 'https://github.com/login/oauth'
+		})
+	],
 	trustHost: true,
 	callbacks: {
 		session({ session, user }) {
