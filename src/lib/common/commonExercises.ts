@@ -811,6 +811,18 @@ export const commonExercisePerMuscleGroup: {
 				note: 'Feet high for quad focus, push up, control return.'
 			},
 			{
+				name: 'Hammer pendulum squats',
+				targetMuscleGroup: 'Quads',
+				customMuscleGroup: null,
+				bodyweightFraction: null,
+				setType: 'Straight',
+				repRangeStart: 10,
+				repRangeEnd: 20,
+				changeType: null,
+				changeAmount: null,
+				note: 'Feet shoulder-width, squat deep, drive through quads, control return.'
+			},
+			{
 				name: 'Lunges',
 				targetMuscleGroup: 'Quads',
 				customMuscleGroup: null,
