@@ -24,11 +24,12 @@ model User {
   sessions       Session[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
-  exerciseSplits ExerciseSplit[]
-  mesocycles     Mesocycle[]
-  workouts       Workout[]
-  migratedFromV2 Boolean?
-  settings       UserSettings?
+  exerciseSplits   ExerciseSplit[]
+  mesocycles       Mesocycle[]
+  workouts         Workout[]
+  customExercises  CustomExercise[]
+  migratedFromV2   Boolean?
+  settings         UserSettings?
 }
 
 model Account {

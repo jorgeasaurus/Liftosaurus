@@ -169,6 +169,7 @@ export async function buildUserJsonBackup(userId: string, exportedAt = new Date(
 		exerciseSplits,
 		exerciseSplitDays,
 		exerciseTemplates,
+		customExercises,
 		mesocycles,
 		mesocycleCyclicSetChanges,
 		mesocycleExerciseSplitDays,
@@ -201,6 +202,10 @@ export async function buildUserJsonBackup(userId: string, exportedAt = new Date(
 		db.exerciseTemplate.findMany({
 			where: { exerciseSplitDay: { exerciseSplit: { userId } } },
 			orderBy: [{ exerciseSplitDayId: 'asc' }, { exerciseIndex: 'asc' }, { id: 'asc' }]
+		}),
+		db.customExercise.findMany({
+			where: { userId },
+			orderBy: [{ name: 'asc' }, { id: 'asc' }]
 		}),
 		db.mesocycle.findMany({ where: { userId }, orderBy: [{ startDate: 'asc' }, { id: 'asc' }] }),
 		db.mesocycleCyclicSetChange.findMany({
@@ -248,6 +253,7 @@ export async function buildUserJsonBackup(userId: string, exportedAt = new Date(
 			exerciseSplits,
 			exerciseSplitDays,
 			exerciseTemplates,
+			customExercises,
 			mesocycles,
 			mesocycleCyclicSetChanges,
 			mesocycleExerciseSplitDays,

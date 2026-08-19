@@ -1,4 +1,5 @@
 import { prisma } from '$lib/prisma';
+import { persistCustomExercises } from '$lib/server/customExercises';
 import { z } from 'zod';
 import { t } from '$lib/trpc/t';
 import {
@@ -57,6 +58,7 @@ const createOrEditExerciseSplit = async (
 	if (editingId) transactionQueries.unshift(prisma.exerciseSplit.delete({ where: { id: editingId, userId } }));
 
 	await prisma.$transaction(transactionQueries);
+	await persistCustomExercises(userId, input.splitExercises.flat(), prisma);
 };
 
 export const exerciseSplits = t.router({

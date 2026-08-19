@@ -1,0 +1,21 @@
+model CustomExercise {
+  id                 String      @id @default(cuid()) /// @zod.string.cuid2()
+  userId             String
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  nameNormalized     String
+  targetMuscleGroup  MuscleGroup
+  customMuscleGroup  String?
+  bodyweightFraction Float?
+  setType            SetType     @default(Straight)
+  repRangeStart      Int
+  repRangeEnd        Int
+  changeType         ChangeType?
+  changeAmount       Float?
+  note               String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@unique([userId, nameNormalized])
+  @@index([userId])
+}

@@ -214,6 +214,7 @@ test('downloads complete owner-only exports without authentication secrets', asy
 		expect(backup.data.user.id).toBe(ownerId);
 		expect(Object.keys(backup.data).sort()).toEqual(
 			[
+				'customExercises',
 				'exerciseSplitDays',
 				'exerciseSplits',
 				'exerciseTemplates',

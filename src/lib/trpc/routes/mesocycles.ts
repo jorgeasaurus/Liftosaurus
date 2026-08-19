@@ -1,4 +1,5 @@
 import { prisma } from '$lib/prisma';
+import { persistCustomExercises } from '$lib/server/customExercises';
 import { z } from 'zod';
 import { t } from '$lib/trpc/t';
 import { runSerializableTransaction } from '$lib/trpc/transaction';
@@ -197,6 +198,7 @@ export const mesocycles = t.router({
 				prisma.mesocycleExerciseTemplate.createMany({ data: mesocycleExerciseTemplates })
 			]);
 		}
+		await persistCustomExercises(ctx.userId, input.mesocycleExerciseTemplates.flat(), prisma);
 		return { message: 'Mesocycle created successfully' };
 	}),
 
@@ -393,6 +395,7 @@ export const mesocycles = t.router({
 				where: { id: { notIn: dayIds }, mesocycleId: mesocycle.id }
 			});
 		});
+		await persistCustomExercises(ctx.userId, input.mesocycleExerciseTemplates.flat(), prisma);
 		return { message: 'Mesocycle exercise split edited successfully' };
 	}),
 
