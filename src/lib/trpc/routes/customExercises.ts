@@ -7,6 +7,7 @@ import {
 import { t } from '$lib/trpc/t';
 import { isBuiltInExerciseName } from '$lib/utils/exerciseCatalog';
 import { TRPCError } from '@trpc/server';
+import { createId } from '@paralleldrive/cuid2';
 import { z } from 'zod';
 
 const ownedCustomExerciseIdSchema = z.strictObject({
@@ -40,7 +41,7 @@ export const customExercises = t.router({
 		try {
 			return await prisma.customExercise.upsert({
 				where: { userId_nameNormalized: { userId: ctx.userId, nameNormalized: data.nameNormalized } },
-				create: { userId: ctx.userId, ...data },
+				create: { id: createId(), userId: ctx.userId, ...data },
 				update: data
 			});
 		} catch (error) {

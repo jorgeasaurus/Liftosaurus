@@ -1,6 +1,7 @@
 import { isBuiltInExerciseName, normalizeExerciseName } from '$lib/utils/exerciseCatalog';
 import { ChangeTypeSchema, MuscleGroupSchema, SetTypeSchema } from '$lib/zodSchemas';
 import type { ChangeType, MuscleGroup, PrismaClient, SetType } from '@prisma/client';
+import { createId } from '@paralleldrive/cuid2';
 import { z } from 'zod';
 
 type CustomExerciseDb = Pick<PrismaClient, 'customExercise'>;
@@ -135,7 +136,7 @@ export async function persistCustomExercises(
 
 		await db.customExercise.upsert({
 			where: { userId_nameNormalized: { userId, nameNormalized: data.nameNormalized } },
-			create: { userId, ...data },
+			create: { id: createId(), userId, ...data },
 			update: {}
 		});
 	}

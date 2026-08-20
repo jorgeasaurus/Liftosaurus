@@ -513,7 +513,7 @@ export const users = t.router({
 				data: { name: input.newName }
 			});
 			await prisma.customExercise.updateMany({
-				where: { userId: ctx.userId, name: input.oldName },
+				where: { userId: ctx.userId, nameNormalized: normalizeExerciseName(input.oldName) },
 				data: { name: input.newName, nameNormalized: normalizeExerciseName(input.newName) }
 			});
 			return { count };
@@ -533,7 +533,7 @@ export const users = t.router({
 				throw new TRPCError({ code: 'NOT_FOUND', message: 'Historical exercise performances not found' });
 			}
 			await prisma.customExercise.updateMany({
-				where: { userId: ctx.userId, name: input.exerciseName },
+				where: { userId: ctx.userId, nameNormalized: normalizeExerciseName(input.exerciseName) },
 				data: {
 					targetMuscleGroup: input.targetMuscleGroup,
 					customMuscleGroup: input.customMuscleGroup

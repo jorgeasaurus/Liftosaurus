@@ -54,14 +54,14 @@ test('built-in names cannot become per-account custom catalog rows', () => {
 });
 
 test('persistCustomExercises writes only the owning user and skips built-ins', async () => {
-	const upserts: Array<{ userId: string; name: string }> = [];
+	const upserts: Array<{ id?: string; userId: string; name: string }> = [];
 	const db = {
 		customExercise: {
 			upsert: async (args: {
 				where: { userId_nameNormalized: { userId: string } };
-				create: { userId: string; name: string };
+				create: { id: string; userId: string; name: string };
 			}) => {
-				upserts.push({ userId: args.create.userId, name: args.create.name });
+				upserts.push({ id: args.create.id, userId: args.create.userId, name: args.create.name });
 				return args.create;
 			}
 		}
@@ -101,8 +101,13 @@ test('persistCustomExercises writes only the owning user and skips built-ins', a
 		db as never
 	);
 
-	assert.deepEqual(upserts, [
-		{ userId: 'user-a', name: "Jorge's cable sweep" },
-		{ userId: 'user-b', name: 'Other-user jefferson curl' }
-	]);
+	assert.equal(upserts.length, 2);
+	assert.equal(upserts[0].userId, 'user-a');
+	assert.equal(upserts[0].name, "Jorge's cable sweep");
+	assert.equal(typeof upserts[0].id, 'string');
+	assert.ok(upserts[0].id && upserts[0].id.length > 0);
+	assert.equal(upserts[1].userId, 'user-b');
+	assert.equal(upserts[1].name, 'Other-user jefferson curl');
+	assert.equal(typeof upserts[1].id, 'string');
+	assert.ok(upserts[1].id && upserts[1].id.length > 0);
 });
