@@ -5,7 +5,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "vite dev --host",
-		"build": "prisma migrate deploy && vite build",
+		"build": "vite build",
 		"preview": "vite preview --host",
 		"test": "playwright test",
 		"test:unit": "node --import tsx --test tests/unit/*.unit.ts",
