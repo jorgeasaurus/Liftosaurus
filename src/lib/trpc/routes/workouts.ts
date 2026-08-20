@@ -1,6 +1,8 @@
 import { prisma } from '$lib/prisma';
+import { persistCustomExercises, toCustomExerciseSummary } from '$lib/server/customExercises';
 import { reconcileAdaptiveRepRangesInTransaction, toProposedAdaptivePerformance } from '$lib/trpc/adaptiveRepRanges';
 import { t } from '$lib/trpc/t';
+import { mergePickableUserExercises } from '$lib/utils/exerciseCatalog';
 import { runSerializableTransaction } from '$lib/trpc/transaction';
 import { createWorkoutGraph, syncWorkoutExerciseTemplates } from '$lib/trpc/workoutCompletion';
 import { arraySum } from '$lib/utils';
@@ -912,6 +914,7 @@ export const workouts = t.router({
 		if (workoutOfMesocycle?.workoutStatus === 'Skipped') {
 			message = 'Workout skipped successfully';
 		}
+		await persistCustomExercises(ctx.userId, input.workoutExercises, prisma);
 		return { message, mesocycleCompleted };
 	}),
 
@@ -1032,6 +1035,7 @@ export const workouts = t.router({
 					workoutOfMesocycle: workoutOfMesocycle ?? undefined
 				});
 			});
+			await persistCustomExercises(ctx.userId, input.data.workoutExercises, prisma);
 			return { message: 'Workout edited successfully' };
 		}),
 
@@ -1136,15 +1140,34 @@ export const workouts = t.router({
 		}),
 
 	getUserExercises: t.procedure.input(z.enum(['minimal', 'extensive'])).query(async ({ ctx, input }) => {
-		const selectQuery: Prisma.WorkoutExerciseSelect | undefined =
-			input === 'minimal' ? { name: true, targetMuscleGroup: true, customMuscleGroup: true } : undefined;
+		const [customExercises, historyExercises] = await Promise.all([
+			prisma.customExercise.findMany({
+				where: { userId: ctx.userId },
+				orderBy: [{ name: 'asc' }, { id: 'asc' }]
+			}),
+			prisma.workoutExercise.findMany({
+				where: { workout: { userId: ctx.userId } },
+				distinct: ['name'],
+				orderBy: { workout: { startedAt: 'desc' } },
+				select:
+					input === 'minimal'
+						? { name: true, targetMuscleGroup: true, customMuscleGroup: true }
+						: {
+								name: true,
+								targetMuscleGroup: true,
+								customMuscleGroup: true,
+								bodyweightFraction: true,
+								setType: true,
+								repRangeStart: true,
+								repRangeEnd: true,
+								changeType: true,
+								changeAmount: true,
+								note: true
+							}
+			})
+		]);
 
-		return prisma.workoutExercise.findMany({
-			where: { workout: { userId: ctx.userId } },
-			distinct: ['name'],
-			orderBy: { workout: { startedAt: 'desc' } },
-			select: selectQuery
-		});
+		return mergePickableUserExercises(customExercises.map(toCustomExerciseSummary), historyExercises);
 	})
 });
 

@@ -20,6 +20,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { getShortDateFromTimestamp } from '$lib/utils';
 import { QuotesDisplayModeSchema } from '$lib/zodSchemas';
 import { historicalExerciseMuscleGroupUpdateSchema } from '$lib/utils/exerciseMuscleGroup';
+import { normalizeExerciseName } from '$lib/utils/exerciseCatalog';
 
 function toPascalCase(text: V2MuscleGroup) {
 	const output = text
@@ -511,6 +512,10 @@ export const users = t.router({
 				where: { workout: { userId: ctx.userId }, name: input.oldName },
 				data: { name: input.newName }
 			});
+			await prisma.customExercise.updateMany({
+				where: { userId: ctx.userId, nameNormalized: normalizeExerciseName(input.oldName) },
+				data: { name: input.newName, nameNormalized: normalizeExerciseName(input.newName) }
+			});
 			return { count };
 		}),
 
@@ -527,6 +532,13 @@ export const users = t.router({
 			if (count === 0) {
 				throw new TRPCError({ code: 'NOT_FOUND', message: 'Historical exercise performances not found' });
 			}
+			await prisma.customExercise.updateMany({
+				where: { userId: ctx.userId, nameNormalized: normalizeExerciseName(input.exerciseName) },
+				data: {
+					targetMuscleGroup: input.targetMuscleGroup,
+					customMuscleGroup: input.customMuscleGroup
+				}
+			});
 			return {
 				count,
 				exercise: {

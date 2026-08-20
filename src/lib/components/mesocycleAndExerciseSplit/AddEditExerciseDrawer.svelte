@@ -11,7 +11,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { trpc } from '$lib/trpc/client';
 	import { convertCamelCaseToNormal } from '$lib/utils';
-	import { buildExerciseCatalog, type ExerciseCatalogItem } from '$lib/utils/exerciseCatalog';
+	import { buildExerciseCatalog, isBuiltInExerciseName, type ExerciseCatalogItem } from '$lib/utils/exerciseCatalog';
 	import { ChangeType, MuscleGroup, ProgressionVariable, RepRangeMode, SetType } from '$lib/utils/prismaEnums';
 	import type { Mesocycle } from '@prisma/client';
 	import { onMount } from 'svelte';
@@ -34,8 +34,11 @@
 		editExercise: (exercise: T) => boolean | Promise<boolean>;
 	};
 
+	type CatalogExerciseTemplate = SplitExerciseTemplateWithoutIdsOrIndex & { id?: string };
+
 	type PropsType =
 		| ({ context: 'exerciseSplit' } & CommonProps<SplitExerciseTemplateWithoutIdsOrIndex>)
+		| ({ context: 'catalog' } & CommonProps<CatalogExerciseTemplate>)
 		| ({
 				context: 'mesocycle';
 				mesocycle: Mesocycle;
@@ -49,11 +52,33 @@
 	type FullExerciseTemplate = NonUndefined<PropsType['editingExercise']>;
 
 	let { ...props }: PropsType = $props();
+	const mesocycle = $derived(props.context === 'mesocycle' || props.context === 'workout' ? props.mesocycle : undefined);
 	let allGroupedExercises = $state(buildExerciseCatalog());
 
 	onMount(async () => {
 		allGroupedExercises = buildExerciseCatalog(await trpc().workouts.getUserExercises.query('minimal'));
 	});
+
+	async function refreshCatalog() {
+		allGroupedExercises = buildExerciseCatalog(await trpc().workouts.getUserExercises.query('minimal'));
+	}
+
+	async function persistCustomExercise(exercise: Pick<FullExerciseTemplate, 'name'> & Partial<FullExerciseTemplate>) {
+		if (!exercise.name || isBuiltInExerciseName(exercise.name)) return;
+		await trpc().customExercises.upsert.mutate({
+			name: exercise.name,
+			targetMuscleGroup: exercise.targetMuscleGroup!,
+			customMuscleGroup: exercise.customMuscleGroup ?? null,
+			bodyweightFraction: exercise.bodyweightFraction ?? null,
+			setType: exercise.setType,
+			repRangeStart: exercise.repRangeStart,
+			repRangeEnd: exercise.repRangeEnd,
+			changeType: exercise.changeType ?? null,
+			changeAmount: exercise.changeAmount ?? null,
+			note: exercise.note ?? null
+		});
+		await refreshCatalog();
+	}
 
 	const extraMesocycleProps: Partial<MesocycleExerciseTemplateWithoutIdsOrIndex> = {
 		sets: undefined,
@@ -76,7 +101,7 @@
 		name: '',
 		setType: 'Straight',
 		bodyweightFraction: null,
-		...(props.context !== 'exerciseSplit' && structuredClone(extraMesocycleProps))
+		...(props.context !== 'exerciseSplit' && props.context !== 'catalog' && structuredClone(extraMesocycleProps))
 	};
 
 	let open = $state(false);
@@ -116,7 +141,7 @@
 		currentExercise = structuredClone({
 			...defaultExercise,
 			...template,
-			...(props.context !== 'exerciseSplit' && structuredClone(extraMesocycleProps))
+			...(props.context !== 'exerciseSplit' && props.context !== 'catalog' && structuredClone(extraMesocycleProps))
 		});
 		searching = false;
 	}
@@ -136,7 +161,7 @@
 		if ('sets' in finishedExercise) {
 			if (mode === 'Add') result = await props.addExercise(finishedExercise);
 			else result = await props.editExercise(finishedExercise);
-		} else if (props.context === 'exerciseSplit') {
+		} else if (props.context === 'exerciseSplit' || props.context === 'catalog') {
 			if (mode === 'Add') result = await props.addExercise(finishedExercise);
 			else result = await props.editExercise(finishedExercise);
 		}
@@ -144,6 +169,13 @@
 		if (!result) {
 			toast.error('Exercise names should be unique');
 			return;
+		}
+		if (props.context !== 'catalog') {
+			try {
+				await persistCustomExercise(finishedExercise);
+			} catch {
+				toast.error('Saved in this plan, but the custom exercise could not be added to your private catalog');
+			}
 		}
 		resetDrawerState();
 		open = false;
@@ -584,7 +616,7 @@
 					<Input
 						id="exercise-override-overload-percentage-value"
 						disabled={currentExercise.overloadPercentage === null}
-						placeholder={props.mesocycle?.startOverloadPercentage.toString()}
+						placeholder={mesocycle?.startOverloadPercentage.toString()}
 						required
 						step={0.1}
 						type="number"
@@ -599,7 +631,7 @@
 							checked={currentExercise.forceRIRMatching !== null}
 							onCheckedChange={(c) => {
 								if (c !== 'indeterminate' && 'sets' in currentExercise)
-									currentExercise.forceRIRMatching = c ? props.mesocycle?.forceRIRMatching : null;
+									currentExercise.forceRIRMatching = c ? mesocycle?.forceRIRMatching : null;
 							}}
 						/>
 					</div>
@@ -608,7 +640,7 @@
 							<Switch
 								id="exercise-override-force-RIR-matching-value"
 								name="exercise-override-force-RIR-matching-value"
-								checked={currentExercise.forceRIRMatching ?? props.mesocycle?.forceRIRMatching}
+								checked={currentExercise.forceRIRMatching ?? mesocycle?.forceRIRMatching}
 								disabled={currentExercise.forceRIRMatching === null}
 								onCheckedChange={(c) => {
 									if ('sets' in currentExercise) currentExercise.forceRIRMatching = c;
@@ -625,7 +657,7 @@
 							checked={currentExercise.lastSetToFailure !== null}
 							onCheckedChange={(c) => {
 								if (c !== 'indeterminate' && 'sets' in currentExercise)
-									currentExercise.lastSetToFailure = c ? props.mesocycle?.lastSetToFailure : null;
+									currentExercise.lastSetToFailure = c ? mesocycle?.lastSetToFailure : null;
 							}}
 						/>
 					</div>
@@ -634,7 +666,7 @@
 							<Switch
 								id="exercise-override-last-set-to-failure-value"
 								name="exercise-override-last-set-to-failure-value"
-								checked={currentExercise.lastSetToFailure ?? props.mesocycle?.lastSetToFailure}
+								checked={currentExercise.lastSetToFailure ?? mesocycle?.lastSetToFailure}
 								disabled={currentExercise.lastSetToFailure === null}
 								onCheckedChange={(c) => {
 									if ('sets' in currentExercise) currentExercise.lastSetToFailure = c;

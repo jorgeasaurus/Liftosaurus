@@ -1,12 +1,20 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
+	import AddEditExerciseDrawer from '$lib/components/mesocycleAndExerciseSplit/AddEditExerciseDrawer.svelte';
+	import type { SplitExerciseTemplateWithoutIdsOrIndex } from '$lib/components/mesocycleAndExerciseSplit/commonTypes';
+	import ResponsiveDialog from '$lib/components/ResponsiveDialog.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Sheet from '$lib/components/ui/sheet';
+	import { trpc } from '$lib/trpc/client';
 	import { cn, convertCamelCaseToNormal } from '$lib/utils';
 	import { buildExerciseCatalog } from '$lib/utils/exerciseCatalog';
+	import { toast } from 'svelte-sonner';
 	import ChartIcon from 'virtual:icons/lucide/chart-column';
 	import FilterIcon from 'virtual:icons/lucide/list-filter';
 	import SearchIcon from 'virtual:icons/lucide/search';
+
+	type CatalogExercise = SplitExerciseTemplateWithoutIdsOrIndex & { id?: string };
 
 	let { data } = $props();
 	let catalog = $derived(buildExerciseCatalog(data.userExercises));
@@ -18,6 +26,10 @@
 	let search = $state('');
 	let selectedMuscleGroups = $state<string[]>([]);
 	let filterOpen = $state(false);
+	let editingExercise = $state<CatalogExercise | undefined>(undefined);
+	let deletingExercise = $state<{ id: string; name: string } | undefined>(undefined);
+	let deleteConfirmOpen = $state(false);
+	let deleting = $state(false);
 
 	let filteredExercises = $derived(
 		exercises.filter(
@@ -32,6 +44,74 @@
 			? selectedMuscleGroups.filter((group) => group !== muscleGroup)
 			: [...selectedMuscleGroups, muscleGroup];
 	}
+
+	function toCatalogWrite(exercise: CatalogExercise) {
+		return {
+			name: exercise.name,
+			targetMuscleGroup: exercise.targetMuscleGroup,
+			customMuscleGroup: exercise.customMuscleGroup ?? null,
+			bodyweightFraction: exercise.bodyweightFraction ?? null,
+			setType: exercise.setType,
+			repRangeStart: exercise.repRangeStart,
+			repRangeEnd: exercise.repRangeEnd,
+			changeType: exercise.changeType ?? null,
+			changeAmount: exercise.changeAmount ?? null,
+			note: exercise.note ?? null
+		};
+	}
+
+	async function addExercise(exercise: CatalogExercise) {
+		try {
+			await trpc().customExercises.upsert.mutate(toCatalogWrite(exercise));
+			await invalidateAll();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async function editExercise(exercise: CatalogExercise) {
+		if (!editingExercise?.id) return false;
+		try {
+			await trpc().customExercises.updateById.mutate({ id: editingExercise.id, ...toCatalogWrite(exercise) });
+			await invalidateAll();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	function startEdit(exercise: (typeof exercises)[number]) {
+		if (exercise.type !== 'personal' || !exercise.customExerciseId) return;
+		editingExercise = {
+			id: exercise.customExerciseId,
+			name: exercise.name,
+			targetMuscleGroup: exercise.targetMuscleGroup,
+			customMuscleGroup: exercise.customMuscleGroup,
+			bodyweightFraction: exercise.bodyweightFraction ?? null,
+			setType: exercise.setType ?? 'Straight',
+			repRangeStart: exercise.repRangeStart ?? 8,
+			repRangeEnd: exercise.repRangeEnd ?? 12,
+			changeType: exercise.changeType ?? null,
+			changeAmount: exercise.changeAmount ?? null,
+			note: exercise.note ?? null
+		};
+	}
+
+	async function deleteCustomExercise() {
+		if (!deletingExercise) return;
+		deleting = true;
+		try {
+			await trpc().customExercises.deleteById.mutate(deletingExercise.id);
+			await invalidateAll();
+			deletingExercise = undefined;
+			deleteConfirmOpen = false;
+		} catch {
+			toast.error('Could not delete custom exercise');
+		} finally {
+			deleting = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -45,13 +125,22 @@
 			<p class="text-xs font-semibold uppercase tracking-[0.14em] text-[#9dadbe]">Library</p>
 			<h1 class="mt-1 text-3xl font-semibold tracking-[-0.035em] text-[#e9eef5]">Exercises</h1>
 		</div>
-		<a
-			class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#303844] bg-[#171e27] px-3 text-sm font-semibold text-[#dfe6ef]"
-			href="/exercise-stats"
-		>
-			<ChartIcon class="h-4 w-4" />
-			Progress
-		</a>
+		<div class="flex items-center gap-2">
+			<AddEditExerciseDrawer
+				{addExercise}
+				context="catalog"
+				{editExercise}
+				{editingExercise}
+				setEditingExercise={(exercise) => (editingExercise = exercise)}
+			/>
+			<a
+				class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#303844] bg-[#171e27] px-3 text-sm font-semibold text-[#dfe6ef]"
+				href="/exercise-stats"
+			>
+				<ChartIcon class="h-4 w-4" />
+				Progress
+			</a>
+		</div>
 	</header>
 
 	<div class="flex gap-2">
@@ -115,7 +204,11 @@
 	<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
 		<div class="grid gap-2 pb-2 sm:grid-cols-2">
 			{#each filteredExercises as exercise}
-				<article class="rounded-xl border border-[#252c34] bg-[#11161d] px-3 py-3">
+				<article
+					class="rounded-xl border border-[#252c34] bg-[#11161d] px-3 py-3"
+					data-exercise-name={exercise.name}
+					data-exercise-type={exercise.type}
+				>
 					<div class="flex items-start justify-between gap-2">
 						<h2 class="text-sm font-semibold leading-snug text-[#e9eef5]">{exercise.name}</h2>
 						<span class="shrink-0 rounded-md bg-[#1a2330] px-1.5 py-0.5 text-[10px] font-semibold text-[#9db0c7]">
@@ -126,11 +219,30 @@
 						<p class="mt-2 text-xs text-[#8797a7]">
 							{exercise.repRangeStart}–{exercise.repRangeEnd} reps · {convertCamelCaseToNormal(exercise.setType)} sets
 						</p>
+					{:else if exercise.type === 'personal' && exercise.customExerciseId}
+						<p class="mt-2 text-xs text-[#8797a7]">Private custom exercise</p>
 					{:else}
 						<p class="mt-2 text-xs text-[#8797a7]">Saved from your workout history</p>
 					{/if}
 					{#if exercise.type === 'builtIn' && exercise.note}
 						<p class="mt-2 line-clamp-2 text-xs leading-relaxed text-[#9dadbe]">{exercise.note}</p>
+					{/if}
+					{#if exercise.type === 'personal' && exercise.customExerciseId}
+						<div class="mt-3 flex gap-2">
+							<Button class="h-9" onclick={() => startEdit(exercise)} size="sm" variant="secondary">Edit</Button>
+							<Button
+								class="h-9"
+								onclick={() => {
+									if (exercise.type !== 'personal' || !exercise.customExerciseId) return;
+									deletingExercise = { id: exercise.customExerciseId, name: exercise.name };
+									deleteConfirmOpen = true;
+								}}
+								size="sm"
+								variant="destructive"
+							>
+								Delete
+							</Button>
+						</div>
 					{/if}
 				</article>
 			{:else}
@@ -142,3 +254,10 @@
 		</div>
 	</div>
 </section>
+
+<ResponsiveDialog title="Delete custom exercise?" bind:open={deleteConfirmOpen}>
+	{#snippet description()}
+		{deletingExercise?.name} will be removed from your private catalog. Existing workouts keep the name.
+	{/snippet}
+	<Button disabled={deleting} onclick={deleteCustomExercise} variant="destructive">Yes, delete</Button>
+</ResponsiveDialog>
