@@ -261,6 +261,50 @@ function findProgressionPerformances(
 	});
 }
 
+export function getExerciseNamesNeedingPreviousMesocycleFallback(
+	exercises: ProgressionExerciseIdentity[],
+	workoutsOfMesocycle: ProgressionWorkouts,
+	currentSplitDayIndex: number
+): string[] {
+	const templateIdsWithPerformance = new Set<string>();
+	const namesOnSplitDay = new Set<string>();
+	const namesOnSplitDayWithoutTemplateId = new Set<string>();
+
+	for (const { workout, splitDayIndex } of workoutsOfMesocycle) {
+		for (const candidate of workout.workoutExercises) {
+			if (!isProgressionPerformance(candidate)) continue;
+			if (candidate.mesocycleExerciseTemplateId) {
+				templateIdsWithPerformance.add(candidate.mesocycleExerciseTemplateId);
+			}
+			if (splitDayIndex !== currentSplitDayIndex) continue;
+			namesOnSplitDay.add(candidate.name);
+			if (!candidate.mesocycleExerciseTemplateId) namesOnSplitDayWithoutTemplateId.add(candidate.name);
+		}
+	}
+
+	return [
+		...new Set(
+			exercises
+				.filter((exercise) => {
+					if (exercise.mesocycleExerciseTemplateId) {
+						if (templateIdsWithPerformance.has(exercise.mesocycleExerciseTemplateId)) return false;
+						return !namesOnSplitDayWithoutTemplateId.has(exercise.name);
+					}
+					return !namesOnSplitDay.has(exercise.name);
+				})
+				.map((exercise) => exercise.name)
+		)
+	];
+}
+
+export function pickLatestExercisesByName<T extends { name: string }>(exercises: readonly T[]): T[] {
+	const latestByName = new Map<string, T>();
+	for (const exercise of exercises) {
+		if (!latestByName.has(exercise.name)) latestByName.set(exercise.name, exercise);
+	}
+	return [...latestByName.values()];
+}
+
 export function getProgressionPerformances(
 	exerciseIdentity: ProgressionExerciseIdentity,
 	workoutsOfMesocycle: ProgressionWorkouts,

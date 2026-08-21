@@ -15,9 +15,10 @@ import {
 	buildWorkVolumeSeries
 } from '$lib/utils/dashboardMetrics';
 import {
+	getExerciseNamesNeedingPreviousMesocycleFallback,
 	getPreviousWorkoutExercisePerformances,
-	getProgressionPerformances,
 	hasAlignedManualDeloadMetadata,
+	pickLatestExercisesByName,
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithPreviousBodyweight
@@ -177,30 +178,26 @@ async function getPreviousMesocycleProgressionWorkouts(
 ): Promise<ProgressionWorkouts> {
 	if (exerciseNames.length === 0) return [];
 
-	const latestExercises = await Promise.all(
-		exerciseNames.map((name) =>
-			prisma.workoutExercise.findFirst({
-				where: {
-					name,
-					isDeload: false,
-					workout: {
-						userId,
-						workoutOfMesocycle: {
-							mesocycleId: { not: currentMesocycleId },
-							splitDayIndex,
-							workoutStatus: null
-						}
-					}
-				},
-				orderBy: [{ workout: { startedAt: 'desc' } }, { id: 'desc' }],
-				include: previousMesocycleLatestExerciseInclude
-			})
-		)
-	);
+	const matchingExercises = await prisma.workoutExercise.findMany({
+		where: {
+			name: { in: exerciseNames },
+			isDeload: false,
+			workout: {
+				userId,
+				workoutOfMesocycle: {
+					mesocycleId: { not: currentMesocycleId },
+					splitDayIndex,
+					workoutStatus: null
+				}
+			}
+		},
+		orderBy: [{ workout: { startedAt: 'desc' } }, { id: 'desc' }],
+		include: previousMesocycleLatestExerciseInclude
+	});
 
-	return latestExercises.flatMap((exercise) => {
-		const membership = exercise?.workout.workoutOfMesocycle;
-		if (!exercise || !membership) return [];
+	return pickLatestExercisesByName(matchingExercises).flatMap((exercise) => {
+		const membership = exercise.workout.workoutOfMesocycle;
+		if (!membership) return [];
 		const { workoutOfMesocycle: _membership, ...workout } = exercise.workout;
 		const { workout: _workout, ...workoutExercise } = exercise;
 		return [
@@ -759,20 +756,14 @@ export const workouts = t.router({
 			if (isRestDay) return workoutExercisesWithPreviousData;
 
 			const todaysExercises = data.mesocycleExerciseSplitDays[splitDayIndex]?.mesocycleSplitDayExercises ?? [];
-			const exerciseNamesNeedingPreviousMesocycle = [
-				...new Set(
-					todaysExercises
-						.filter(
-							(exercise) =>
-								getProgressionPerformances(
-									{ name: exercise.name, mesocycleExerciseTemplateId: exercise.id },
-									data.workoutsOfMesocycle,
-									splitDayIndex
-								).length === 0
-						)
-						.map((exercise) => exercise.name)
-				)
-			];
+			const exerciseNamesNeedingPreviousMesocycle = getExerciseNamesNeedingPreviousMesocycleFallback(
+				todaysExercises.map((exercise) => ({
+					name: exercise.name,
+					mesocycleExerciseTemplateId: exercise.id
+				})),
+				data.workoutsOfMesocycle,
+				splitDayIndex
+			);
 			const previousMesocycleWorkouts = await getPreviousMesocycleProgressionWorkouts(
 				ctx.userId,
 				data.id,

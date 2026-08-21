@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ActiveMesocycleWithProgressionData } from '../../src/lib/trpc/routes/workouts.js';
 import {
+	getExerciseNamesNeedingPreviousMesocycleFallback,
 	getPreviousWorkoutExercisePerformances,
 	getProgressionPerformances,
+	pickLatestExercisesByName,
 	progressiveOverloadMagic
 } from '../../src/lib/utils/workoutUtils.js';
 
@@ -317,5 +319,70 @@ test('previous workout comparison uses previous-meso data only until this meso h
 			load: sets[0].load
 		})),
 		[{ name: 'Bench press', userBodyweight: 192, load: 110 }]
+	);
+});
+
+test('a batched previous-meso history keeps only the newest row per exercise name', () => {
+	const latest = pickLatestExercisesByName([
+		{ name: 'Bench press', load: 115 },
+		{ name: 'Squat', load: 225 },
+		{ name: 'Bench press', load: 100 },
+		{ name: 'Squat', load: 205 }
+	]);
+
+	assert.deepEqual(latest, [
+		{ name: 'Bench press', load: 115 },
+		{ name: 'Squat', load: 225 }
+	]);
+});
+
+test('previous-meso names are queried only when this meso has no matching non-deload log', () => {
+	const todaysExercises = [
+		{ name: 'Bench press', mesocycleExerciseTemplateId: 'new-template' },
+		{ name: 'Squat', mesocycleExerciseTemplateId: 'new-squat' }
+	];
+
+	assert.deepEqual(getExerciseNamesNeedingPreviousMesocycleFallback(todaysExercises, [], 0), ['Bench press', 'Squat']);
+	assert.deepEqual(
+		getExerciseNamesNeedingPreviousMesocycleFallback(
+			todaysExercises,
+			[
+				workoutMembership({
+					id: 'current-bench',
+					mesocycleId: 'new-mesocycle',
+					startedAt: '2026-08-01T12:00:00Z',
+					load: 110,
+					templateId: 'new-template'
+				})
+			],
+			0
+		),
+		['Squat']
+	);
+	assert.deepEqual(
+		getExerciseNamesNeedingPreviousMesocycleFallback(
+			todaysExercises,
+			[
+				workoutMembership({
+					id: 'deload-bench',
+					mesocycleId: 'new-mesocycle',
+					startedAt: '2026-08-01T12:00:00Z',
+					load: 55,
+					templateId: 'new-template',
+					isDeload: true
+				}),
+				workoutMembership({
+					id: 'other-day-squat',
+					mesocycleId: 'new-mesocycle',
+					startedAt: '2026-08-02T12:00:00Z',
+					load: 225,
+					name: 'Squat',
+					templateId: 'unrelated-squat',
+					splitDayIndex: 1
+				})
+			],
+			0
+		),
+		['Bench press', 'Squat']
 	);
 });
