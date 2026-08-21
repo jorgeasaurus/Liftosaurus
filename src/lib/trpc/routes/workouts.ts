@@ -15,8 +15,10 @@ import {
 	buildWorkVolumeSeries
 } from '$lib/utils/dashboardMetrics';
 import {
+	getExerciseNamesNeedingPreviousMesocycleFallback,
 	getPreviousWorkoutExercisePerformances,
 	hasAlignedManualDeloadMetadata,
+	pickLatestExercisesByName,
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
 	type WorkoutExerciseWithPreviousBodyweight
@@ -153,6 +155,67 @@ const createActiveMesocycleWithProgressionDataInclude = (splitDayIndex?: number)
 export type ActiveMesocycleWithProgressionData = Prisma.MesocycleGetPayload<{
 	include: ReturnType<typeof createActiveMesocycleWithProgressionDataInclude>;
 }>;
+
+type ProgressionWorkouts = ActiveMesocycleWithProgressionData['workoutsOfMesocycle'];
+
+const previousMesocycleLatestExerciseInclude = {
+	sets: {
+		include: { miniSets: { orderBy: { miniSetIndex: 'asc' as const } } },
+		orderBy: { setIndex: 'asc' as const }
+	},
+	workout: {
+		include: {
+			workoutOfMesocycle: true
+		}
+	}
+} satisfies Prisma.WorkoutExerciseInclude;
+
+async function getPreviousMesocycleProgressionWorkouts(
+	userId: string,
+	currentMesocycleId: string,
+	splitDayIndex: number,
+	exerciseNames: string[]
+): Promise<ProgressionWorkouts> {
+	if (exerciseNames.length === 0) return [];
+
+	// Prisma `distinct` is in-memory and still loads every matching row. DISTINCT ON
+	// returns one newest WorkoutExercise id per name without the full history.
+	const latestExerciseIds = await prisma.$queryRaw<{ id: string }[]>`
+		SELECT DISTINCT ON (we.name) we.id
+		FROM "WorkoutExercise" we
+		INNER JOIN "Workout" w ON w.id = we."workoutId"
+		INNER JOIN "WorkoutOfMesocycle" wom ON wom."workoutId" = w.id
+		WHERE we.name IN (${Prisma.join(exerciseNames)})
+			AND we."isDeload" = FALSE
+			AND w."userId" = ${userId}
+			AND wom."mesocycleId" <> ${currentMesocycleId}
+			AND wom."splitDayIndex" = ${splitDayIndex}
+			AND wom."workoutStatus" IS NULL
+		ORDER BY we.name ASC, w."startedAt" DESC, we.id DESC
+	`;
+	if (latestExerciseIds.length === 0) return [];
+
+	const matchingExercises = await prisma.workoutExercise.findMany({
+		where: { id: { in: latestExerciseIds.map(({ id }) => id) } },
+		include: previousMesocycleLatestExerciseInclude
+	});
+
+	return pickLatestExercisesByName(matchingExercises).flatMap((exercise) => {
+		const membership = exercise.workout.workoutOfMesocycle;
+		if (!membership) return [];
+		const { workoutOfMesocycle: _membership, ...workout } = exercise.workout;
+		const { workout: _workout, ...workoutExercise } = exercise;
+		return [
+			{
+				...membership,
+				workout: {
+					...workout,
+					workoutExercises: [workoutExercise]
+				}
+			}
+		];
+	}) as ProgressionWorkouts;
+}
 
 const workoutInputDataSchema = z.object({
 	completionId: z.string().cuid2().optional(),
@@ -697,17 +760,35 @@ export const workouts = t.router({
 			const { isRestDay, cycleNumber } = getBasicDayInfoForSkippedWorkout(data, totalWorkouts, splitDayIndex);
 			if (isRestDay) return workoutExercisesWithPreviousData;
 
+			const todaysExercises = data.mesocycleExerciseSplitDays[splitDayIndex]?.mesocycleSplitDayExercises ?? [];
+			const exerciseNamesNeedingPreviousMesocycle = getExerciseNamesNeedingPreviousMesocycleFallback(
+				todaysExercises.map((exercise) => ({
+					name: exercise.name,
+					mesocycleExerciseTemplateId: exercise.id
+				})),
+				data.workoutsOfMesocycle,
+				splitDayIndex
+			);
+			const previousMesocycleWorkouts = await getPreviousMesocycleProgressionWorkouts(
+				ctx.userId,
+				data.id,
+				splitDayIndex,
+				exerciseNamesNeedingPreviousMesocycle
+			);
+
 			workoutExercisesWithPreviousData.todaysWorkoutExercises = progressiveOverloadMagic(
 				data,
 				cycleNumber,
 				input.userBodyweight,
-				splitDayIndex
+				splitDayIndex,
+				previousMesocycleWorkouts
 			);
 
 			const previousExercises = getPreviousWorkoutExercisePerformances(
 				workoutExercisesWithPreviousData.todaysWorkoutExercises,
 				data.workoutsOfMesocycle,
-				splitDayIndex
+				splitDayIndex,
+				previousMesocycleWorkouts
 			);
 			if (previousExercises.length > 0) {
 				workoutExercisesWithPreviousData.previousWorkoutData = { exercises: previousExercises };
