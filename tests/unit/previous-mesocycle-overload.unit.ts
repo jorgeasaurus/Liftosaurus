@@ -322,18 +322,40 @@ test('previous workout comparison uses previous-meso data only until this meso h
 	);
 });
 
-test('a batched previous-meso history keeps only the newest row per exercise name', () => {
-	const latest = pickLatestExercisesByName([
-		{ name: 'Bench press', load: 115 },
-		{ name: 'Squat', load: 225 },
-		{ name: 'Bench press', load: 100 },
-		{ name: 'Squat', load: 205 }
-	]);
+function previousExerciseRow(name: string, startedAt: string, id: string, load: number) {
+	return { name, id, load, workout: { startedAt: new Date(startedAt) } };
+}
 
-	assert.deepEqual(latest, [
-		{ name: 'Bench press', load: 115 },
-		{ name: 'Squat', load: 225 }
-	]);
+test('a batched previous-meso history keeps only the newest row per exercise name', () => {
+	const newestFirst = [
+		previousExerciseRow('Bench press', '2026-06-22T12:00:00Z', 'bench-new', 115),
+		previousExerciseRow('Squat', '2026-06-22T12:00:00Z', 'squat-new', 225),
+		previousExerciseRow('Bench press', '2026-06-01T12:00:00Z', 'bench-old', 100),
+		previousExerciseRow('Squat', '2026-06-01T12:00:00Z', 'squat-old', 205)
+	];
+	const oldestFirst = [...newestFirst].toReversed();
+
+	assert.deepEqual(
+		pickLatestExercisesByName(newestFirst).map(({ name, load }) => ({ name, load })),
+		[
+			{ name: 'Bench press', load: 115 },
+			{ name: 'Squat', load: 225 }
+		]
+	);
+	assert.deepEqual(
+		pickLatestExercisesByName(oldestFirst).map(({ name, load }) => ({ name, load })),
+		[
+			{ name: 'Squat', load: 225 },
+			{ name: 'Bench press', load: 115 }
+		]
+	);
+	assert.deepEqual(
+		pickLatestExercisesByName([
+			previousExerciseRow('Bench press', '2026-06-22T12:00:00Z', 'aaa', 100),
+			previousExerciseRow('Bench press', '2026-06-22T12:00:00Z', 'zzz', 115)
+		]).map(({ load }) => load),
+		[115]
+	);
 });
 
 test('previous-meso names are queried only when this meso has no matching non-deload log', () => {

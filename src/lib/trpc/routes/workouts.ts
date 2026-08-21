@@ -178,20 +178,25 @@ async function getPreviousMesocycleProgressionWorkouts(
 ): Promise<ProgressionWorkouts> {
 	if (exerciseNames.length === 0) return [];
 
+	// Prisma `distinct` is in-memory and still loads every matching row. DISTINCT ON
+	// returns one newest WorkoutExercise id per name without the full history.
+	const latestExerciseIds = await prisma.$queryRaw<{ id: string }[]>`
+		SELECT DISTINCT ON (we.name) we.id
+		FROM "WorkoutExercise" we
+		INNER JOIN "Workout" w ON w.id = we."workoutId"
+		INNER JOIN "WorkoutOfMesocycle" wom ON wom."workoutId" = w.id
+		WHERE we.name IN (${Prisma.join(exerciseNames)})
+			AND we."isDeload" = FALSE
+			AND w."userId" = ${userId}
+			AND wom."mesocycleId" <> ${currentMesocycleId}
+			AND wom."splitDayIndex" = ${splitDayIndex}
+			AND wom."workoutStatus" IS NULL
+		ORDER BY we.name ASC, w."startedAt" DESC, we.id DESC
+	`;
+	if (latestExerciseIds.length === 0) return [];
+
 	const matchingExercises = await prisma.workoutExercise.findMany({
-		where: {
-			name: { in: exerciseNames },
-			isDeload: false,
-			workout: {
-				userId,
-				workoutOfMesocycle: {
-					mesocycleId: { not: currentMesocycleId },
-					splitDayIndex,
-					workoutStatus: null
-				}
-			}
-		},
-		orderBy: [{ workout: { startedAt: 'desc' } }, { id: 'desc' }],
+		where: { id: { in: latestExerciseIds.map(({ id }) => id) } },
 		include: previousMesocycleLatestExerciseInclude
 	});
 

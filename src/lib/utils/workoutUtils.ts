@@ -297,10 +297,25 @@ export function getExerciseNamesNeedingPreviousMesocycleFallback(
 	];
 }
 
-export function pickLatestExercisesByName<T extends { name: string }>(exercises: readonly T[]): T[] {
+type LatestExerciseByName = {
+	name: string;
+	id: string;
+	workout: { startedAt: Date | string };
+};
+
+function compareExerciseRecency(left: LatestExerciseByName, right: LatestExerciseByName) {
+	const startedAtDelta = new Date(left.workout.startedAt).getTime() - new Date(right.workout.startedAt).getTime();
+	if (startedAtDelta !== 0) return startedAtDelta;
+	return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+}
+
+export function pickLatestExercisesByName<T extends LatestExerciseByName>(exercises: readonly T[]): T[] {
 	const latestByName = new Map<string, T>();
 	for (const exercise of exercises) {
-		if (!latestByName.has(exercise.name)) latestByName.set(exercise.name, exercise);
+		const current = latestByName.get(exercise.name);
+		if (!current || compareExerciseRecency(exercise, current) > 0) {
+			latestByName.set(exercise.name, exercise);
+		}
 	}
 	return [...latestByName.values()];
 }
