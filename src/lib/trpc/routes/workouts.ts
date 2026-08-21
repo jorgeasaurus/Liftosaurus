@@ -157,21 +157,17 @@ export type ActiveMesocycleWithProgressionData = Prisma.MesocycleGetPayload<{
 
 type ProgressionWorkouts = ActiveMesocycleWithProgressionData['workoutsOfMesocycle'];
 
-const previousMesocycleProgressionWorkoutInclude = {
+const previousMesocycleLatestExerciseInclude = {
+	sets: {
+		include: { miniSets: { orderBy: { miniSetIndex: 'asc' as const } } },
+		orderBy: { setIndex: 'asc' as const }
+	},
 	workout: {
 		include: {
-			workoutExercises: {
-				include: {
-					sets: {
-						include: { miniSets: { orderBy: { miniSetIndex: 'asc' as const } } },
-						orderBy: { setIndex: 'asc' as const }
-					}
-				},
-				orderBy: { exerciseIndex: 'asc' as const }
-			}
+			workoutOfMesocycle: true
 		}
 	}
-} satisfies Prisma.WorkoutOfMesocycleInclude;
+} satisfies Prisma.WorkoutExerciseInclude;
 
 async function getPreviousMesocycleProgressionWorkouts(
 	userId: string,
@@ -181,26 +177,42 @@ async function getPreviousMesocycleProgressionWorkouts(
 ): Promise<ProgressionWorkouts> {
 	if (exerciseNames.length === 0) return [];
 
-	const previousMemberships = await prisma.workoutOfMesocycle.findMany({
-		where: {
-			mesocycleId: { not: currentMesocycleId },
-			splitDayIndex,
-			workoutStatus: null,
-			workout: {
-				userId,
-				workoutExercises: {
-					some: {
-						name: { in: exerciseNames },
-						isDeload: false
+	const latestExercises = await Promise.all(
+		exerciseNames.map((name) =>
+			prisma.workoutExercise.findFirst({
+				where: {
+					name,
+					isDeload: false,
+					workout: {
+						userId,
+						workoutOfMesocycle: {
+							mesocycleId: { not: currentMesocycleId },
+							splitDayIndex,
+							workoutStatus: null
+						}
 					}
+				},
+				orderBy: [{ workout: { startedAt: 'desc' } }, { id: 'desc' }],
+				include: previousMesocycleLatestExerciseInclude
+			})
+		)
+	);
+
+	return latestExercises.flatMap((exercise) => {
+		const membership = exercise?.workout.workoutOfMesocycle;
+		if (!exercise || !membership) return [];
+		const { workoutOfMesocycle: _membership, ...workout } = exercise.workout;
+		const { workout: _workout, ...workoutExercise } = exercise;
+		return [
+			{
+				...membership,
+				workout: {
+					...workout,
+					workoutExercises: [workoutExercise]
 				}
 			}
-		},
-		include: previousMesocycleProgressionWorkoutInclude,
-		orderBy: { workout: { startedAt: 'asc' } }
-	});
-
-	return previousMemberships as ProgressionWorkouts;
+		];
+	}) as ProgressionWorkouts;
 }
 
 const workoutInputDataSchema = z.object({
