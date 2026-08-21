@@ -16,6 +16,7 @@ import {
 } from '$lib/utils/dashboardMetrics';
 import {
 	getPreviousWorkoutExercisePerformances,
+	getProgressionPerformances,
 	hasAlignedManualDeloadMetadata,
 	progressiveOverloadMagic,
 	type WorkoutExerciseInProgress,
@@ -153,6 +154,54 @@ const createActiveMesocycleWithProgressionDataInclude = (splitDayIndex?: number)
 export type ActiveMesocycleWithProgressionData = Prisma.MesocycleGetPayload<{
 	include: ReturnType<typeof createActiveMesocycleWithProgressionDataInclude>;
 }>;
+
+type ProgressionWorkouts = ActiveMesocycleWithProgressionData['workoutsOfMesocycle'];
+
+const previousMesocycleProgressionWorkoutInclude = {
+	workout: {
+		include: {
+			workoutExercises: {
+				include: {
+					sets: {
+						include: { miniSets: { orderBy: { miniSetIndex: 'asc' as const } } },
+						orderBy: { setIndex: 'asc' as const }
+					}
+				},
+				orderBy: { exerciseIndex: 'asc' as const }
+			}
+		}
+	}
+} satisfies Prisma.WorkoutOfMesocycleInclude;
+
+async function getPreviousMesocycleProgressionWorkouts(
+	userId: string,
+	currentMesocycleId: string,
+	splitDayIndex: number,
+	exerciseNames: string[]
+): Promise<ProgressionWorkouts> {
+	if (exerciseNames.length === 0) return [];
+
+	const previousMemberships = await prisma.workoutOfMesocycle.findMany({
+		where: {
+			mesocycleId: { not: currentMesocycleId },
+			splitDayIndex,
+			workoutStatus: null,
+			workout: {
+				userId,
+				workoutExercises: {
+					some: {
+						name: { in: exerciseNames },
+						isDeload: false
+					}
+				}
+			}
+		},
+		include: previousMesocycleProgressionWorkoutInclude,
+		orderBy: { workout: { startedAt: 'asc' } }
+	});
+
+	return previousMemberships as ProgressionWorkouts;
+}
 
 const workoutInputDataSchema = z.object({
 	completionId: z.string().cuid2().optional(),
@@ -697,17 +746,41 @@ export const workouts = t.router({
 			const { isRestDay, cycleNumber } = getBasicDayInfoForSkippedWorkout(data, totalWorkouts, splitDayIndex);
 			if (isRestDay) return workoutExercisesWithPreviousData;
 
+			const todaysExercises = data.mesocycleExerciseSplitDays[splitDayIndex]?.mesocycleSplitDayExercises ?? [];
+			const exerciseNamesNeedingPreviousMesocycle = [
+				...new Set(
+					todaysExercises
+						.filter(
+							(exercise) =>
+								getProgressionPerformances(
+									{ name: exercise.name, mesocycleExerciseTemplateId: exercise.id },
+									data.workoutsOfMesocycle,
+									splitDayIndex
+								).length === 0
+						)
+						.map((exercise) => exercise.name)
+				)
+			];
+			const previousMesocycleWorkouts = await getPreviousMesocycleProgressionWorkouts(
+				ctx.userId,
+				data.id,
+				splitDayIndex,
+				exerciseNamesNeedingPreviousMesocycle
+			);
+
 			workoutExercisesWithPreviousData.todaysWorkoutExercises = progressiveOverloadMagic(
 				data,
 				cycleNumber,
 				input.userBodyweight,
-				splitDayIndex
+				splitDayIndex,
+				previousMesocycleWorkouts
 			);
 
 			const previousExercises = getPreviousWorkoutExercisePerformances(
 				workoutExercisesWithPreviousData.todaysWorkoutExercises,
 				data.workoutsOfMesocycle,
-				splitDayIndex
+				splitDayIndex,
+				previousMesocycleWorkouts
 			);
 			if (previousExercises.length > 0) {
 				workoutExercisesWithPreviousData.previousWorkoutData = { exercises: previousExercises };
